@@ -41,7 +41,7 @@ export default function EntryFormPage({ user }) {
   return (
     <div style={styles.page}>
       <div style={styles.card}>
-        <h2 style={styles.title}>🍃 নতুন তথ্য অন্তৰ্ভুক্ত</h2>
+        <h2 style={styles.title}>🍃 নতুন তথ্য অন্তৰ্ভুক্ত কৰক 🍃</h2>
         <p style={styles.hint}>তাৰিখ আৰু ওজন অন্তৰ্ভুক্ত কৰক</p>
 
         {success && (
@@ -70,7 +70,7 @@ export default function EntryFormPage({ user }) {
             name="weight"
             value={form.weight}
             onChange={handleChange}
-            placeholder="Jaise: 150"
+            placeholder="যেনে : 50 কি:গ্ৰা:"
             min="0"
             style={styles.input}
           />
