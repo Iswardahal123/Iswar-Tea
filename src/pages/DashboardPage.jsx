@@ -98,8 +98,8 @@ export default function DashboardPage({ user }) {
       <div style={styles.statsGrid}>
         <div style={{ ...styles.statCard, background: "linear-gradient(135deg, #1a3a1a, #2d5a27)", gridColumn: "span 2" }}>
           <div style={styles.statLabel}>মুঠ উপাৰ্জন</div>
-          <div style={styles.statValueBig}>টকা{totalAmount.toFixed(2)}</div>
-          <div style={styles.statSub}>{totalWeight.toFixed(1)} কি:গ্ৰা: মুঠ</div>
+          <div style={styles.statValueBig}>টকা {totalAmount.toFixed(2)}</div>
+          <div style={styles.statSub}>মুঠ: {totalWeight.toFixed(1)} কি:গ্ৰা:</div>
         </div>
 
         <div style={{ ...styles.statCard, background: "linear-gradient(135deg, #1e40af, #3b82f6)" }}>
@@ -130,7 +130,7 @@ export default function DashboardPage({ user }) {
 
       {filtered.length === 0 ? (
         <div style={styles.empty}>
-          <p>তথ্য জমা কৰা হোৱা নাই</p>
+          <p>তথ্য অন্তৰ্ভুক্ত কৰা হোৱা নাই</p>
           <p style={{ fontSize: "13px", color: "#9ca3af", marginTop: "6px" }}>Entry ত গৈ তথ্য অন্তৰ্ভুক্ত কৰক</p>
         </div>
       ) : (
