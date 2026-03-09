@@ -1,215 +1,409 @@
-import React, { useEffect, useState } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { auth, db } from "../firebase/config";
-import { collection, query, where, getDocs, doc, getDoc } from "firebase/firestore";
+import { signOut, updatePassword, reauthenticateWithCredential, EmailAuthProvider } from "firebase/auth";
+import { doc, deleteDoc, collection, query, where, getDocs, getDoc, setDoc, updateDoc } from "firebase/firestore";
 
-export default function DashboardPage({ user }) {
-  const [entries, setEntries] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [filterMonth, setFilterMonth] = useState("");
-  const [totalAdvanceTaken, setTotalAdvanceTaken] = useState(0);
+export default function TopBar({ user, currentPage, isAdmin }) {
+  const [showDropdown, setShowDropdown] = useState(false);
+  const [showPwdModal, setShowPwdModal] = useState(false);
+  const [showClearModal, setShowClearModal] = useState(false);
+  const [showAdvanceModal, setShowAdvanceModal] = useState(false);
+  const [currentAdvance, setCurrentAdvance] = useState(0);
+  const [newAdvanceAmt, setNewAdvanceAmt] = useState("");
+  const [advanceAction, setAdvanceAction] = useState("add");
+  const [newPwd, setNewPwd] = useState("");
+  const [currentPwd, setCurrentPwd] = useState("");
+  const [clearPwd, setClearPwd] = useState("");
+  const [msg, setMsg] = useState("");
+  const [msgType, setMsgType] = useState("success");
+  const [loading, setLoading] = useState(false);
+  const dropdownRef = useRef(null);
 
-  useEffect(() => {
-    const fetchData = async () => {
-      setLoading(true);
-      try {
-        const currentUser = user || auth.currentUser;
-        if (!currentUser) { setLoading(false); return; }
-        const q = query(
-          collection(db, "entries"),
-          where("uid", "==", currentUser.uid)
-        );
-        const snap = await getDocs(q);
-        const data = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
-        setEntries(data);
-        // Fetch total advance taken from user doc
-        if (currentUser.uid) {
-          const userDoc = await getDoc(doc(db, "users", currentUser.uid));
-          if (userDoc.exists()) {
-            setTotalAdvanceTaken(userDoc.data().totalAdvanceTaken || 0);
-          }
-        }
-      } catch (err) {
-        console.error("Fetch error:", err);
-      }
-      setLoading(false);
-    };
-    fetchData();
-  }, [user]);
-
-  const filtered = filterMonth
-    ? entries.filter((e) => e.date && e.date.startsWith(filterMonth))
-    : entries;
-
-  const totalWeight      = filtered.reduce((s, e) => s + (e.weight || 0), 0);
-  const totalAmount      = filtered.reduce((s, e) => s + (e.totalAmount || 0), 0);
-  const totalReceived    = filtered.reduce((s, e) => s + (e.amountReceived || 0), 0);
-  const totalAdvanceCut  = filtered.reduce((s, e) => s + (e.advanceCut || 0), 0);
-  const totalBalance     = filtered.reduce((s, e) => s + (e.balanceAmount || 0), 0);
-
-  // Advance Balance = Total Advance Liya - Total Advance Kata (entries mein)
-  const advanceBalance = totalAdvanceTaken - totalAdvanceCut;
-
-  const currentUserObj = user || auth.currentUser;
-  const greeting = () => {
-    const h = new Date().getHours();
-    if (h < 12) return "Subah ki chai";
-    if (h < 17) return "Dopahar ka waqt";
-    return "Shaam ki chai";
+  const pageNames = {
+    dashboard: "Dashboard",
+    entry: "Patta Entry",
+    view: "Meri Entries",
+    chat: "AI Sahayak",
+    admin: "Admin Dashboard",
   };
 
-  if (loading) {
-    return (
-      <div style={{ textAlign: "center", padding: "60px", color: "#6b7280", fontFamily: "'Segoe UI', sans-serif" }}>
-        <div style={{ fontSize: "40px" }}>🍃</div>
-        <p>Dashboard load ho raha hai...</p>
-      </div>
-    );
-  }
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClick = (e) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
+        setShowDropdown(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, []);
+
+  const handleLogout = () => { signOut(auth); setShowDropdown(false); };
+
+  const openAdvanceModal = async () => {
+    setShowAdvanceModal(true);
+    setShowDropdown(false);
+    try {
+      const userDoc = await getDoc(doc(db, "users", user.uid));
+      if (userDoc.exists()) {
+        setCurrentAdvance(userDoc.data().totalAdvanceTaken || 0);
+      }
+    } catch(err) { console.error(err); }
+  };
+
+  const handleAdvanceSave = async () => {
+    const amt = parseFloat(newAdvanceAmt) || 0;
+    if (amt <= 0) { setMsg("Sahi amount daalo!"); setMsgType("error"); return; }
+    setLoading(true);
+    try {
+      const userRef = doc(db, "users", user.uid);
+      const userDoc = await getDoc(userRef);
+      const existing = userDoc.exists() ? (userDoc.data().totalAdvanceTaken || 0) : 0;
+      const updated = advanceAction === "add" ? existing + amt : Math.max(0, existing - amt);
+      await updateDoc(userRef, { totalAdvanceTaken: updated });
+      setCurrentAdvance(updated);
+      setMsg("Advance update ho gaya! Rs " + updated.toFixed(0));
+      setMsgType("success");
+      setNewAdvanceAmt("");
+      setTimeout(() => { setShowAdvanceModal(false); setMsg(""); window.location.reload(); }, 1500);
+    } catch(err) {
+      setMsg("Error: " + err.message); setMsgType("error");
+    }
+    setLoading(false);
+  };
+
+  const handleUpdatePassword = async () => {
+    if (!currentPwd || !newPwd) { setMsg("Dono fields bharo!"); setMsgType("error"); return; }
+    if (newPwd.length < 6) { setMsg("Password kam se kam 6 characters!"); setMsgType("error"); return; }
+    setLoading(true);
+    try {
+      const credential = EmailAuthProvider.credential(user.email, currentPwd);
+      await reauthenticateWithCredential(auth.currentUser, credential);
+      await updatePassword(auth.currentUser, newPwd);
+      setMsg("Password update ho gaya!"); setMsgType("success");
+      setCurrentPwd(""); setNewPwd("");
+      setTimeout(() => { setShowPwdModal(false); setMsg(""); }, 2000);
+    } catch (err) {
+      setMsg(err.code === "auth/wrong-password" ? "Purana password galat hai!" : "Error: " + err.message);
+      setMsgType("error");
+    }
+    setLoading(false);
+  };
+
+  const handleClearData = async () => {
+    if (!clearPwd) { setMsg("Password daalo!"); setMsgType("error"); return; }
+    setLoading(true);
+    try {
+      const credential = EmailAuthProvider.credential(user.email, clearPwd);
+      await reauthenticateWithCredential(auth.currentUser, credential);
+      const q = query(collection(db, "entries"), where("uid", "==", user.uid));
+      const snap = await getDocs(q);
+      await Promise.all(snap.docs.map((d) => deleteDoc(doc(db, "entries", d.id))));
+      setMsg("Saara data delete ho gaya!"); setMsgType("success");
+      setClearPwd("");
+      setTimeout(() => { setShowClearModal(false); setMsg(""); window.location.reload(); }, 2000);
+    } catch (err) {
+      setMsg(err.code === "auth/wrong-password" ? "Password galat hai!" : "Error: " + err.message);
+      setMsgType("error");
+    }
+    setLoading(false);
+  };
+
+  const isGoogleUser = user.providerData?.[0]?.providerId === "google.com";
 
   return (
-    <div style={styles.container}>
-
-      {/* Greeting */}
-      <div style={styles.greetingCard}>
-        <div style={styles.greetingTop}>
+    <>
+      <div style={styles.bar}>
+        <div style={styles.left}>
+          <span style={styles.logo}>&#127807;</span>
           <div>
-            <div style={styles.greetingText}>{greeting()} ☕</div>
-            <div style={styles.greetingName}>{currentUserObj ? (currentUserObj.displayName || currentUserObj.email.split("@")[0]) : ""}</div>
+            <div style={styles.appName}>Chai Bagan</div>
+            <div style={styles.pageName}>{pageNames[currentPage] || "Home"}</div>
           </div>
-          <div style={styles.leafBig}>🍃</div>
-        </div>
-        <div style={styles.totalEntries}>{filtered.length} entries • {totalWeight.toFixed(1)} kg patta</div>
-      </div>
-
-      {/* Month Filter */}
-      <div style={styles.filterRow}>
-        <label style={styles.filterLabel}>📅 Month:</label>
-        <input
-          type="month" value={filterMonth}
-          onChange={(e) => setFilterMonth(e.target.value)}
-          style={styles.filterInput}
-        />
-        {filterMonth && (
-          <button onClick={() => setFilterMonth("")} style={styles.clearBtn}>Clear</button>
-        )}
-      </div>
-
-      {/* Main Stats Grid */}
-      <div style={styles.statsGrid}>
-        <div style={{ ...styles.statCard, background: "linear-gradient(135deg, #1a3a1a, #2d5a27)", gridColumn: "span 2" }}>
-          <div style={styles.statLabel}>Kul Patta Kamaai</div>
-          <div style={styles.statValueBig}>Rs {totalAmount.toFixed(2)}</div>
-          <div style={styles.statSub}>{totalWeight.toFixed(1)} kg total</div>
         </div>
 
-        <div style={{ ...styles.statCard, background: "linear-gradient(135deg, #1e40af, #3b82f6)" }}>
-          <div style={styles.statLabel}>Mili Raqam</div>
-          <div style={styles.statValue}>Rs {totalReceived.toFixed(0)}</div>
-        </div>
+        <div style={styles.right}>
+          {isAdmin && <span style={styles.adminBadge}>Admin</span>}
 
-        <div style={{ ...styles.statCard, background: totalBalance >= 0 ? "linear-gradient(135deg, #14532d, #16a34a)" : "linear-gradient(135deg, #7f1d1d, #dc2626)" }}>
-          <div style={styles.statLabel}>Baaki Balance</div>
-          <div style={styles.statValue}>Rs {totalBalance.toFixed(0)}</div>
-        </div>
-
-        <div style={{ ...styles.statCard, background: "linear-gradient(135deg, #92400e, #d97706)" }}>
-          <div style={styles.statLabel}>Advance Liya (Total)</div>
-          <div style={styles.statValue}>Rs {totalAdvanceTaken.toFixed(0)}</div>
-          <div style={styles.statSub}>Kata: Rs {totalAdvanceCut.toFixed(0)}</div>
-        </div>
-
-        <div style={{ ...styles.statCard, background: advanceBalance >= 0 ? "linear-gradient(135deg, #4c1d95, #7c3aed)" : "linear-gradient(135deg, #7f1d1d, #dc2626)" }}>
-          <div style={styles.statLabel}>Advance Baaki</div>
-          <div style={styles.statValue}>Rs {advanceBalance.toFixed(0)}</div>
-          <div style={styles.statSub}>{advanceBalance >= 0 ? "Abhi baaki hai" : "Zyada kata!"}</div>
-        </div>
-      </div>
-
-      {/* Recent Entries */}
-      <div style={styles.sectionTitle}>📋 Recent Entries</div>
-
-      {filtered.length === 0 ? (
-        <div style={styles.empty}>
-          <p>Koi entry nahi hai abhi</p>
-          <p style={{ fontSize: "13px", color: "#9ca3af", marginTop: "6px" }}>Entry tab se patta add karo</p>
-        </div>
-      ) : (
-        filtered.slice(0, 10).map((entry) => (
-          <div key={entry.id} style={styles.entryRow}>
-            <div style={styles.entryLeft}>
-              <div style={styles.entryDate}>
-                {new Date(entry.date).toLocaleDateString("hi-IN", { day: "numeric", month: "short" })}
-              </div>
-              <div style={styles.entryWeight}>{entry.weight} kg</div>
-            </div>
-            <div style={styles.entryMid}>
-              {entry.rate > 0
-                ? <span style={styles.rateTag}>Rs{entry.rate}/kg</span>
-                : <span style={styles.pendingTag}>Rate pending</span>
+          {/* Avatar with dropdown */}
+          <div ref={dropdownRef} style={styles.avatarWrapper}>
+            <div onClick={() => setShowDropdown(!showDropdown)} style={styles.avatarBtn}>
+              {user.photoURL
+                ? <img src={user.photoURL} alt="" style={styles.avatarImg} />
+                : <div style={styles.avatarText}>{(user.email || "U")[0].toUpperCase()}</div>
               }
             </div>
-            <div style={styles.entryRight}>
-              {entry.totalAmount > 0 && (
-                <div style={styles.entryTotal}>Rs{entry.totalAmount.toFixed(0)}</div>
-              )}
-              <div style={{
-                ...styles.entryBalance,
-                color: (entry.balanceAmount || 0) >= 0 ? "#16a34a" : "#dc2626",
-              }}>
-                Baaki: Rs{(entry.balanceAmount || 0).toFixed(0)}
+
+            {/* DROPDOWN - Gmail style top right */}
+            {showDropdown && (
+              <div style={styles.dropdown}>
+                {/* User info at top */}
+                <div style={styles.dropUserInfo}>
+                  {user.photoURL
+                    ? <img src={user.photoURL} alt="" style={styles.dropAvatar} />
+                    : <div style={styles.dropAvatarText}>{(user.email || "U")[0].toUpperCase()}</div>
+                  }
+                  <div style={styles.dropInfo}>
+                    <div style={styles.dropName}>{user.displayName || "User"}</div>
+                    <div style={styles.dropEmail}>{user.email}</div>
+                    <div style={{
+                      ...styles.dropRole,
+                      background: isAdmin ? "#fef3c7" : "#f0fdf4",
+                      color: isAdmin ? "#92400e" : "#166534",
+                    }}>
+                      {isAdmin ? "Admin" : "User"}
+                    </div>
+                  </div>
+                </div>
+
+                <div style={styles.dropDivider} />
+
+                {/* Menu Items */}
+                {!isGoogleUser && (
+                  <div
+                    style={styles.dropItem}
+                    onClick={() => { setShowPwdModal(true); setShowDropdown(false); }}
+                  >
+                    <span style={styles.dropIcon}>&#128273;</span>
+                    Password Update
+                  </div>
+                )}
+                <div
+                  style={styles.dropItem}
+                  onClick={openAdvanceModal}
+                >
+                  <span style={styles.dropIcon}>&#128176;</span>
+                  Advance Update Karo
+                </div>
+                <div
+                  style={{ ...styles.dropItem, color: "#dc2626" }}
+                  onClick={() => { setShowClearModal(true); setShowDropdown(false); }}
+                >
+                  <span style={styles.dropIcon}>&#128465;</span>
+                  Data Clear Karo
+                </div>
+
+                <div style={styles.dropDivider} />
+
+                <div style={{ ...styles.dropItem, color: "#374151" }} onClick={handleLogout}>
+                  <span style={styles.dropIcon}>&#128682;</span>
+                  Logout
+                </div>
               </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* PASSWORD MODAL */}
+      {showPwdModal && (
+        <div style={styles.overlay} onClick={() => { setShowPwdModal(false); setMsg(""); }}>
+          <div style={styles.modal} onClick={(e) => e.stopPropagation()}>
+            <div style={styles.modalHeader}>
+              <h3 style={styles.modalTitle}>Password Update</h3>
+              <button onClick={() => { setShowPwdModal(false); setMsg(""); }} style={styles.closeBtn}>X</button>
+            </div>
+            <div style={styles.modalBody}>
+              <div style={styles.field}>
+                <label style={styles.fieldLabel}>Purana Password</label>
+                <input type="password" value={currentPwd} onChange={(e) => setCurrentPwd(e.target.value)} placeholder="Current password" style={styles.fieldInput} />
+              </div>
+              <div style={styles.field}>
+                <label style={styles.fieldLabel}>Naya Password</label>
+                <input type="password" value={newPwd} onChange={(e) => setNewPwd(e.target.value)} placeholder="Min 6 characters" style={styles.fieldInput} />
+              </div>
+              {msg && <div style={{ ...styles.msgBox, background: msgType === "success" ? "#f0fdf4" : "#fef2f2", color: msgType === "success" ? "#16a34a" : "#dc2626" }}>{msg}</div>}
+              <button onClick={handleUpdatePassword} disabled={loading} style={styles.saveBtn}>
+                {loading ? "Update ho raha hai..." : "Update Karo"}
+              </button>
             </div>
           </div>
-        ))
+        </div>
       )}
 
-      {filtered.length > 10 && (
-        <div style={styles.moreText}>+ {filtered.length - 10} aur entries hain — Records tab mein dekho</div>
+      {/* ADVANCE MODAL */}
+      {showAdvanceModal && (
+        <div style={styles.overlay} onClick={() => { setShowAdvanceModal(false); setMsg(""); }}>
+          <div style={styles.modal} onClick={(e) => e.stopPropagation()}>
+            <div style={styles.modalHeader}>
+              <h3 style={styles.modalTitle}>&#128176; Advance Update</h3>
+              <button onClick={() => { setShowAdvanceModal(false); setMsg(""); }} style={styles.closeBtn}>X</button>
+            </div>
+            <div style={styles.modalBody}>
+              <div style={{ background: "#fef3c7", borderRadius: "12px", padding: "14px", textAlign: "center" }}>
+                <div style={{ fontSize: "12px", color: "#92400e", fontWeight: "700" }}>Abhi Tak Total Advance Liya</div>
+                <div style={{ fontSize: "28px", fontWeight: "900", color: "#d97706" }}>Rs {currentAdvance.toFixed(0)}</div>
+              </div>
+              <div style={{ display: "flex", gap: "8px" }}>
+                <button
+                  onClick={() => setAdvanceAction("add")}
+                  style={{ flex: 1, padding: "10px", borderRadius: "10px", border: "2px solid " + (advanceAction === "add" ? "#16a34a" : "#e5e7eb"), background: advanceAction === "add" ? "#f0fdf4" : "white", color: advanceAction === "add" ? "#16a34a" : "#6b7280", fontWeight: "700", cursor: "pointer", fontFamily: "inherit" }}
+                >
+                  + Naya Advance
+                </button>
+                <button
+                  onClick={() => setAdvanceAction("subtract")}
+                  style={{ flex: 1, padding: "10px", borderRadius: "10px", border: "2px solid " + (advanceAction === "subtract" ? "#dc2626" : "#e5e7eb"), background: advanceAction === "subtract" ? "#fef2f2" : "white", color: advanceAction === "subtract" ? "#dc2626" : "#6b7280", fontWeight: "700", cursor: "pointer", fontFamily: "inherit" }}
+                >
+                  - Minus Karo
+                </button>
+              </div>
+              <div style={styles.field}>
+                <label style={styles.fieldLabel}>{advanceAction === "add" ? "Kitna naya advance liya? (Rs)" : "Kitna minus karna hai? (Rs)"}</label>
+                <input
+                  type="number"
+                  value={newAdvanceAmt}
+                  onChange={(e) => setNewAdvanceAmt(e.target.value)}
+                  placeholder="Amount daalo"
+                  style={styles.fieldInput}
+                />
+              </div>
+              {newAdvanceAmt > 0 && (
+                <div style={{ background: "#f3f4f6", borderRadius: "10px", padding: "10px 14px", fontSize: "13px", color: "#374151" }}>
+                  Naya total: Rs {advanceAction === "add" ? (currentAdvance + parseFloat(newAdvanceAmt||0)).toFixed(0) : Math.max(0, currentAdvance - parseFloat(newAdvanceAmt||0)).toFixed(0)}
+                </div>
+              )}
+              {msg && <div style={{ ...styles.msgBox, background: msgType === "success" ? "#f0fdf4" : "#fef2f2", color: msgType === "success" ? "#16a34a" : "#dc2626" }}>{msg}</div>}
+              <button onClick={handleAdvanceSave} disabled={loading} style={styles.saveBtn}>
+                {loading ? "Save ho raha hai..." : "Update Karo"}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
-    </div>
+
+      {/* CLEAR DATA MODAL */}
+      {showClearModal && (
+        <div style={styles.overlay} onClick={() => { setShowClearModal(false); setMsg(""); }}>
+          <div style={styles.modal} onClick={(e) => e.stopPropagation()}>
+            <div style={styles.modalHeader}>
+              <h3 style={{ ...styles.modalTitle, color: "#dc2626" }}>Data Clear Karo</h3>
+              <button onClick={() => { setShowClearModal(false); setMsg(""); }} style={styles.closeBtn}>X</button>
+            </div>
+            <div style={styles.modalBody}>
+              <div style={styles.warningBox}>
+                Yeh action saari entries permanently delete kar dega!
+              </div>
+              <div style={styles.field}>
+                <label style={styles.fieldLabel}>Password confirm karo</label>
+                <input type="password" value={clearPwd} onChange={(e) => setClearPwd(e.target.value)} placeholder="Apna password daalo" style={{ ...styles.fieldInput, borderColor: "#fca5a5" }} />
+              </div>
+              {msg && <div style={{ ...styles.msgBox, background: msgType === "success" ? "#f0fdf4" : "#fef2f2", color: msgType === "success" ? "#16a34a" : "#dc2626" }}>{msg}</div>}
+              <button onClick={handleClearData} disabled={loading} style={{ ...styles.saveBtn, background: "linear-gradient(135deg,#7f1d1d,#dc2626)" }}>
+                {loading ? "Delete ho raha hai..." : "Saara Data Delete Karo"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   );
 }
 
 const styles = {
-  container: { padding: "16px", paddingBottom: "90px", background: "#f8faf8", minHeight: "calc(100vh - 60px)", fontFamily: "'Segoe UI', sans-serif" },
-  greetingCard: {
-    background: "linear-gradient(135deg, #1a3a1a, #2d5a27, #4a7c3f)",
-    borderRadius: "20px", padding: "20px", marginBottom: "16px", color: "white",
-  },
-  greetingTop: { display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "8px" },
-  greetingText: { fontSize: "13px", opacity: 0.8, marginBottom: "4px" },
-  greetingName: { fontSize: "22px", fontWeight: "900", letterSpacing: "-0.5px" },
-  leafBig: { fontSize: "40px" },
-  totalEntries: { fontSize: "12px", opacity: 0.75, marginTop: "4px" },
-  filterRow: {
-    display: "flex", alignItems: "center", gap: "10px", marginBottom: "16px",
-    background: "white", padding: "12px 16px", borderRadius: "12px",
-    boxShadow: "0 2px 8px rgba(0,0,0,0.05)",
-  },
-  filterLabel: { fontSize: "13px", fontWeight: "700", whiteSpace: "nowrap" },
-  filterInput: { border: "2px solid #e5e7eb", borderRadius: "8px", padding: "6px 10px", fontSize: "14px", flex: 1, outline: "none", fontFamily: "inherit" },
-  clearBtn: { background: "#fee2e2", color: "#dc2626", border: "none", padding: "6px 12px", borderRadius: "8px", cursor: "pointer", fontWeight: "700", fontFamily: "inherit" },
-  statsGrid: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px", marginBottom: "20px" },
-  statCard: { borderRadius: "16px", padding: "16px", color: "white" },
-  statLabel: { fontSize: "11px", opacity: 0.85, fontWeight: "700", textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: "6px" },
-  statValueBig: { fontSize: "26px", fontWeight: "900", letterSpacing: "-0.5px" },
-  statValue: { fontSize: "20px", fontWeight: "900", letterSpacing: "-0.5px" },
-  statSub: { fontSize: "11px", opacity: 0.75, marginTop: "4px" },
-  sectionTitle: { fontSize: "15px", fontWeight: "800", color: "#1a3a1a", marginBottom: "10px" },
-  empty: { textAlign: "center", padding: "40px", color: "#6b7280", fontSize: "15px", background: "white", borderRadius: "14px" },
-  entryRow: {
-    background: "white", borderRadius: "12px", padding: "12px 14px",
+  bar: {
+    background: "linear-gradient(135deg, #1a3a1a, #2d5a27)",
+    color: "white", padding: "12px 16px",
     display: "flex", alignItems: "center", justifyContent: "space-between",
-    marginBottom: "8px", boxShadow: "0 1px 6px rgba(0,0,0,0.05)",
+    position: "sticky", top: 0, zIndex: 200,
+    boxShadow: "0 2px 12px rgba(0,0,0,0.2)",
   },
-  entryLeft: { minWidth: "60px" },
-  entryDate: { fontSize: "13px", fontWeight: "800", color: "#1a3a1a" },
-  entryWeight: { fontSize: "12px", color: "#6b7280", marginTop: "2px" },
-  entryMid: { flex: 1, paddingLeft: "10px" },
-  rateTag: { fontSize: "12px", background: "#f0fdf4", color: "#166534", padding: "3px 8px", borderRadius: "6px", fontWeight: "700" },
-  pendingTag: { fontSize: "11px", background: "#fef3c7", color: "#92400e", padding: "3px 8px", borderRadius: "6px", fontWeight: "700" },
-  entryRight: { textAlign: "right" },
-  entryTotal: { fontSize: "15px", fontWeight: "800", color: "#1a3a1a" },
-  entryBalance: { fontSize: "11px", fontWeight: "700", marginTop: "2px" },
-  moreText: { textAlign: "center", fontSize: "13px", color: "#6b7280", padding: "12px", background: "white", borderRadius: "10px", marginTop: "4px" },
+  left: { display: "flex", alignItems: "center", gap: "10px" },
+  logo: { fontSize: "26px" },
+  appName: { fontSize: "17px", fontWeight: "800", letterSpacing: "-0.5px" },
+  pageName: { fontSize: "11px", opacity: 0.75 },
+  right: { display: "flex", alignItems: "center", gap: "8px" },
+  adminBadge: { background: "#d97706", color: "white", padding: "3px 8px", borderRadius: "20px", fontSize: "11px", fontWeight: "700" },
+
+  // Avatar
+  avatarWrapper: { position: "relative" },
+  avatarBtn: {
+    width: 36, height: 36, borderRadius: "50%", overflow: "hidden",
+    cursor: "pointer", border: "2px solid rgba(255,255,255,0.6)",
+    display: "flex", alignItems: "center", justifyContent: "center",
+    background: "rgba(255,255,255,0.15)",
+  },
+  avatarImg: { width: "100%", height: "100%", objectFit: "cover" },
+  avatarText: { fontSize: "15px", fontWeight: "800", color: "white" },
+
+  // Dropdown
+  dropdown: {
+    position: "absolute",
+    top: "calc(100% + 10px)",
+    right: 0,
+    width: "260px",
+    background: "white",
+    borderRadius: "16px",
+    boxShadow: "0 8px 32px rgba(0,0,0,0.18), 0 2px 8px rgba(0,0,0,0.1)",
+    zIndex: 999,
+    overflow: "hidden",
+    border: "1px solid #e5e7eb",
+  },
+  dropUserInfo: {
+    display: "flex", alignItems: "center", gap: "12px",
+    padding: "16px",
+    background: "#f9fafb",
+  },
+  dropAvatar: { width: 44, height: 44, borderRadius: "50%", objectFit: "cover", flexShrink: 0 },
+  dropAvatarText: {
+    width: 44, height: 44, borderRadius: "50%", flexShrink: 0,
+    background: "linear-gradient(135deg,#1a3a1a,#2d5a27)",
+    display: "flex", alignItems: "center", justifyContent: "center",
+    fontSize: "18px", fontWeight: "800", color: "white",
+  },
+  dropInfo: { flex: 1, minWidth: 0 },
+  dropName: { fontSize: "14px", fontWeight: "800", color: "#1a1a1a", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" },
+  dropEmail: { fontSize: "11px", color: "#6b7280", marginTop: "2px", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" },
+  dropRole: { fontSize: "10px", fontWeight: "700", padding: "2px 8px", borderRadius: "20px", display: "inline-block", marginTop: "5px" },
+  dropDivider: { height: "1px", background: "#f3f4f6", margin: "0" },
+  dropItem: {
+    display: "flex", alignItems: "center", gap: "10px",
+    padding: "13px 16px", fontSize: "13px", fontWeight: "600",
+    cursor: "pointer", color: "#374151",
+    transition: "background 0.15s",
+  },
+  dropIcon: { fontSize: "16px" },
+
+  // Modals
+  overlay: {
+    position: "fixed", top: 0, left: 0, right: 0, bottom: 0,
+    background: "rgba(0,0,0,0.5)", zIndex: 998,
+    display: "flex", alignItems: "center", justifyContent: "center",
+    padding: "20px",
+  },
+  modal: {
+    background: "white", borderRadius: "20px",
+    width: "100%", maxWidth: "400px",
+    boxShadow: "0 20px 60px rgba(0,0,0,0.2)",
+    overflow: "hidden",
+  },
+  modalHeader: {
+    padding: "18px 20px 14px",
+    display: "flex", justifyContent: "space-between", alignItems: "center",
+    borderBottom: "2px solid #f3f4f6",
+  },
+  modalTitle: { fontSize: "17px", fontWeight: "800", color: "#1a3a1a", margin: 0 },
+  closeBtn: {
+    background: "#f3f4f6", border: "none", width: "30px", height: "30px",
+    borderRadius: "50%", cursor: "pointer", fontSize: "12px",
+    fontWeight: "700", fontFamily: "inherit",
+  },
+  modalBody: { padding: "16px 20px 24px", display: "flex", flexDirection: "column", gap: "14px" },
+  field: { display: "flex", flexDirection: "column", gap: "6px" },
+  fieldLabel: { fontSize: "13px", fontWeight: "700", color: "#374151" },
+  fieldInput: {
+    padding: "11px 14px", borderRadius: "10px", border: "2px solid #e5e7eb",
+    fontSize: "15px", outline: "none", fontFamily: "inherit", width: "100%", boxSizing: "border-box",
+  },
+  msgBox: { padding: "10px 14px", borderRadius: "8px", fontSize: "13px", fontWeight: "600" },
+  saveBtn: {
+    background: "linear-gradient(135deg, #1a3a1a, #2d5a27)", color: "white",
+    border: "none", padding: "13px", borderRadius: "12px",
+    fontSize: "15px", fontWeight: "700", cursor: "pointer", fontFamily: "inherit",
+  },
+  warningBox: {
+    background: "#fef3c7", color: "#92400e", padding: "12px 14px",
+    borderRadius: "10px", fontSize: "13px", fontWeight: "600",
+    borderLeft: "3px solid #d97706",
+  },
 };
