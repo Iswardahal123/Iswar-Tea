@@ -1,4 +1,4 @@
-// 📝 EntryFormPage.jsx
+// 📝 EntryFormPage.jsx - Sirf Date + Weight
 import React, { useState } from "react";
 import { auth, db } from "../firebase/config";
 import { collection, addDoc, Timestamp } from "firebase/firestore";
@@ -6,35 +6,20 @@ import { collection, addDoc, Timestamp } from "firebase/firestore";
 export default function EntryFormPage() {
   const today = new Date().toISOString().split("T")[0];
 
-  const [form, setForm] = useState({
-    date: today,
-    weight: "",
-    rate: "",
-    advanceCut: "",
-    amountReceived: "",
-    notes: "",
-  });
+  const [form, setForm] = useState({ date: today, weight: "" });
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState("");
 
-  // Auto calculations
-  const weight = parseFloat(form.weight) || 0;
-  const rate = parseFloat(form.rate) || 0;
-  const advanceCut = parseFloat(form.advanceCut) || 0;
-  const amountReceived = parseFloat(form.amountReceived) || 0;
-
-  const totalAmount = weight * rate;
-  const balanceAmount = totalAmount - advanceCut - amountReceived;
-
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
     setSuccess(false);
+    setError("");
   };
 
   const handleSubmit = async () => {
-    if (!form.date || !form.weight || !form.rate) {
-      setError("Date, Weight aur Rate zaroori hai!");
+    if (!form.date || !form.weight) {
+      setError("Date aur Weight zaroori hai!");
       return;
     }
     setLoading(true);
@@ -43,24 +28,17 @@ export default function EntryFormPage() {
       await addDoc(collection(db, "entries"), {
         uid: auth.currentUser.uid,
         date: form.date,
-        weight: weight,
-        rate: rate,
-        totalAmount: totalAmount,
-        advanceCut: advanceCut,
-        amountReceived: amountReceived,
-        balanceAmount: balanceAmount,
-        notes: form.notes,
+        weight: parseFloat(form.weight),
+        rate: 0,
+        totalAmount: 0,
+        advanceCut: 0,
+        amountReceived: 0,
+        balanceAmount: 0,
+        notes: "",
         createdAt: Timestamp.now(),
       });
       setSuccess(true);
-      setForm({
-        date: today,
-        weight: "",
-        rate: "",
-        advanceCut: "",
-        amountReceived: "",
-        notes: "",
-      });
+      setForm({ date: today, weight: "" });
     } catch (err) {
       setError("Save nahi hua: " + err.message);
     }
@@ -69,8 +47,9 @@ export default function EntryFormPage() {
 
   return (
     <div style={styles.container}>
-      <div style={styles.formCard}>
+      <div style={styles.card}>
         <h2 style={styles.heading}>🍃 Nayi Patta Entry</h2>
+        <p style={styles.hint}>💡 Sirf date aur wajan daalo — baaki details baad mein Records mein edit karo</p>
 
         {/* Date */}
         <div style={styles.fieldGroup}>
@@ -97,104 +76,17 @@ export default function EntryFormPage() {
           />
         </div>
 
-        {/* Rate */}
-        <div style={styles.fieldGroup}>
-          <label style={styles.label}>💰 Rate (₹ per kg)</label>
-          <input
-            type="number"
-            name="rate"
-            value={form.rate}
-            onChange={handleChange}
-            placeholder="Jaise: 18"
-            style={styles.input}
-          />
-        </div>
-
-        {/* Auto-calculated Total */}
-        {totalAmount > 0 && (
-          <div style={styles.calcBox}>
-            <div style={styles.calcRow}>
-              <span>Kul Raqam</span>
-              <span style={styles.calcValue}>₹ {totalAmount.toFixed(2)}</span>
-            </div>
-            <div style={styles.calcHint}>{weight} kg × ₹{rate} = ₹{totalAmount.toFixed(2)}</div>
+        {form.weight && (
+          <div style={styles.previewBox}>
+            <span>⚖️ {parseFloat(form.weight) || 0} kg patta</span>
+            <span style={styles.previewDate}>{new Date(form.date).toLocaleDateString("hi-IN", { day: "numeric", month: "long" })}</span>
           </div>
         )}
 
-        {/* Advance Cut */}
-        <div style={styles.fieldGroup}>
-          <label style={styles.label}>✂️ Advance Kata (₹)</label>
-          <input
-            type="number"
-            name="advanceCut"
-            value={form.advanceCut}
-            onChange={handleChange}
-            placeholder="0"
-            style={styles.input}
-          />
-        </div>
+        {error && <div style={styles.error}>⚠️ {error}</div>}
+        {success && <div style={styles.successMsg}>✅ Entry save ho gayi! Records mein jaake edit karo.</div>}
 
-        {/* Amount Received */}
-        <div style={styles.fieldGroup}>
-          <label style={styles.label}>💵 Milī Raqam (₹)</label>
-          <input
-            type="number"
-            name="amountReceived"
-            value={form.amountReceived}
-            onChange={handleChange}
-            placeholder="0"
-            style={styles.input}
-          />
-        </div>
-
-        {/* Balance */}
-        {totalAmount > 0 && (
-          <div style={{
-            ...styles.calcBox,
-            background: balanceAmount >= 0 ? "#f0fdf4" : "#fef2f2",
-            borderColor: balanceAmount >= 0 ? "#86efac" : "#fca5a5",
-          }}>
-            <div style={styles.calcRow}>
-              <span style={{ fontWeight: "800" }}>💳 Baaki Raqam</span>
-              <span style={{
-                ...styles.calcValue,
-                color: balanceAmount >= 0 ? "#16a34a" : "#dc2626",
-                fontSize: "22px",
-              }}>
-                ₹ {balanceAmount.toFixed(2)}
-              </span>
-            </div>
-            <div style={styles.calcHint}>
-              ₹{totalAmount.toFixed(2)} - ₹{advanceCut} (advance) - ₹{amountReceived} (mila) = ₹{balanceAmount.toFixed(2)}
-            </div>
-          </div>
-        )}
-
-        {/* Notes */}
-        <div style={styles.fieldGroup}>
-          <label style={styles.label}>📝 Notes (optional)</label>
-          <textarea
-            name="notes"
-            value={form.notes}
-            onChange={handleChange}
-            placeholder="Kuch khas baat..."
-            rows={3}
-            style={{ ...styles.input, resize: "none" }}
-          />
-        </div>
-
-        {error && <div style={styles.error}>{error}</div>}
-        {success && (
-          <div style={styles.successMsg}>
-            ✅ Entry safaltapoorvak save ho gayi!
-          </div>
-        )}
-
-        <button
-          onClick={handleSubmit}
-          disabled={loading}
-          style={styles.submitBtn}
-        >
+        <button onClick={handleSubmit} disabled={loading} style={styles.submitBtn}>
           {loading ? "⏳ Save ho raha hai..." : "💾 Entry Save Karo"}
         </button>
       </div>
@@ -207,61 +99,66 @@ const styles = {
     minHeight: "calc(100vh - 120px)",
     background: "#f8faf8",
     padding: "16px",
-    paddingBottom: "80px",
+    paddingBottom: "90px",
     fontFamily: "'Segoe UI', sans-serif",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
   },
-  formCard: {
+  card: {
     background: "white",
     borderRadius: "20px",
-    padding: "24px",
-    boxShadow: "0 4px 20px rgba(0,0,0,0.06)",
+    padding: "28px 24px",
+    boxShadow: "0 4px 24px rgba(0,0,0,0.08)",
     display: "flex",
     flexDirection: "column",
-    gap: "16px",
+    gap: "18px",
+    width: "100%",
+    maxWidth: "420px",
   },
   heading: {
-    fontSize: "20px",
+    fontSize: "22px",
     fontWeight: "800",
     color: "#1a3a1a",
     margin: 0,
     textAlign: "center",
-    paddingBottom: "12px",
-    borderBottom: "2px solid #f0fdf4",
   },
-  fieldGroup: { display: "flex", flexDirection: "column", gap: "6px" },
-  label: { fontSize: "13px", fontWeight: "700", color: "#374151" },
-  input: {
-    padding: "12px 14px",
+  hint: {
+    fontSize: "12px",
+    color: "#6b7280",
+    background: "#f9fafb",
+    padding: "10px 14px",
     borderRadius: "10px",
+    margin: 0,
+    lineHeight: "1.5",
+    borderLeft: "3px solid #86efac",
+  },
+  fieldGroup: { display: "flex", flexDirection: "column", gap: "8px" },
+  label: { fontSize: "14px", fontWeight: "700", color: "#374151" },
+  input: {
+    padding: "14px 16px",
+    borderRadius: "12px",
     border: "2px solid #e5e7eb",
     fontSize: "16px",
     outline: "none",
     fontFamily: "inherit",
-    transition: "border-color 0.2s",
     width: "100%",
     boxSizing: "border-box",
+    transition: "border-color 0.2s",
   },
-  calcBox: {
+  previewBox: {
     background: "#f0fdf4",
     border: "2px solid #86efac",
     borderRadius: "12px",
-    padding: "14px 16px",
-  },
-  calcRow: {
+    padding: "14px 18px",
     display: "flex",
     justifyContent: "space-between",
     alignItems: "center",
+    fontSize: "15px",
+    fontWeight: "700",
+    color: "#166534",
   },
-  calcValue: {
-    fontSize: "20px",
-    fontWeight: "800",
-    color: "#16a34a",
-  },
-  calcHint: {
-    fontSize: "11px",
-    color: "#6b7280",
-    marginTop: "4px",
-  },
+  previewDate: { fontSize: "13px", color: "#6b7280", fontWeight: "600" },
   submitBtn: {
     background: "linear-gradient(135deg, #1a3a1a, #2d5a27)",
     color: "white",
@@ -271,22 +168,23 @@ const styles = {
     fontSize: "16px",
     fontWeight: "700",
     cursor: "pointer",
-    marginTop: "8px",
+    fontFamily: "inherit",
   },
   error: {
     background: "#fef2f2",
     color: "#dc2626",
-    padding: "12px",
+    padding: "12px 14px",
     borderRadius: "10px",
     fontSize: "14px",
+    borderLeft: "3px solid #dc2626",
   },
   successMsg: {
     background: "#f0fdf4",
     color: "#16a34a",
-    padding: "12px",
+    padding: "12px 14px",
     borderRadius: "10px",
     fontSize: "14px",
     fontWeight: "600",
-    textAlign: "center",
+    borderLeft: "3px solid #16a34a",
   },
 };
