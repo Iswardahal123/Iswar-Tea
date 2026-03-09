@@ -78,7 +78,7 @@ export default function DashboardPage({ user }) {
           </div>
           <div style={styles.leafBig}>🍃</div>
         </div>
-        <div style={styles.totalEntries}>{filtered.length} entries • {totalWeight.toFixed(1)} কি:গ্ৰা: চাহ</div>
+        <div style={styles.totalEntries}>{filtered.length} টা তথ্য পোৱা গৈছে • {totalWeight.toFixed(1)} কি:গ্ৰা: চাহ</div>
       </div>
 
       {/* Month Filter */}
@@ -126,7 +126,7 @@ export default function DashboardPage({ user }) {
       </div>
 
       {/* Recent Entries */}
-      <div style={styles.sectionTitle}>📋 নতুন তথ্য👇</div>
+      <div style={styles.sectionTitle}>📋 নতুনকৈ অন্তৰ্ভুক্ত কিছু তথ্য👇</div>
 
       {filtered.length === 0 ? (
         <div style={styles.empty}>
