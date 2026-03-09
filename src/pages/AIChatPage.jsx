@@ -7,6 +7,7 @@ import { collection, query, where, getDocs } from "firebase/firestore";
 const GEMINI_KEYS = [
   process.env.REACT_APP_GEMINI_KEY_1,
   process.env.REACT_APP_GEMINI_KEY_2,
+  process.env.REACT_APP_GEMINI_KEY_3,
 ].filter(Boolean); // undefined keys hata do
 
 const GEMINI_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent";
@@ -202,7 +203,7 @@ RULES:
               {[0,1,2].map((i) => (
                 <div key={i} style={{
                   width: 8, height: 8, borderRadius: "50%", background: "#9ca3af",
-                  animation: `bounce 1.2s ease-in-out ${i*0.2}s infinite`,
+                  animation: "bounce 1.2s ease-in-out " + (i*0.2) + "s infinite",
                 }} />
               ))}
             </div>
@@ -226,12 +227,12 @@ RULES:
         </button>
       </div>
 
-      <style>{`
+      <style dangerouslySetInnerHTML={{__html: `
         @keyframes bounce {
           0%, 80%, 100% { transform: translateY(0); opacity: 0.4; }
           40% { transform: translateY(-6px); opacity: 1; }
         }
-      `}</style>
+      `}} />
     </div>
   );
 }
@@ -250,211 +251,4 @@ const styles = {
   inputArea: { position: "fixed", bottom: "60px", left: 0, right: 0, padding: "10px 12px", background: "white", borderTop: "1px solid #e5e7eb", display: "flex", gap: "10px", boxShadow: "0 -2px 10px rgba(0,0,0,0.05)", maxWidth: "480px", margin: "0 auto" },
   textInput: { flex: 1, padding: "12px 16px", borderRadius: "24px", border: "2px solid #e5e7eb", fontSize: "15px", outline: "none", fontFamily: "inherit" },
   sendBtn: { width: "48px", height: "48px", borderRadius: "50%", background: "linear-gradient(135deg,#1a3a1a,#2d5a27)", color: "white", border: "none", fontSize: "18px", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 },
-};
-
-      const aiReply = data.choices[0].message.content;
-      setMessages((prev) => [...prev, { role: "assistant", content: aiReply }]);
-    } catch (err) {
-      setMessages((prev) => [
-        ...prev,
-        {
-          role: "assistant",
-          content: `❌ Error: ${err.message}\n\nCheck karo ki OpenAI API key sahi hai.`,
-        },
-      ]);
-    }
-    setLoading(false);
-  };
-
-  const quickQuestions = [
-    "Is mahine kitna patta bika?",
-    "Kul kamaai kitni hai?",
-    "Sabse badi entry kaunsi hai?",
-    "Total baaki raqam kitni hai?",
-  ];
-
-  return (
-    <div style={styles.container}>
-      {/* Chat Header */}
-      <div style={styles.chatHeader}>
-        <span style={styles.botIcon}>🤖</span>
-        <div>
-          <div style={styles.botName}>AI Sahayak</div>
-          <div style={styles.botStatus}>
-            {entriesLoaded ? `✅ ${allEntries.length} entries loaded` : "⏳ Data load ho raha hai..."}
-          </div>
-        </div>
-      </div>
-
-      {/* Quick Questions */}
-      <div style={styles.quickRow}>
-        {quickQuestions.map((q) => (
-          <button
-            key={q}
-            onClick={() => { setInput(q); }}
-            style={styles.quickBtn}
-          >
-            {q}
-          </button>
-        ))}
-      </div>
-
-      {/* Messages */}
-      <div style={styles.messagesArea}>
-        {messages.map((msg, idx) => (
-          <div
-            key={idx}
-            style={{
-              ...styles.messageBubble,
-              alignSelf: msg.role === "user" ? "flex-end" : "flex-start",
-              background: msg.role === "user"
-                ? "linear-gradient(135deg, #1a3a1a, #2d5a27)"
-                : "white",
-              color: msg.role === "user" ? "white" : "#1a1a1a",
-              borderBottomRightRadius: msg.role === "user" ? "4px" : "18px",
-              borderBottomLeftRadius: msg.role === "assistant" ? "4px" : "18px",
-            }}
-          >
-            {msg.role === "assistant" && <span style={styles.aiLabel}>🍃 AI</span>}
-            <p style={styles.messageText}>{msg.content}</p>
-          </div>
-        ))}
-
-        {loading && (
-          <div style={{ ...styles.messageBubble, alignSelf: "flex-start", background: "white" }}>
-            <span style={styles.aiLabel}>🍃 AI</span>
-            <div style={styles.typing}>
-              <span>•</span><span>•</span><span>•</span>
-            </div>
-          </div>
-        )}
-        <div ref={bottomRef} />
-      </div>
-
-      {/* Input Area */}
-      <div style={styles.inputArea}>
-        <input
-          type="text"
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          onKeyDown={(e) => e.key === "Enter" && sendMessage()}
-          placeholder="Kuch poochho apni chai ke baare mein..."
-          style={styles.textInput}
-        />
-        <button
-          onClick={sendMessage}
-          disabled={loading || !input.trim()}
-          style={styles.sendBtn}
-        >
-          {loading ? "⏳" : "➤"}
-        </button>
-      </div>
-    </div>
-  );
-}
-
-const styles = {
-  container: {
-    display: "flex",
-    flexDirection: "column",
-    height: "calc(100vh - 120px)",
-    background: "#f0f4f0",
-    fontFamily: "'Segoe UI', sans-serif",
-    position: "relative",
-  },
-  chatHeader: {
-    background: "linear-gradient(135deg, #1a3a1a, #2d5a27)",
-    color: "white",
-    padding: "12px 16px",
-    display: "flex",
-    alignItems: "center",
-    gap: "12px",
-  },
-  botIcon: { fontSize: "32px" },
-  botName: { fontSize: "16px", fontWeight: "800" },
-  botStatus: { fontSize: "11px", opacity: 0.8 },
-  quickRow: {
-    display: "flex",
-    gap: "8px",
-    padding: "10px 12px",
-    overflowX: "auto",
-    background: "white",
-    borderBottom: "1px solid #e5e7eb",
-  },
-  quickBtn: {
-    background: "#f0fdf4",
-    border: "1px solid #86efac",
-    color: "#166534",
-    padding: "6px 12px",
-    borderRadius: "20px",
-    fontSize: "12px",
-    fontWeight: "600",
-    cursor: "pointer",
-    whiteSpace: "nowrap",
-    flexShrink: 0,
-  },
-  messagesArea: {
-    flex: 1,
-    overflowY: "auto",
-    padding: "16px",
-    display: "flex",
-    flexDirection: "column",
-    gap: "10px",
-    paddingBottom: "80px",
-  },
-  messageBubble: {
-    maxWidth: "85%",
-    padding: "12px 16px",
-    borderRadius: "18px",
-    boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
-  },
-  aiLabel: { fontSize: "11px", fontWeight: "700", opacity: 0.6, display: "block", marginBottom: "4px" },
-  messageText: { margin: 0, fontSize: "14px", lineHeight: "1.6", whiteSpace: "pre-wrap" },
-  typing: {
-    display: "flex",
-    gap: "4px",
-    padding: "4px 0",
-    "& span": {
-      width: "8px",
-      height: "8px",
-      background: "#9ca3af",
-      borderRadius: "50%",
-      display: "inline-block",
-    }
-  },
-  inputArea: {
-    position: "fixed",
-    bottom: "60px",
-    left: 0,
-    right: 0,
-    padding: "10px 12px",
-    background: "white",
-    borderTop: "1px solid #e5e7eb",
-    display: "flex",
-    gap: "10px",
-    boxShadow: "0 -2px 10px rgba(0,0,0,0.05)",
-  },
-  textInput: {
-    flex: 1,
-    padding: "12px 16px",
-    borderRadius: "24px",
-    border: "2px solid #e5e7eb",
-    fontSize: "15px",
-    outline: "none",
-    fontFamily: "inherit",
-  },
-  sendBtn: {
-    width: "48px",
-    height: "48px",
-    borderRadius: "50%",
-    background: "linear-gradient(135deg, #1a3a1a, #2d5a27)",
-    color: "white",
-    border: "none",
-    fontSize: "18px",
-    cursor: "pointer",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    flexShrink: 0,
-  },
 };
