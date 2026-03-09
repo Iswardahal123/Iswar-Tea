@@ -10,7 +10,7 @@ const GEMINI_KEYS = [
   process.env.REACT_APP_GEMINI_KEY_3,
 ].filter(Boolean); // undefined keys hata do
 
-const GEMINI_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent";
+const GEMINI_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent";
 
 // Key rotation - exhausted keys track karo
 let currentKeyIndex = 0;
