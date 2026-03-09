@@ -113,7 +113,7 @@ export default function TopBar({ user, currentPage, isAdmin }) {
         <div style={styles.left}>
           <span style={styles.logo}>🍃</span>
           <div>
-            <div style={styles.appName}>Chai Bagan</div>
+            <div style={styles.appName}>চাহ হিচাব (ঈশ্বৰ)</div>
             <div style={styles.pageName}>{pageNames[currentPage] || "Home"}</div>
           </div>
         </div>
