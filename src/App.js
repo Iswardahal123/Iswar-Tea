@@ -7,6 +7,7 @@ import { doc, getDoc, setDoc } from "firebase/firestore";
 import Login from "./components/Login";
 import TopBar from "./components/TopBar";
 import BottomNav from "./components/BottomNav";
+import WhatsAppFloat from "./components/WhatsAppFloat";
 
 import DashboardPage from "./pages/DashboardPage";
 import EntryFormPage from "./pages/EntryFormPage";
@@ -38,7 +39,6 @@ export default function App() {
       const userRef = doc(db, "users", u.uid);
       const userDoc = await getDoc(userRef);
       if (!userDoc.exists()) {
-        // Auto create user doc if missing
         await setDoc(userRef, {
           uid: u.uid,
           email: u.email,
@@ -91,7 +91,7 @@ export default function App() {
       case "entry":     return <EntryFormPage user={user} />;
       case "view":      return <EntryViewPage user={user} />;
       case "chat":      return <AIChatPage user={user} />;
-      default:          return <DashboardPage />;
+      default:          return <DashboardPage user={user} />;
     }
   };
 
@@ -100,6 +100,7 @@ export default function App() {
       <TopBar user={user} currentPage={isAdmin ? "admin" : currentPage} isAdmin={isAdmin} />
       <main>{renderPage()}</main>
       {!isAdmin && <BottomNav currentPage={currentPage} setCurrentPage={setCurrentPage} />}
+      <WhatsAppFloat />
     </div>
   );
 }
