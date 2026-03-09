@@ -3,7 +3,7 @@ import React, { useState } from "react";
 import { auth, db } from "../firebase/config";
 import { collection, addDoc, Timestamp } from "firebase/firestore";
 
-export default function EntryFormPage() {
+export default function EntryFormPage({ user }) {
   const today = new Date().toISOString().split("T")[0];
 
   const [form, setForm] = useState({ date: today, weight: "" });
@@ -26,7 +26,7 @@ export default function EntryFormPage() {
     setError("");
     try {
       await addDoc(collection(db, "entries"), {
-        uid: auth.currentUser.uid,
+        uid: (user || auth.currentUser).uid,
         date: form.date,
         weight: parseFloat(form.weight),
         rate: 0,
