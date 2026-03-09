@@ -52,16 +52,16 @@ export default function DashboardPage({ user }) {
   const currentUserObj = user || auth.currentUser;
   const greeting = () => {
     const h = new Date().getHours();
-    if (h < 12) return "Subah ki chai";
-    if (h < 17) return "Dopahar ka waqt";
-    return "Shaam ki chai";
+    if (h < 12) return "ৰাতিপুৱাৰ চাহ";
+    if (h < 17) return "দুপৰীয়া";
+    return "সন্ধিয়াৰ চাহ";
   };
 
   if (loading) {
     return (
       <div style={{ textAlign: "center", padding: "60px", color: "#6b7280", fontFamily: "'Segoe UI', sans-serif" }}>
         <div style={{ fontSize: "40px" }}>🍃</div>
-        <p>Dashboard load ho raha hai...</p>
+        <p>তথ্য সংগ্ৰহ হৈ আছে অপেক্ষা কৰক...</p>
       </div>
     );
   }
@@ -78,12 +78,12 @@ export default function DashboardPage({ user }) {
           </div>
           <div style={styles.leafBig}>🍃</div>
         </div>
-        <div style={styles.totalEntries}>{filtered.length} entries • {totalWeight.toFixed(1)} kg patta</div>
+        <div style={styles.totalEntries}>{filtered.length} entries • {totalWeight.toFixed(1)} কি:গ্ৰা: চাহ</div>
       </div>
 
       {/* Month Filter */}
       <div style={styles.filterRow}>
-        <label style={styles.filterLabel}>📅 Month:</label>
+        <label style={styles.filterLabel}>📅 মাহ:</label>
         <input
           type="month" value={filterMonth}
           onChange={(e) => setFilterMonth(e.target.value)}
@@ -97,41 +97,41 @@ export default function DashboardPage({ user }) {
       {/* Main Stats Grid */}
       <div style={styles.statsGrid}>
         <div style={{ ...styles.statCard, background: "linear-gradient(135deg, #1a3a1a, #2d5a27)", gridColumn: "span 2" }}>
-          <div style={styles.statLabel}>Kul Patta Kamaai</div>
-          <div style={styles.statValueBig}>Rs {totalAmount.toFixed(2)}</div>
-          <div style={styles.statSub}>{totalWeight.toFixed(1)} kg total</div>
+          <div style={styles.statLabel}>মুঠ উপাৰ্জন</div>
+          <div style={styles.statValueBig}>টকা{totalAmount.toFixed(2)}</div>
+          <div style={styles.statSub}>{totalWeight.toFixed(1)} কি:গ্ৰা: মুঠ</div>
         </div>
 
         <div style={{ ...styles.statCard, background: "linear-gradient(135deg, #1e40af, #3b82f6)" }}>
-          <div style={styles.statLabel}>Mili Raqam</div>
-          <div style={styles.statValue}>Rs {totalReceived.toFixed(0)}</div>
+          <div style={styles.statLabel}>প্ৰাপ্ত টকা</div>
+          <div style={styles.statValue}>টকা {totalReceived.toFixed(0)}</div>
         </div>
 
         <div style={{ ...styles.statCard, background: totalBalance >= 0 ? "linear-gradient(135deg, #14532d, #16a34a)" : "linear-gradient(135deg, #7f1d1d, #dc2626)" }}>
-          <div style={styles.statLabel}>Baaki Balance</div>
-          <div style={styles.statValue}>Rs {totalBalance.toFixed(0)}</div>
+          <div style={styles.statLabel}>পাবলগীয়া টকা</div>
+          <div style={styles.statValue}>টকা {totalBalance.toFixed(0)}</div>
         </div>
 
         <div style={{ ...styles.statCard, background: "linear-gradient(135deg, #92400e, #d97706)" }}>
-          <div style={styles.statLabel}>Advance Liya (Total)</div>
-          <div style={styles.statValue}>Rs {totalAdvanceTaken.toFixed(0)}</div>
-          <div style={styles.statSub}>Kata: Rs {totalAdvanceCut.toFixed(0)}</div>
+          <div style={styles.statLabel}>এডভান্স লোৱা(মুঠ)</div>
+          <div style={styles.statValue}>টকা {totalAdvanceTaken.toFixed(0)}</div>
+          <div style={styles.statSub}>কটা হ'ল: Rs {totalAdvanceCut.toFixed(0)}</div>
         </div>
 
         <div style={{ ...styles.statCard, background: advanceBalance >= 0 ? "linear-gradient(135deg, #4c1d95, #7c3aed)" : "linear-gradient(135deg, #7f1d1d, #dc2626)" }}>
-          <div style={styles.statLabel}>Advance Baaki</div>
-          <div style={styles.statValue}>Rs {advanceBalance.toFixed(0)}</div>
-          <div style={styles.statSub}>{advanceBalance >= 0 ? "Abhi baaki hai" : "Zyada kata!"}</div>
+          <div style={styles.statLabel}>এডভান্স বাকী </div>
+          <div style={styles.statValue}>টকা {advanceBalance.toFixed(0)}</div>
+          <div style={styles.statSub}>{advanceBalance >= 0 ? "বৰ্তমান বাকী আছে" : "বেছি কাটিলে!"}</div>
         </div>
       </div>
 
       {/* Recent Entries */}
-      <div style={styles.sectionTitle}>📋 Recent Entries</div>
+      <div style={styles.sectionTitle}>📋 নতুন তথ্য👇</div>
 
       {filtered.length === 0 ? (
         <div style={styles.empty}>
-          <p>Koi entry nahi hai abhi</p>
-          <p style={{ fontSize: "13px", color: "#9ca3af", marginTop: "6px" }}>Entry tab se patta add karo</p>
+          <p>তথ্য জমা কৰা হোৱা নাই</p>
+          <p style={{ fontSize: "13px", color: "#9ca3af", marginTop: "6px" }}>Entry ত গৈ তথ্য অন্তৰ্ভুক্ত কৰক</p>
         </div>
       ) : (
         filtered.slice(0, 10).map((entry) => (
@@ -140,17 +140,17 @@ export default function DashboardPage({ user }) {
               <div style={styles.entryDate}>
                 {new Date(entry.date).toLocaleDateString("hi-IN", { day: "numeric", month: "short" })}
               </div>
-              <div style={styles.entryWeight}>{entry.weight} kg</div>
+              <div style={styles.entryWeight}>{entry.weight} কি:গ্ৰা:</div>
             </div>
             <div style={styles.entryMid}>
               {entry.rate > 0
-                ? <span style={styles.rateTag}>Rs{entry.rate}/kg</span>
-                : <span style={styles.pendingTag}>Rate pending</span>
+                ? <span style={styles.rateTag}>টকা {entry.rate}/কি:গ্ৰা:</span>
+                : <span style={styles.pendingTag}>দাম অন্তৰ্ভুক্ত নাই</span>
               }
             </div>
             <div style={styles.entryRight}>
               {entry.totalAmount > 0 && (
-                <div style={styles.entryTotal}>Rs{entry.totalAmount.toFixed(0)}</div>
+                <div style={styles.entryTotal}>টকা{entry.totalAmount.toFixed(0)}</div>
               )}
               <div style={{
                 ...styles.entryBalance,
@@ -164,7 +164,7 @@ export default function DashboardPage({ user }) {
       )}
 
       {filtered.length > 10 && (
-        <div style={styles.moreText}>+ {filtered.length - 10} aur entries hain — Records tab mein dekho</div>
+        <div style={styles.moreText}>+ {filtered.length - 10} অধিক তথ্যৰ বাবে— Recordsত যাওঁক</div>
       )}
     </div>
   );
