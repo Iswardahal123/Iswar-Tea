@@ -16,8 +16,8 @@ export default function EntryFormPage({ user }) {
   };
 
   const handleSubmit = async () => {
-    if (!form.date || !form.weight) { setError("Date aur Weight daalna zaroori hai!"); return; }
-    if (parseFloat(form.weight) <= 0) { setError("Wajan sahi daalo!"); return; }
+    if (!form.date || !form.weight) { setError("তাৰিখ আৰু ওজন লিখা বাধ্যতা মূলক!"); return; }
+    if (parseFloat(form.weight) <= 0) { setError("সঠিক ওজন লিখক!"); return; }
     setLoading(true);
     setError("");
     try {
@@ -33,7 +33,7 @@ export default function EntryFormPage({ user }) {
       setForm({ date: today, weight: "" });
       setTimeout(() => setSuccess(false), 3000);
     } catch (err) {
-      setError("Save nahi hua: " + err.message);
+      setError("অন্তৰ্ভুক্ত কৰিব পৰা নাই: " + err.message);
     }
     setLoading(false);
   };
@@ -41,18 +41,18 @@ export default function EntryFormPage({ user }) {
   return (
     <div style={styles.page}>
       <div style={styles.card}>
-        <h2 style={styles.title}>🍃 Nayi Patta Entry</h2>
-        <p style={styles.hint}>Sirf date aur wajan daalo — rate baad mein Records mein add karo</p>
+        <h2 style={styles.title}>🍃 নতুন তথ্য অন্তৰ্ভুক্ত</h2>
+        <p style={styles.hint}>তাৰিখ আৰু ওজন অন্তৰ্ভুক্ত কৰক</p>
 
         {success && (
-          <div style={styles.success}>✅ Entry save ho gayi!</div>
+          <div style={styles.success}>✅ তথ্য অন্তৰ্ভুক্ত কৰা হ'ল !</div>
         )}
         {error && (
-          <div style={styles.error}>⚠️ {error}</div>
+          <div style={styles.error}>⚠️ সন্তেক পাছত চেষ্টা কৰক</div>
         )}
 
         <div style={styles.field}>
-          <label style={styles.label}>📅 Tarikh</label>
+          <label style={styles.label}>📅 তাৰিখ</label>
           <input
             type="date"
             name="date"
@@ -64,7 +64,7 @@ export default function EntryFormPage({ user }) {
         </div>
 
         <div style={styles.field}>
-          <label style={styles.label}>⚖️ Patta Wajan (kg)</label>
+          <label style={styles.label}>⚖️ ওজন লিখক(কি:গ্ৰা:)</label>
           <input
             type="number"
             name="weight"
@@ -81,7 +81,7 @@ export default function EntryFormPage({ user }) {
           disabled={loading || !form.weight}
           style={{ ...styles.btn, opacity: loading || !form.weight ? 0.6 : 1 }}
         >
-          {loading ? "⏳ Save ho raha hai..." : "💾 Entry Save Karo"}
+          {loading ? "⏳ তথ্য অন্তৰ্ভুক্ত হৈ আছে..." : "💾 তথ্য অন্তৰ্ভুক্ত কৰক"}
         </button>
       </div>
     </div>
