@@ -3,13 +3,14 @@ import React from "react";
 import { auth } from "../firebase/config";
 import { signOut } from "firebase/auth";
 
-export default function TopBar({ user, currentPage }) {
+export default function TopBar({ user, currentPage, isAdmin }) {
   const handleLogout = () => signOut(auth);
 
   const pageNames = {
     entry: "Patta Entry",
     view: "Meri Entries",
     chat: "AI Sahayak",
+    admin: "Admin Dashboard",
   };
 
   return (
@@ -21,9 +22,10 @@ export default function TopBar({ user, currentPage }) {
           <div style={styles.pageName}>{pageNames[currentPage] || "Home"}</div>
         </div>
       </div>
-      <button onClick={handleLogout} style={styles.logoutBtn}>
-        Logout
-      </button>
+      <div style={styles.right}>
+        {isAdmin && <span style={styles.adminBadge}>👑 Admin</span>}
+        <button onClick={handleLogout} style={styles.logoutBtn}>Logout</button>
+      </div>
     </div>
   );
 }
@@ -45,6 +47,15 @@ const styles = {
   logo: { fontSize: "28px" },
   appName: { fontSize: "18px", fontWeight: "800", letterSpacing: "-0.5px" },
   pageName: { fontSize: "12px", opacity: 0.75, marginTop: "1px" },
+  right: { display: "flex", alignItems: "center", gap: "8px" },
+  adminBadge: {
+    background: "#d97706",
+    color: "white",
+    padding: "4px 10px",
+    borderRadius: "20px",
+    fontSize: "12px",
+    fontWeight: "700",
+  },
   logoutBtn: {
     background: "rgba(255,255,255,0.15)",
     border: "1px solid rgba(255,255,255,0.3)",
@@ -54,5 +65,6 @@ const styles = {
     cursor: "pointer",
     fontSize: "13px",
     fontWeight: "600",
+    fontFamily: "inherit",
   },
 };
