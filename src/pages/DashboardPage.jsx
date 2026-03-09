@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from "react";
 import { auth, db } from "../firebase/config";
-import { collection, query, where, orderBy, getDocs } from "firebase/firestore";
+import { collection, query, where, getDocs } from "firebase/firestore";
 
-export default function DashboardPage() {
+export default function DashboardPage({ user }) {
   const [entries, setEntries] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filterMonth, setFilterMonth] = useState("");
@@ -11,14 +11,18 @@ export default function DashboardPage() {
     const fetchData = async () => {
       setLoading(true);
       try {
+        const currentUser = user || auth.currentUser;
+        if (!currentUser) { setLoading(false); return; }
         const q = query(
           collection(db, "entries"),
-          where("uid", "==", auth.currentUser.uid),
-          orderBy("date", "desc")
+          where("uid", "==", currentUser.uid)
         );
         const snap = await getDocs(q);
-        setEntries(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
-      } catch (err) { console.error(err); }
+        const data = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+        setEntries(data);
+      } catch (err) {
+        console.error("Fetch error:", err);
+      }
       setLoading(false);
     };
     fetchData();
@@ -37,7 +41,7 @@ export default function DashboardPage() {
   // Advance balance = jo advance diya tha uska hisaab
   const advanceBalance = totalAmount - totalAdvanceCut - totalReceived;
 
-  const user = auth.currentUser;
+  const currentUserObj = user || auth.currentUser;
   const greeting = () => {
     const h = new Date().getHours();
     if (h < 12) return "Subah ki chai";
@@ -62,7 +66,7 @@ export default function DashboardPage() {
         <div style={styles.greetingTop}>
           <div>
             <div style={styles.greetingText}>{greeting()} ☕</div>
-            <div style={styles.greetingName}>{user.displayName || user.email.split("@")[0]}</div>
+            <div style={styles.greetingName}>{currentUserObj ? (currentUserObj.displayName || currentUserObj.email.split("@")[0]) : ""}</div>
           </div>
           <div style={styles.leafBig}>🍃</div>
         </div>
