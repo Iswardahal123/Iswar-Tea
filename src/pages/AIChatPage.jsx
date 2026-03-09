@@ -6,7 +6,7 @@ const generateReply = (msg, entries) => {
   const m = msg.toLowerCase().trim();
 
   if (entries.length === 0) {
-    return "Bhai abhi koi entry nahi hai! Pehle Entry tab se patta add karo 🍃";
+    return "এতিয়া কোনো তথ্য নাই! প্ৰথমে তথ্য টেবৰ পৰা পাত যোগ কৰক 🍃";
   }
 
   const sorted = [...entries].sort((a, b) => (b.date || "").localeCompare(a.date || ""));
@@ -27,100 +27,85 @@ const generateReply = (msg, entries) => {
   const avgRate  = withRate.length ? withRate.reduce((s, e) => s + e.rate, 0) / withRate.length : 0;
   const latestWithRate = sorted.find(e => e.rate > 0);
 
-  const fmtDate = (d) => d ? new Date(d + "T00:00:00").toLocaleDateString("hi-IN", { day: "numeric", month: "long", year: "numeric" }) : "N/A";
-  const fmtRs = (n) => "Rs " + (n || 0).toFixed(0);
+  const fmtDate = (d) => d ? new Date(d + "T00:00:00").toLocaleDateString("as-IN", { day: "numeric", month: "long", year: "numeric" }) : "N/A";
+  const fmtTk = (n) => (n || 0).toFixed(0) + " টকা";
 
-  // ── Greetings ──
-  if (m.match(/^(hi|hello|hii|hey|helo|namaste|namaskar|hola|kya haal|kaise ho|kya chal)/)) {
+  // ── অভিনন্দন ──
+  if (m.match(/^(hi|hello|hii|hey|namaste|namaskar|নমস্কাৰ|হেলো|কেনে আছে|ভাল আছে)/)) {
     const h = new Date().getHours();
-    const greet = h < 12 ? "Subah ki chai ☕" : h < 17 ? "Dopahar ka waqt 🌞" : "Shaam ka waqt 🌆";
-    return `${greet}\n\nNameste! 🙏 Main aapka Chai Bagan assistant hoon.\n\nAap kuch bhi pooch sakte ho:\n• Kamaai, balance, advance\n• Is mahine ka haal\n• Patta wajan ya rate\n• Poora hisaab\n• Koi bhi entry details`;
+    const greet = h < 12 ? "শুভ পুৱা ☕" : h < 17 ? "শুভ অপৰাহ্ন 🌞" : "শুভ সন্ধিয়া 🌆";
+    return `${greet}\n\nনমস্কাৰ! 🙏 মই আপোনাৰ চাহ বাগান সহায়ক।\n\nআপুনি যিকোনো কথা সুধিব পাৰে:\n• উপাৰ্জন, বাকী, এডভান্স\n• এই মাহৰ তথ্য\n• পাতৰ ওজন বা হাৰ\n• সম্পূৰ্ণ হিচাব`;
   }
 
-  // ── Last / Aakhri entry ──
-  if (m.match(/aakhri|last|latest|recent|pichli|naya|nai|abhi|kal|aaj ki|recent/)) {
-    return `📌 Aakhri Entry\n\n📅 Tarikh: ${fmtDate(latest.date)}\n⚖️ Wajan: ${latest.weight} kg\n💲 Rate: ${latest.rate ? fmtRs(latest.rate) + "/kg" : "Set nahi"}\n💰 Kul Raqam: ${fmtRs(latest.totalAmount)}\n✂️ Advance Kata: ${fmtRs(latest.advanceCut)}\n💵 Mili Raqam: ${fmtRs(latest.amountReceived)}\n🟢 Baaki: ${fmtRs(latest.balanceAmount)}\n${latest.notes ? "📝 Note: " + latest.notes : ""}`;
+  // ── শেষ তথ্য ──
+  if (m.match(/শেষ|last|latest|recent|আখৰী|নতুন|শেহতীয়া/)) {
+    return `📌 শেষ তথ্য\n\n📅 তাৰিখ: ${fmtDate(latest.date)}\n⚖️ ওজন: ${latest.weight} কি:গ্ৰা:\n💲 হাৰ: ${latest.rate ? latest.rate + " টকা/কি:গ্ৰা:" : "নিৰ্ধাৰণ কৰা হোৱা নাই"}\n💰 মুঠ পৰিমাণ: ${fmtTk(latest.totalAmount)}\n✂️ এডভান্স কটা: ${fmtTk(latest.advanceCut)}\n💵 পোৱা পৰিমাণ: ${fmtTk(latest.amountReceived)}\n🟢 বাকী: ${fmtTk(latest.balanceAmount)}${latest.notes ? "\n📝 টোকা: " + latest.notes : ""}`;
   }
 
-  // ── Balance ──
-  if (m.match(/baaki|balance|baki|kitna milna|remaining|bcha|bacha/)) {
-    return `💳 Baaki Balance\n\n${fmtRs(totalBalance)}\n\n• Kul kamaai: ${fmtRs(totalAmount)}\n• Mili raqam: ${fmtRs(totalReceived)}\n• Advance kata: ${fmtRs(totalAdvance)}\n\n${totalBalance > 0 ? "✅ Paisa milna baaki hai" : totalBalance < 0 ? "⚠️ Zyada paise mil gaye!" : "✅ Hisaab barabar hai"}`;
+  // ── বাকী ──
+  if (m.match(/বাকী|balance|বাকি|কিমান পাম|remaining/)) {
+    return `💳 বাকী পৰিমাণ\n\n${fmtTk(totalBalance)}\n\n• মুঠ উপাৰ্জন: ${fmtTk(totalAmount)}\n• পোৱা পৰিমাণ: ${fmtTk(totalReceived)}\n• এডভান্স কটা: ${fmtTk(totalAdvance)}\n\n${totalBalance > 0 ? "✅ টকা পোৱা বাকী আছে" : totalBalance < 0 ? "⚠️ অতিৰিক্ত টকা পোৱা হৈছে!" : "✅ হিচাব সমান আছে"}`;
   }
 
-  // ── Advance ──
-  if (m.match(/advance|peshgi|udhar|udhaar/)) {
-    return `💵 Advance Details\n\nKul advance kata: ${fmtRs(totalAdvance)}\n\n${entries.filter(e => e.advanceCut > 0).slice(0, 5).map(e =>
-      `• ${fmtDate(e.date)}: ${fmtRs(e.advanceCut)}`
-    ).join("\n")}\n\n${entries.filter(e => e.advanceCut > 0).length > 5 ? `...aur ${entries.filter(e => e.advanceCut > 0).length - 5} aur entries` : ""}`;
+  // ── এডভান্স ──
+  if (m.match(/এডভান্স|advance|পেশগী|ধাৰ/)) {
+    const advEntries = entries.filter(e => e.advanceCut > 0);
+    return `💵 এডভান্স বিৱৰণ\n\nমুঠ এডভান্স কটা: ${fmtTk(totalAdvance)}\n\n${advEntries.slice(0, 5).map(e => `• ${fmtDate(e.date)}: ${fmtTk(e.advanceCut)}`).join("\n")}${advEntries.length > 5 ? `\n\n...আৰু ${advEntries.length - 5} টা তথ্য` : ""}`;
   }
 
-  // ── Is mahine ──
-  if (m.match(/mahine|month|is baar|aaj kal|current|abhi tak/)) {
-    const mName = new Date().toLocaleString("hi-IN", { month: "long", year: "numeric" });
-    if (monthEntries.length === 0) return `📅 ${mName} mein abhi tak koi entry nahi hai.\n\nEntry tab se nayi entry add karo!`;
-    return `📅 ${mName}\n\n⚖️ Kul wajan: ${monthWeight.toFixed(1)} kg\n💰 Kamaai: ${fmtRs(monthAmount)}\n🟢 Baaki: ${fmtRs(monthBalance)}\n📋 Entries: ${monthEntries.length}\n\nSabse recent: ${fmtDate(sorted.find(e => e.date && e.date.startsWith(thisMonth))?.date)}`;
+  // ── এই মাহ ──
+  if (m.match(/মাহ|month|এই বাৰ|বৰ্তমান|এতিয়া/)) {
+    const mName = new Date().toLocaleString("as-IN", { month: "long", year: "numeric" });
+    if (monthEntries.length === 0) return `📅 ${mName}ত এতিয়ালৈ কোনো তথ্য নাই।\n\nতথ্য টেবৰ পৰা নতুন তথ্য যোগ কৰক!`;
+    return `📅 ${mName}\n\n⚖️ মুঠ ওজন: ${monthWeight.toFixed(1)} কি:গ্ৰা:\n💰 উপাৰ্জন: ${fmtTk(monthAmount)}\n🟢 বাকী: ${fmtTk(monthBalance)}\n📋 তথ্য সংখ্যা: ${monthEntries.length}`;
   }
 
-  // ── Rate ──
-  if (m.match(/rate|bhav|dam|kitne ka|kilo/)) {
-    if (!latestWithRate) return "Abhi kisi entry mein rate set nahi hai.\nRecords tab se entry edit karke rate daalo!";
-    return `📊 Rate Details\n\n• Recent rate: ${fmtRs(latestWithRate.rate)}/kg\n• Average rate: Rs ${avgRate.toFixed(1)}/kg\n• Sabse zyada: Rs ${Math.max(...withRate.map(e => e.rate))}/kg\n• Sabse kam: Rs ${Math.min(...withRate.map(e => e.rate))}/kg\n• Rate wali entries: ${withRate.length}/${entries.length}`;
+  // ── হাৰ ──
+  if (m.match(/হাৰ|rate|ভাৱ|দাম|কিলো/)) {
+    if (!latestWithRate) return "এতিয়ালৈ কোনো তথ্যত হাৰ নিৰ্ধাৰণ কৰা হোৱা নাই।\nতথ্য টেবৰ পৰা সম্পাদনা কৰি হাৰ দিয়ক!";
+    return `📊 হাৰৰ বিৱৰণ\n\n• শেষ হাৰ: ${latestWithRate.rate} টকা/কি:গ্ৰা:\n• গড় হাৰ: ${avgRate.toFixed(1)} টকা/কি:গ্ৰা:\n• সৰ্বাধিক: ${Math.max(...withRate.map(e => e.rate))} টকা/কি:গ্ৰা:\n• সৰ্বনিম্ন: ${Math.min(...withRate.map(e => e.rate))} টকা/কি:গ্ৰা:\n• হাৰ থকা তথ্য: ${withRate.length}/${entries.length}`;
   }
 
-  // ── Wajan / Patta ──
-  if (m.match(/wajan|weight|kg|patta|kitna patta|bika/)) {
+  // ── ওজন / পাত ──
+  if (m.match(/ওজন|weight|কি:গ্ৰা|পাত|চাহ/)) {
     const best = sorted.reduce((a, b) => (b.weight || 0) > (a.weight || 0) ? b : a, sorted[0]);
-    return `⚖️ Patta Wajan\n\n• Kul wajan: ${totalWeight.toFixed(1)} kg\n• Total entries: ${entries.length}\n• Avg per entry: ${(totalWeight / entries.length).toFixed(1)} kg\n• Sabse badi entry: ${best.weight} kg (${fmtDate(best.date)})\n• Is mahine: ${monthWeight.toFixed(1)} kg`;
+    return `⚖️ পাতৰ ওজন\n\n• মুঠ ওজন: ${totalWeight.toFixed(1)} কি:গ্ৰা:\n• মুঠ তথ্য: ${entries.length} টা\n• গড় প্ৰতি তথ্য: ${(totalWeight / entries.length).toFixed(1)} কি:গ্ৰা:\n• সৰ্বাধিক: ${best.weight} কি:গ্ৰা: (${fmtDate(best.date)})\n• এই মাহত: ${monthWeight.toFixed(1)} কি:গ্ৰা:`;
   }
 
-  // ── Kamaai ──
-  if (m.match(/kamai|kamaai|kamaya|paisa|paise|kitna mila|income|earning|raqam/)) {
-    return `💰 Kamaai Ka Hisaab\n\n• Kul kamaai: ${fmtRs(totalAmount)}\n• Mili raqam: ${fmtRs(totalReceived)}\n• Baaki balance: ${fmtRs(totalBalance)}\n• Advance kata: ${fmtRs(totalAdvance)}\n\n📅 Is mahine: ${fmtRs(monthAmount)}`;
+  // ── উপাৰ্জন ──
+  if (m.match(/উপাৰ্জন|টকা|কিমান পালোঁ|আয়|earning|income/)) {
+    return `💰 উপাৰ্জনৰ হিচাব\n\n• মুঠ উপাৰ্জন: ${fmtTk(totalAmount)}\n• পোৱা পৰিমাণ: ${fmtTk(totalReceived)}\n• বাকী পৰিমাণ: ${fmtTk(totalBalance)}\n• এডভান্স কটা: ${fmtTk(totalAdvance)}\n\n📅 এই মাহত: ${fmtTk(monthAmount)}`;
   }
 
-  // ── Entries count ──
-  if (m.match(/kitni entry|entries|record|log|kitni baar|count/)) {
-    return `📋 Entry Details\n\n• Total entries: ${entries.length}\n• Is mahine: ${monthEntries.length}\n• Rate wali entries: ${withRate.length}\n• Pehli entry: ${fmtDate(sorted[sorted.length - 1]?.date)}\n• Aakhri entry: ${fmtDate(latest.date)}`;
+  // ── সম্পূৰ্ণ হিচাব ──
+  if (m.match(/সম্পূৰ্ণ|সকলো|পূৰ্ণ|report|হিচাব|বিৱৰণ/)) {
+    return `📊 সম্পূৰ্ণ হিচাব\n\n🍃 পাত\n• মুঠ ওজন: ${totalWeight.toFixed(1)} কি:গ্ৰা:\n• মুঠ তথ্য: ${entries.length} টা\n• গড়: ${(totalWeight / entries.length).toFixed(1)} কি:গ্ৰা:/তথ্য\n\n💰 টকা\n• মুঠ উপাৰ্জন: ${fmtTk(totalAmount)}\n• পোৱা পৰিমাণ: ${fmtTk(totalReceived)}\n• এডভান্স কটা: ${fmtTk(totalAdvance)}\n• 🟢 বাকী: ${fmtTk(totalBalance)}\n\n📅 এই মাহত\n• ${monthEntries.length} টা তথ্য\n• ${monthWeight.toFixed(1)} কি:গ্ৰা:\n• ${fmtTk(monthAmount)} উপাৰ্জন`;
   }
 
-  // ── Summary / Poora hisaab ──
-  if (m.match(/summary|sab|poora|report|hisaab|detail|sab kuch|bata|batao/)) {
-    return `📊 Poora Hisaab\n\n🍃 Patta\n• Kul wajan: ${totalWeight.toFixed(1)} kg\n• Total entries: ${entries.length}\n• Average: ${(totalWeight / entries.length).toFixed(1)} kg/entry\n\n💰 Paisa\n• Kul kamaai: ${fmtRs(totalAmount)}\n• Mili raqam: ${fmtRs(totalReceived)}\n• Advance kata: ${fmtRs(totalAdvance)}\n• 🟢 Baaki: ${fmtRs(totalBalance)}\n\n📅 Is Mahine\n• ${monthEntries.length} entries\n• ${monthWeight.toFixed(1)} kg\n• ${fmtRs(monthAmount)} kamaai`;
-  }
-
-  // ── Sabse badi / best ──
-  if (m.match(/sabse|best|badi|bada|zyada|max|highest/)) {
+  // ── সৰ্বাধিক ──
+  if (m.match(/সৰ্বাধিক|সেৰা|বেছি|max|highest|সৰ্বোচ্চ/)) {
     const best = sorted.reduce((a, b) => (b.totalAmount || 0) > (a.totalAmount || 0) ? b : a, sorted[0]);
     const heaviest = sorted.reduce((a, b) => (b.weight || 0) > (a.weight || 0) ? b : a, sorted[0]);
-    return `🏆 Sabse Badi Entries\n\n💰 Sabse zyada kamaai:\n• ${fmtDate(best.date)}\n• ${best.weight} kg @ Rs${best.rate}/kg\n• ${fmtRs(best.totalAmount)}\n\n⚖️ Sabse zyada wajan:\n• ${fmtDate(heaviest.date)}\n• ${heaviest.weight} kg`;
+    return `🏆 সৰ্বাধিক তথ্য\n\n💰 সৰ্বাধিক উপাৰ্জন:\n• ${fmtDate(best.date)}\n• ${best.weight} কি:গ্ৰা: @ ${best.rate} টকা/কি:গ্ৰা:\n• ${fmtTk(best.totalAmount)}\n\n⚖️ সৰ্বাধিক ওজন:\n• ${fmtDate(heaviest.date)}\n• ${heaviest.weight} কি:গ্ৰা:`;
   }
 
-  // ── Help ──
-  if (m.match(/help|kya kar|madad|kya pooch|options|menu/)) {
-    return `🤖 Main yeh sab bata sakta hoon:\n\n• "Aakhri entry dikhao"\n• "Baaki balance kitna hai"\n• "Is mahine ka haal"\n• "Kul kamaai"\n• "Advance details"\n• "Patta wajan"\n• "Rate kya hai"\n• "Poora hisaab"\n• "Sabse badi entry"`;
+  // ── ধন্যবাদ ──
+  if (m.match(/ধন্যবাদ|thanks|thank|ভাল|সুন্দৰ|বাঢ়িয়া/)) {
+    return `কামত আহিলে ভাল লাগিল! 😊🍃\n\nআন কিবা জানিব বিচাৰিলে সুধিব!`;
   }
 
-  // ── Shukriya ──
-  if (m.match(/shukriya|thanks|thank|dhanyawad|theek|great|acha|accha|badiya|wah/)) {
-    return `Khushi hui kaam aaya! 😊🍃\n\nAur kuch poochna ho toh batao!`;
+  // ── সহায় ──
+  if (m.match(/help|সহায়|কি কৰিব|কি সুধিব|menu/)) {
+    return `🤖 মই এইবোৰ ক'ব পাৰোঁ:\n\n• "শেষ তথ্য দেখুৱাওক"\n• "বাকী কিমান আছে"\n• "এই মাহৰ তথ্য"\n• "মুঠ উপাৰ্জন"\n• "এডভান্স বিৱৰণ"\n• "পাতৰ ওজন"\n• "হাৰ কিমান"\n• "সম্পূৰ্ণ হিচাব"`;
   }
 
-  // ── Default smart fallback ──
-  const keywords = m.split(/\s+/);
-  for (const word of keywords) {
-    if (word.match(/paisa|paise|rs|rupee/)) return generateReply("kamaai", entries);
-    if (word.match(/patta|chai|tea/)) return generateReply("wajan", entries);
-    if (word.match(/din|date|tarikh/)) return generateReply("aakhri entry", entries);
-  }
-
-  return `Samajh nahi aaya! 😅\n\nYeh try karo:\n• "Poora hisaab batao"\n• "Baaki balance"\n• "Aakhri entry"\n• "Is mahine ka data"\n\nYa "help" likho!`;
+  // ── default fallback ──
+  return `বুজিব পৰা নাই! 😅\n\nএইবোৰ চেষ্টা কৰক:\n• "সম্পূৰ্ণ হিচাব"\n• "বাকী পৰিমাণ"\n• "শেষ তথ্য"\n• "এই মাহৰ তথ্য"\n\nবা "সহায়" লিখক!`;
 };
 
 export default function AIChatPage({ user }) {
-  const [messages, setMessages] = useState([{
-    role: "bot",
-    text: "Namaste! 🍃 Main aapka Chai Bagan assistant hoon.\n\nApni entries ke baare mein kuch bhi poochho!\n\n• Kamaai, balance, advance\n• Is mahine ka haal\n• Aakhri entry details\n• Poora summary",
-  }]);
+  const [started, setStarted] = useState(false);
+  const [messages, setMessages] = useState([]);
   const [input, setInput] = useState("");
   const [entries, setEntries] = useState([]);
   const [typing, setTyping] = useState(false);
@@ -138,6 +123,25 @@ export default function AIChatPage({ user }) {
   useEffect(() => { loadEntries(); }, [loadEntries]);
   useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages, typing]);
 
+  const quickBtns = [
+    { label: "শেষ তথ্য", msg: "শেষ তথ্য" },
+    { label: "বাকী পৰিমাণ", msg: "বাকী" },
+    { label: "এই মাহ", msg: "এই মাহ" },
+    { label: "মুঠ উপাৰ্জন", msg: "উপাৰ্জন" },
+    { label: "এডভান্স", msg: "এডভান্স" },
+    { label: "সম্পূৰ্ণ হিচাব", msg: "সম্পূৰ্ণ হিচাব" },
+  ];
+
+  const startChat = (msg) => {
+    setStarted(true);
+    setMessages([{ role: "user", text: msg }]);
+    setTyping(true);
+    setTimeout(() => {
+      setMessages(p => [...p, { role: "bot", text: generateReply(msg, entries) }]);
+      setTyping(false);
+    }, 500);
+  };
+
   const sendMessage = (text) => {
     const msg = (text || input).trim();
     if (!msg) return;
@@ -150,13 +154,66 @@ export default function AIChatPage({ user }) {
     }, 500);
   };
 
-  const quickBtns = ["Poora hisaab", "Baaki balance", "Aakhri entry", "Is mahine", "Advance", "Kamaai"];
+  // ── WELCOME SCREEN (before chat starts) ──
+  if (!started) {
+    return (
+      <div style={styles.welcomePage}>
+        <div style={styles.welcomeTop}>
+          <div style={styles.welcomeIcon}>🍃</div>
+          <h2 style={styles.welcomeTitle}>চাহ বাগান সহায়ক</h2>
+          <p style={styles.welcomeSub}>আপোনাৰ তথ্যৰ বিষয়ে যিকোনো কথা সুধিব পাৰে</p>
+        </div>
 
+        <div style={styles.helpCard}>
+          <div style={styles.helpTitle}>📋 কি কি সুধিব পাৰে?</div>
+          {[
+            ["📌", "শেষ তথ্য", "শেষবাৰ কিমান পাত দিছিল"],
+            ["💰", "উপাৰ্জন", "মুঠ কিমান টকা পালোঁ"],
+            ["💳", "বাকী পৰিমাণ", "কিমান টকা পোৱা বাকী"],
+            ["📅", "এই মাহ", "এই মাহৰ সম্পূৰ্ণ তথ্য"],
+            ["💵", "এডভান্স", "কিমান এডভান্স কটা হৈছে"],
+            ["📊", "সম্পূৰ্ণ হিচাব", "সকলো তথ্যৰ সাৰাংশ"],
+          ].map(([icon, title, desc]) => (
+            <button key={title} onClick={() => startChat(title)} style={styles.helpRow}>
+              <span style={styles.helpRowIcon}>{icon}</span>
+              <div style={styles.helpRowText}>
+                <div style={styles.helpRowTitle}>{title}</div>
+                <div style={styles.helpRowDesc}>{desc}</div>
+              </div>
+              <span style={styles.helpRowArrow}>›</span>
+            </button>
+          ))}
+        </div>
+
+        <div style={styles.orDivider}>— বা নিজে লিখক —</div>
+
+        <div style={styles.welcomeInput}>
+          <input
+            type="text" value={input}
+            onChange={e => setInput(e.target.value)}
+            onKeyDown={e => e.key === "Enter" && input.trim() && startChat(input.trim())}
+            placeholder="যিকোনো প্ৰশ্ন লিখক..."
+            style={styles.textInput}
+          />
+          <button
+            onClick={() => input.trim() && startChat(input.trim())}
+            disabled={!input.trim()}
+            style={{ ...styles.sendBtn, opacity: input.trim() ? 1 : 0.5 }}
+          >➤</button>
+        </div>
+        <style>{`@keyframes blink{0%,80%,100%{opacity:.2;transform:scale(0.8)}40%{opacity:1;transform:scale(1)}}`}</style>
+      </div>
+    );
+  }
+
+  // ── CHAT SCREEN ──
   return (
     <div style={styles.page}>
+      {/* Quick buttons */}
       <div style={styles.quickScroll}>
+        <button onClick={() => { setStarted(false); setMessages([]); }} style={styles.backBtn}>← ঘূৰি যাওক</button>
         {quickBtns.map(q => (
-          <button key={q} onClick={() => sendMessage(q)} style={styles.quickBtn}>{q}</button>
+          <button key={q.label} onClick={() => sendMessage(q.msg)} style={styles.quickBtn}>{q.label}</button>
         ))}
       </div>
 
@@ -196,7 +253,7 @@ export default function AIChatPage({ user }) {
           type="text" value={input}
           onChange={e => setInput(e.target.value)}
           onKeyDown={e => e.key === "Enter" && sendMessage()}
-          placeholder="Kuch bhi poochho..."
+          placeholder="যিকোনো প্ৰশ্ন লিখক..."
           style={styles.textInput}
         />
         <button onClick={() => sendMessage()} disabled={!input.trim()} style={{ ...styles.sendBtn, opacity: input.trim() ? 1 : 0.5 }}>➤</button>
@@ -207,8 +264,26 @@ export default function AIChatPage({ user }) {
 }
 
 const styles = {
+  // Welcome screen
+  welcomePage: { minHeight: "calc(100vh - 120px)", background: "#f0f4f0", padding: "20px 16px 100px", fontFamily: "'Segoe UI', sans-serif", display: "flex", flexDirection: "column", gap: "16px" },
+  welcomeTop: { textAlign: "center", padding: "24px 0 8px" },
+  welcomeIcon: { fontSize: "56px", marginBottom: "10px" },
+  welcomeTitle: { fontSize: "22px", fontWeight: "900", color: "#1a3a1a", margin: "0 0 6px" },
+  welcomeSub: { fontSize: "13px", color: "#6b7280", margin: 0 },
+  helpCard: { background: "white", borderRadius: "18px", boxShadow: "0 4px 20px rgba(0,0,0,0.07)", overflow: "hidden" },
+  helpTitle: { fontSize: "13px", fontWeight: "800", color: "#6b7280", padding: "14px 16px 10px", borderBottom: "1px solid #f3f4f6" },
+  helpRow: { display: "flex", alignItems: "center", gap: "12px", padding: "14px 16px", background: "white", border: "none", borderBottom: "1px solid #f9fafb", width: "100%", cursor: "pointer", fontFamily: "inherit", textAlign: "left" },
+  helpRowIcon: { fontSize: "22px", width: 36, height: 36, display: "flex", alignItems: "center", justifyContent: "center", background: "#f0fdf4", borderRadius: "10px", flexShrink: 0 },
+  helpRowText: { flex: 1 },
+  helpRowTitle: { fontSize: "14px", fontWeight: "800", color: "#1a3a1a" },
+  helpRowDesc: { fontSize: "12px", color: "#9ca3af", marginTop: "2px" },
+  helpRowArrow: { fontSize: "22px", color: "#d1d5db", fontWeight: "300" },
+  orDivider: { textAlign: "center", fontSize: "12px", color: "#9ca3af", fontWeight: "600" },
+  welcomeInput: { display: "flex", gap: "10px" },
+  // Chat screen
   page: { display: "flex", flexDirection: "column", height: "calc(100vh - 120px)", background: "#f0f4f0", fontFamily: "'Segoe UI', sans-serif" },
   quickScroll: { display: "flex", gap: "8px", padding: "10px 12px", overflowX: "auto", background: "white", borderBottom: "1px solid #e5e7eb", flexShrink: 0 },
+  backBtn: { background: "#f3f4f6", border: "none", color: "#374151", padding: "7px 12px", borderRadius: "20px", fontSize: "12px", fontWeight: "700", cursor: "pointer", whiteSpace: "nowrap", fontFamily: "inherit" },
   quickBtn: { background: "#f0fdf4", border: "1.5px solid #86efac", color: "#166534", padding: "7px 14px", borderRadius: "20px", fontSize: "12px", fontWeight: "700", cursor: "pointer", whiteSpace: "nowrap", fontFamily: "inherit" },
   messages: { flex: 1, overflowY: "auto", padding: "16px 12px" },
   avatar: { width: 32, height: 32, borderRadius: "50%", background: "linear-gradient(135deg,#1a3a1a,#2d5a27)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "15px", flexShrink: 0, marginRight: "8px", alignSelf: "flex-end" },
