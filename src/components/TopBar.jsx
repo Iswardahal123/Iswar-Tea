@@ -10,7 +10,6 @@ export default function TopBar({ user, currentPage, isAdmin }) {
   const [showAdvanceModal, setShowAdvanceModal] = useState(false);
   const [currentAdvance, setCurrentAdvance] = useState(0);
   const [newAdvanceAmt, setNewAdvanceAmt] = useState("");
-  const [advanceAction, setAdvanceAction] = useState("add");
   const [newPwd, setNewPwd] = useState("");
   const [currentPwd, setCurrentPwd] = useState("");
   const [clearPwd, setClearPwd] = useState("");
@@ -56,15 +55,13 @@ export default function TopBar({ user, currentPage, isAdmin }) {
     setLoading(true);
     try {
       const userRef = doc(db, "users", user.uid);
-      const updated = advanceAction === "add"
-        ? currentAdvance + amt
-        : Math.max(0, currentAdvance - amt);
+      const updated = currentAdvance + amt;
       await updateDoc(userRef, { totalAdvanceTaken: updated });
       setCurrentAdvance(updated);
       setMsg("Advance update ho gaya! Rs " + updated.toFixed(0));
       setMsgType("success");
       setNewAdvanceAmt("");
-      setTimeout(() => { setShowAdvanceModal(false); setMsg(""); window.location.reload(); }, 1500);
+      setTimeout(() => { setShowAdvanceModal(false); setMsg(""); }, 1500);
     } catch (err) {
       setMsg("Error: " + err.message); setMsgType("error");
     }
@@ -179,21 +176,13 @@ export default function TopBar({ user, currentPage, isAdmin }) {
                 <div style={{ fontSize: "12px", color: "#92400e", fontWeight: "700" }}>Abhi Tak Total Advance Liya</div>
                 <div style={{ fontSize: "28px", fontWeight: "900", color: "#d97706" }}>Rs {currentAdvance.toFixed(0)}</div>
               </div>
-              <div style={{ display: "flex", gap: "8px" }}>
-                <button onClick={() => setAdvanceAction("add")} style={{ flex: 1, padding: "10px", borderRadius: "10px", border: "2px solid " + (advanceAction === "add" ? "#16a34a" : "#e5e7eb"), background: advanceAction === "add" ? "#f0fdf4" : "white", color: advanceAction === "add" ? "#16a34a" : "#6b7280", fontWeight: "700", cursor: "pointer", fontFamily: "inherit" }}>
-                  + Naya Advance
-                </button>
-                <button onClick={() => setAdvanceAction("subtract")} style={{ flex: 1, padding: "10px", borderRadius: "10px", border: "2px solid " + (advanceAction === "subtract" ? "#dc2626" : "#e5e7eb"), background: advanceAction === "subtract" ? "#fef2f2" : "white", color: advanceAction === "subtract" ? "#dc2626" : "#6b7280", fontWeight: "700", cursor: "pointer", fontFamily: "inherit" }}>
-                  - Minus Karo
-                </button>
-              </div>
               <div style={styles.field}>
-                <label style={styles.fieldLabel}>{advanceAction === "add" ? "Kitna naya advance liya? (Rs)" : "Kitna minus karna hai? (Rs)"}</label>
+                <label style={styles.fieldLabel}>Kitna naya advance liya? (Rs)</label>
                 <input type="number" value={newAdvanceAmt} onChange={(e) => setNewAdvanceAmt(e.target.value)} placeholder="Amount daalo" style={styles.fieldInput} />
               </div>
               {parseFloat(newAdvanceAmt) > 0 && (
-                <div style={{ background: "#f3f4f6", borderRadius: "10px", padding: "10px 14px", fontSize: "13px", color: "#374151" }}>
-                  Naya total: Rs {advanceAction === "add" ? (currentAdvance + parseFloat(newAdvanceAmt)).toFixed(0) : Math.max(0, currentAdvance - parseFloat(newAdvanceAmt)).toFixed(0)}
+                <div style={{ background: "#f0fdf4", borderRadius: "10px", padding: "10px 14px", fontSize: "13px", color: "#166534", fontWeight: "700" }}>
+                  Naya total: Rs {(currentAdvance + parseFloat(newAdvanceAmt)).toFixed(0)}
                 </div>
               )}
               {msg && <div style={{ ...styles.msgBox, background: msgType === "success" ? "#f0fdf4" : "#fef2f2", color: msgType === "success" ? "#16a34a" : "#dc2626" }}>{msg}</div>}
