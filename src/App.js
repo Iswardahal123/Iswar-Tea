@@ -87,10 +87,10 @@ export default function App() {
   const renderPage = () => {
     if (isAdmin) return <AdminDashboard user={user} />;
     switch (currentPage) {
-      case "dashboard": return <DashboardPage />;
-      case "entry":     return <EntryFormPage />;
-      case "view":      return <EntryViewPage />;
-      case "chat":      return <AIChatPage />;
+      case "dashboard": return <DashboardPage user={user} />;
+      case "entry":     return <EntryFormPage user={user} />;
+      case "view":      return <EntryViewPage user={user} />;
+      case "chat":      return <AIChatPage user={user} />;
       default:          return <DashboardPage />;
     }
   };
