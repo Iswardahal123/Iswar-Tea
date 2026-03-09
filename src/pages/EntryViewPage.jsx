@@ -135,7 +135,7 @@ export default function EntryViewPage({ user }) {
                 {entry.totalAmount > 0 ? (
                   <div style={styles.cardTotal}>Rs {entry.totalAmount.toFixed(0)}</div>
                 ) : (
-                  <div style={styles.pendingBadge}>হাৰ বাকী</div>
+                  <div style={styles.pendingBadge}>হিচাব কৰা হোৱা নাই</div>
                 )}
                 {entry.balanceAmount !== undefined && entry.balanceAmount !== 0 && (
                   <div style={{
