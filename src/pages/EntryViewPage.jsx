@@ -19,15 +19,10 @@ export default function EntryViewPage({ user }) {
     try {
       const currentUser = user || auth.currentUser;
       if (!currentUser) { setLoading(false); return; }
-      const q = query(
-        collection(db, "entries"),
-        where("uid", "==", currentUser.uid)
-      );
+      const q = query(collection(db, "entries"), where("uid", "==", currentUser.uid));
       const snap = await getDocs(q);
       setEntries(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
-    } catch (err) {
-      console.error("Fetch error:", err);
-    }
+    } catch (err) { console.error("Fetch error:", err); }
     setLoading(false);
   }, [user]);
 
@@ -58,7 +53,6 @@ export default function EntryViewPage({ user }) {
   const handleEditChange = (e) => {
     setEditForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
   };
-  
 
   const eWeight = parseFloat(editForm.weight) || 0;
   const eRate = parseFloat(editForm.rate) || 0;
@@ -83,9 +77,7 @@ export default function EntryViewPage({ user }) {
       });
       setEditEntry(null);
       fetchEntries();
-    } catch (err) {
-      console.error(err);
-    }
+    } catch (err) { console.error(err); }
     setSaving(false);
   };
 
@@ -197,9 +189,9 @@ export default function EntryViewPage({ user }) {
                 <div style={styles.calcBox}>
                   <div style={styles.calcRow}>
                     <span>মুঠ পৰিমাণ</span>
-                    <span style={styles.calcVal}> {eTotalAmount.toFixed(2)} টকা</span>
+                    <span style={styles.calcVal}>{eTotalAmount.toFixed(2)} টকা</span>
                   </div>
-                  <div style={styles.calcHint}>{eWeight} x Rs{eRate} = {eTotalAmount.toFixed(2)} টকা</div>
+                  <div style={styles.calcHint}>{eWeight} x {eRate} = {eTotalAmount.toFixed(2)} টকা</div>
                 </div>
               )}
               <div style={styles.field}>
@@ -215,10 +207,11 @@ export default function EntryViewPage({ user }) {
                   <div style={styles.calcRow}>
                     <span style={{ fontWeight: "800" }}>বাকী পৰিমাণ</span>
                     <span style={{ fontSize: "22px", fontWeight: "900", color: eBalance >= 0 ? "#16a34a" : "#dc2626" }}>
-                      Rs {eBalance.toFixed(2)}
+                      {eBalance.toFixed(2)} টকা
                     </span>
                   </div>
-                  
+                  <div style={styles.calcHint}>{eTotalAmount.toFixed(0)} - {eAdvance} - {eReceived} = {eBalance.toFixed(2)} টকা</div>
+                </div>
               )}
               <div style={styles.field}>
                 <label style={styles.fieldLabel}>টকা</label>
