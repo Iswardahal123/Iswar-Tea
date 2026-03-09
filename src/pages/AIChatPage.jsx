@@ -30,7 +30,7 @@ const callGeminiWithRotation = async (prompt) => {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           contents: [{ parts: [{ text: prompt }] }],
-          generationConfig: { maxOutputTokens: 500, temperature: 0.7 },
+          generationConfig: { maxOutputTokens: 250, temperature: 0.7 },
         }),
       });
 
@@ -41,6 +41,7 @@ const callGeminiWithRotation = async (prompt) => {
         console.log(`Key ${currentKeyIndex + 1} ka limit khatam, next key try kar raha hoon...`);
         currentKeyIndex = (currentKeyIndex + 1) % totalKeys;
         attempts++;
+        await new Promise(r => setTimeout(r, 2000));
         continue;
       }
 
@@ -100,8 +101,10 @@ export default function AIChatPage({ user }) {
   }, [messages, loading]);
 
   const buildPrompt = (userMessage) => {
-    const entrySummary = allEntries.map((e) =>
-      `Date: ${e.date}, Weight: ${e.weight}kg, Rate: Rs${e.rate}/kg, Total: Rs${(e.totalAmount||0).toFixed(2)}, Advance: Rs${e.advanceCut||0}, Received: Rs${e.amountReceived||0}, Balance: Rs${(e.balanceAmount||0).toFixed(2)}`
+    // Only last 10 entries to keep prompt small
+    const recentEntries = [...allEntries].sort((a,b) => (b.date||"").localeCompare(a.date||"")).slice(0, 10);
+    const entrySummary = recentEntries.map((e) =>
+      `${e.date}: ${e.weight}kg @Rs${e.rate}, Total:Rs${(e.totalAmount||0).toFixed(0)}, Bal:Rs${(e.balanceAmount||0).toFixed(0)}`
     ).join("\n");
 
     const totalWeight = allEntries.reduce((s, e) => s + (e.weight || 0), 0);
