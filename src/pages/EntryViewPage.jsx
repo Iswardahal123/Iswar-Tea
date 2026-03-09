@@ -1,11 +1,11 @@
 import React, { useEffect, useState } from "react";
 import { auth, db } from "../firebase/config";
 import {
-  collection, query, where, orderBy, getDocs,
+  collection, query, where, getDocs,
   deleteDoc, doc, updateDoc
 } from "firebase/firestore";
 
-export default function EntryViewPage() {
+export default function EntryViewPage({ user }) {
   const [entries, setEntries] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filterMonth, setFilterMonth] = useState("");
@@ -16,15 +16,16 @@ export default function EntryViewPage() {
   const fetchEntries = async () => {
     setLoading(true);
     try {
+      const currentUser = user || auth.currentUser;
+      if (!currentUser) { setLoading(false); return; }
       const q = query(
         collection(db, "entries"),
-        where("uid", "==", auth.currentUser.uid),
-        orderBy("date", "desc")
+        where("uid", "==", currentUser.uid)
       );
       const snap = await getDocs(q);
       setEntries(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
     } catch (err) {
-      console.error(err);
+      console.error("Fetch error:", err);
     }
     setLoading(false);
   };
