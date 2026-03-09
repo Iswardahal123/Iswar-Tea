@@ -92,7 +92,7 @@ export default function EntryViewPage({ user }) {
     return (
       <div style={{ textAlign: "center", padding: "60px", color: "#6b7280", fontFamily: "Segoe UI, sans-serif" }}>
         <div style={{ fontSize: "36px" }}>🍃</div>
-        <p>Load ho raha hai...</p>
+        <p>অনুগ্ৰহ কৰি অপেক্ষা কৰক...</p>
       </div>
     );
   }
@@ -102,22 +102,22 @@ export default function EntryViewPage({ user }) {
 
       {/* Filter */}
       <div style={styles.filterRow}>
-        <label style={styles.filterLabel}>📅 Month:</label>
+        <label style={styles.filterLabel}>📅 মাহ:</label>
         <input type="month" value={filterMonth} onChange={(e) => setFilterMonth(e.target.value)} style={styles.filterInput} />
-        {filterMonth && <button onClick={() => setFilterMonth("")} style={styles.clearBtn}>Clear</button>}
+        {filterMonth && <button onClick={() => setFilterMonth("")} style={styles.clearBtn}>বাতিল</button>}
       </div>
 
       {/* Count */}
       <div style={styles.countRow}>
-        {filtered.length} entries {filterMonth ? "is mahine" : "total"}
+        {filtered.length} টা তথ্য {filterMonth ? "এই মাহত" : "মুঠ"}
       </div>
 
       {/* Entries */}
       {filtered.length === 0 ? (
         <div style={styles.empty}>
           <div style={{ fontSize: "40px" }}>🍃</div>
-          <p>Koi entry nahi mili</p>
-          <p style={{ fontSize: "13px", color: "#9ca3af", marginTop: "6px" }}>Entry tab se patta add karo</p>
+          <p>কোনো তথ্য পোৱা নগ'ল</p>
+          <p style={{ fontSize: "13px", color: "#9ca3af", marginTop: "6px" }}>তথ্য টেবৰ পৰা নতুন তথ্য যোগ কৰক</p>
         </div>
       ) : (
         filtered.map((entry) => (
@@ -125,17 +125,17 @@ export default function EntryViewPage({ user }) {
             <div style={styles.cardTop}>
               <div>
                 <div style={styles.cardDate}>
-                  {new Date(entry.date).toLocaleDateString("hi-IN", { day: "numeric", month: "long", year: "numeric" })}
+                  {new Date(entry.date + "T00:00:00").toLocaleDateString("as-IN", { day: "numeric", month: "long", year: "numeric" })}
                 </div>
                 <div style={styles.cardWeight}>
-                  {entry.weight} kg{entry.rate > 0 ? " @ Rs" + entry.rate + "/kg" : ""}
+                  {entry.weight} কি:গ্ৰা:{entry.rate > 0 ? " @ Rs" + entry.rate + "/কি:গ্ৰা:" : ""}
                 </div>
               </div>
               <div style={{ textAlign: "right" }}>
                 {entry.totalAmount > 0 ? (
-                  <div style={styles.cardTotal}>Rs{entry.totalAmount.toFixed(0)}</div>
+                  <div style={styles.cardTotal}>Rs {entry.totalAmount.toFixed(0)}</div>
                 ) : (
-                  <div style={styles.pendingBadge}>Rate pending</div>
+                  <div style={styles.pendingBadge}>হাৰ বাকী</div>
                 )}
                 {entry.balanceAmount !== undefined && entry.balanceAmount !== 0 && (
                   <div style={{
@@ -143,13 +143,13 @@ export default function EntryViewPage({ user }) {
                     color: (entry.balanceAmount || 0) >= 0 ? "#16a34a" : "#dc2626",
                     background: (entry.balanceAmount || 0) >= 0 ? "#f0fdf4" : "#fef2f2",
                   }}>
-                    Baaki: Rs{(entry.balanceAmount || 0).toFixed(0)}
+                    বাকী: Rs {(entry.balanceAmount || 0).toFixed(0)}
                   </div>
                 )}
               </div>
             </div>
             <div style={styles.actionRow}>
-              <button onClick={() => openEdit(entry)} style={styles.editBtn}>✏️ Edit / Details</button>
+              <button onClick={() => openEdit(entry)} style={styles.editBtn}>✏️ সম্পাদনা / বিৱৰণ</button>
               <button onClick={() => setDeleteId(entry.id)} style={styles.deleteBtn}>🗑️</button>
             </div>
           </div>
@@ -161,15 +161,11 @@ export default function EntryViewPage({ user }) {
         <div style={styles.overlay} onClick={() => setDeleteId(null)}>
           <div style={styles.confirmBox} onClick={(e) => e.stopPropagation()}>
             <div style={styles.confirmIcon}>🗑️</div>
-            <div style={styles.confirmTitle}>Entry Delete Karni Hai?</div>
-            <div style={styles.confirmMsg}>Yeh entry permanently delete ho jaayegi. Wapas nahi aayegi!</div>
+            <div style={styles.confirmTitle}>তথ্য মচি পেলাব নে?</div>
+            <div style={styles.confirmMsg}>এই তথ্য চিৰতৰে মচি যাব। পুনৰুদ্ধাৰ কৰিব নোৱাৰিব!</div>
             <div style={styles.confirmBtns}>
-              <button onClick={() => setDeleteId(null)} style={styles.cancelBtn}>
-                Cancel
-              </button>
-              <button onClick={handleDelete} style={styles.confirmDeleteBtn}>
-                Haan, Delete Karo
-              </button>
+              <button onClick={() => setDeleteId(null)} style={styles.cancelBtn}>বাতিল</button>
+              <button onClick={handleDelete} style={styles.confirmDeleteBtn}>হয়, মচক</button>
             </div>
           </div>
         </div>
@@ -180,43 +176,43 @@ export default function EntryViewPage({ user }) {
         <div style={styles.overlay} onClick={() => setEditEntry(null)}>
           <div style={styles.modal} onClick={(e) => e.stopPropagation()}>
             <div style={styles.modalHeader}>
-              <h3 style={styles.modalTitle}>✏️ Entry Edit Karo</h3>
+              <h3 style={styles.modalTitle}>✏️ তথ্য সম্পাদনা কৰক</h3>
               <button onClick={() => setEditEntry(null)} style={styles.closeBtn}>✕</button>
             </div>
             <div style={styles.modalBody}>
               <div style={styles.field}>
-                <label style={styles.fieldLabel}>Tarikh</label>
+                <label style={styles.fieldLabel}>তাৰিখ</label>
                 <input type="date" name="date" value={editForm.date} onChange={handleEditChange} style={styles.fieldInput} />
               </div>
               <div style={styles.field}>
-                <label style={styles.fieldLabel}>Wajan (kg)</label>
+                <label style={styles.fieldLabel}>ওজন (কি:গ্ৰা:)</label>
                 <input type="number" name="weight" value={editForm.weight} onChange={handleEditChange} placeholder="150" style={styles.fieldInput} />
               </div>
               <div style={styles.field}>
-                <label style={styles.fieldLabel}>Rate (Rs/kg)</label>
+                <label style={styles.fieldLabel}>হাৰ (Rs/কি:গ্ৰা:)</label>
                 <input type="number" name="rate" value={editForm.rate} onChange={handleEditChange} placeholder="18" style={styles.fieldInput} />
               </div>
               {eTotalAmount > 0 && (
                 <div style={styles.calcBox}>
                   <div style={styles.calcRow}>
-                    <span>Kul Raqam</span>
-                    <span style={styles.calcVal}>Rs {eTotalAmount.toFixed(2)}</span>
+                    <span>মুঠ পৰিমাণ</span>
+                    <span style={styles.calcVal}> {eTotalAmount.toFixed(2)} টকা</span>
                   </div>
                   <div style={styles.calcHint}>{eWeight} x Rs{eRate} = Rs{eTotalAmount.toFixed(2)}</div>
                 </div>
               )}
               <div style={styles.field}>
-                <label style={styles.fieldLabel}>Advance Kata (Rs)</label>
+                <label style={styles.fieldLabel}>এডভান্স কটা (টকা)</label>
                 <input type="number" name="advanceCut" value={editForm.advanceCut} onChange={handleEditChange} placeholder="0" style={styles.fieldInput} />
               </div>
               <div style={styles.field}>
-                <label style={styles.fieldLabel}>Mili Raqam (Rs)</label>
+                <label style={styles.fieldLabel}>পোৱা পৰিমাণ (টকা)</label>
                 <input type="number" name="amountReceived" value={editForm.amountReceived} onChange={handleEditChange} placeholder="0" style={styles.fieldInput} />
               </div>
               {eTotalAmount > 0 && (
                 <div style={{ ...styles.calcBox, background: eBalance >= 0 ? "#f0fdf4" : "#fef2f2", borderColor: eBalance >= 0 ? "#86efac" : "#fca5a5" }}>
                   <div style={styles.calcRow}>
-                    <span style={{ fontWeight: "800" }}>Baaki Raqam</span>
+                    <span style={{ fontWeight: "800" }}>বাকী পৰিমাণ</span>
                     <span style={{ fontSize: "22px", fontWeight: "900", color: eBalance >= 0 ? "#16a34a" : "#dc2626" }}>
                       Rs {eBalance.toFixed(2)}
                     </span>
@@ -225,11 +221,11 @@ export default function EntryViewPage({ user }) {
                 </div>
               )}
               <div style={styles.field}>
-                <label style={styles.fieldLabel}>Notes</label>
-                <textarea name="notes" value={editForm.notes} onChange={handleEditChange} placeholder="Koi khas baat..." rows={2} style={{ ...styles.fieldInput, resize: "none" }} />
+                <label style={styles.fieldLabel}>টকা</label>
+                <textarea name="notes" value={editForm.notes} onChange={handleEditChange} placeholder="কোনো বিশেষ কথা..." rows={2} style={{ ...styles.fieldInput, resize: "none" }} />
               </div>
               <button onClick={handleSave} disabled={saving} style={styles.saveBtn}>
-                {saving ? "Save ho raha hai..." : "✅ Save Karo"}
+                {saving ? "⏳ সংৰক্ষণ হৈ আছে..." : "✅ সংৰক্ষণ কৰক"}
               </button>
             </div>
           </div>
