@@ -185,22 +185,7 @@ export default function AIChatPage({ user }) {
           ))}
         </div>
 
-        <div style={styles.orDivider}>— বা নিজে লিখক —</div>
 
-        <div style={styles.welcomeInput}>
-          <input
-            type="text" value={input}
-            onChange={e => setInput(e.target.value)}
-            onKeyDown={e => e.key === "Enter" && input.trim() && startChat(input.trim())}
-            placeholder="যিকোনো প্ৰশ্ন লিখক..."
-            style={styles.textInput}
-          />
-          <button
-            onClick={() => input.trim() && startChat(input.trim())}
-            disabled={!input.trim()}
-            style={{ ...styles.sendBtn, opacity: input.trim() ? 1 : 0.5 }}
-          >➤</button>
-        </div>
         <style>{`@keyframes blink{0%,80%,100%{opacity:.2;transform:scale(0.8)}40%{opacity:1;transform:scale(1)}}`}</style>
       </div>
     );
