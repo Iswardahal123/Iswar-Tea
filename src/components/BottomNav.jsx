@@ -2,10 +2,10 @@ import React from "react";
 
 export default function BottomNav({ currentPage, setCurrentPage }) {
   const tabs = [
-    { id: "dashboard", icon: "🏠", label: "Dashboard" },
-    { id: "entry",     icon: "➕", label: "Entry" },
-    { id: "view",      icon: "📋", label: "Records" },
-    { id: "chat",      icon: "🤖", label: "AI Chat" },
+    { id: "dashboard", icon: "🏠", label: "মুঠ তথ্য" },
+    { id: "entry",     icon: "📝", label: "নতুন তথ্য" },
+    { id: "view",      icon: "📖", label: "অন্তৰ্ভুক্ত তথ্য" },
+    { id: "chat",      icon: "🤖", label: "সহায়ক" },
   ];
 
   return (
