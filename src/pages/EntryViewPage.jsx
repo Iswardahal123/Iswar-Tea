@@ -218,8 +218,7 @@ export default function EntryViewPage({ user }) {
                       Rs {eBalance.toFixed(2)}
                     </span>
                   </div>
-                  <div style={styles.calcHint}>Rs{eTotalAmount.toFixed(0)} - Rs{eAdvance} - Rs{eReceived} = Rs{eBalance.toFixed(2)}</div>
-                </div>
+                  
               )}
               <div style={styles.field}>
                 <label style={styles.fieldLabel}>টকা</label>
