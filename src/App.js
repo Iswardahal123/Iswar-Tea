@@ -1,5 +1,6 @@
 // ✅ App.js - Chai Bagan Complete App
 import React, { useEffect, useState } from "react";
+import "./App.css";
 import { auth } from "./firebase/config";
 import { onAuthStateChanged } from "firebase/auth";
 
