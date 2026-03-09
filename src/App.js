@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import "./App.css";
 import { auth, db } from "./firebase/config";
 import { onAuthStateChanged } from "firebase/auth";
-import { doc, getDoc } from "firebase/firestore";
+import { doc, getDoc, setDoc } from "firebase/firestore";
 
 import Login from "./components/Login";
 import TopBar from "./components/TopBar";
@@ -24,7 +24,6 @@ const Loader = () => (
     <div style={{ fontSize: "60px", marginBottom: "16px" }}>🍃</div>
     <div style={{ fontSize: "22px", fontWeight: "800" }}>Chai Bagan</div>
     <div style={{ fontSize: "14px", opacity: 0.7, marginTop: "8px" }}>Loading...</div>
-    <style>{`@keyframes bounce{0%,100%{transform:translateY(0)}50%{transform:translateY(-12px)}}`}</style>
   </div>
 );
 
@@ -34,18 +33,36 @@ export default function App() {
   const [checkingAuth, setCheckingAuth] = useState(true);
   const [currentPage, setCurrentPage] = useState("dashboard");
 
+  const checkUserRole = async (u) => {
+    try {
+      const userRef = doc(db, "users", u.uid);
+      const userDoc = await getDoc(userRef);
+      if (!userDoc.exists()) {
+        // Auto create user doc if missing
+        await setDoc(userRef, {
+          uid: u.uid,
+          email: u.email,
+          name: u.displayName || "",
+          photo: u.photoURL || "",
+          isAdmin: false,
+          createdAt: new Date().toISOString(),
+        });
+        return false;
+      }
+      return userDoc.data().isAdmin === true;
+    } catch (err) {
+      console.error("Role check error:", err);
+      return false;
+    }
+  };
+
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, async (u) => {
       if (u) {
         setUser(u);
-        const userDoc = await getDoc(doc(db, "users", u.uid));
-        if (userDoc.exists() && userDoc.data().isAdmin === true) {
-          setIsAdmin(true);
-          setCurrentPage("admin");
-        } else {
-          setIsAdmin(false);
-          setCurrentPage("dashboard");
-        }
+        const admin = await checkUserRole(u);
+        setIsAdmin(admin);
+        setCurrentPage(admin ? "admin" : "dashboard");
       } else {
         setUser(null);
         setIsAdmin(false);
@@ -59,14 +76,9 @@ export default function App() {
     const u = auth.currentUser;
     if (!u) return;
     setUser(u);
-    const userDoc = await getDoc(doc(db, "users", u.uid));
-    if (userDoc.exists() && userDoc.data().isAdmin === true) {
-      setIsAdmin(true);
-      setCurrentPage("admin");
-    } else {
-      setIsAdmin(false);
-      setCurrentPage("dashboard");
-    }
+    const admin = await checkUserRole(u);
+    setIsAdmin(admin);
+    setCurrentPage(admin ? "admin" : "dashboard");
   };
 
   if (checkingAuth) return <Loader />;
