@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { auth, db } from "../firebase/config";
 import { signOut, updatePassword, reauthenticateWithCredential, EmailAuthProvider } from "firebase/auth";
-import { doc, getDoc, deleteDoc, collection, query, where, getDocs } from "firebase/firestore";
+import { doc, deleteDoc, collection, query, where, getDocs } from "firebase/firestore";
 
 export default function TopBar({ user, currentPage, isAdmin }) {
   const [showProfile, setShowProfile] = useState(false);
