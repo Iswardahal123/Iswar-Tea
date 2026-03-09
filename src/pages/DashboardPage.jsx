@@ -26,7 +26,7 @@ export default function DashboardPage({ user }) {
       setLoading(false);
     };
     fetchData();
-  }, []);
+  }, [user]);
 
   const filtered = filterMonth
     ? entries.filter((e) => e.date && e.date.startsWith(filterMonth))
