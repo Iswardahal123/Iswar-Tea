@@ -7,15 +7,19 @@ import { collection, query, where, getDocs } from "firebase/firestore";
 const GEMINI_KEYS = [
   process.env.REACT_APP_GEMINI_KEY_1,
   process.env.REACT_APP_GEMINI_KEY_2,
+  process.env.REACT_APP_GEMINI_KEY_3,
 ].filter(Boolean); // undefined keys hata do
 
-const GEMINI_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent";
+const GEMINI_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent";
 
 // Key rotation - exhausted keys track karo
 let currentKeyIndex = 0;
 
 const callGeminiWithRotation = async (prompt) => {
   const totalKeys = GEMINI_KEYS.length;
+  if (totalKeys === 0) {
+    throw new Error("Koi Gemini API key nahi mili! Vercel pe REACT_APP_GEMINI_KEY_1 set karo aur redeploy karo.");
+  }
   let attempts = 0;
 
   while (attempts < totalKeys) {
