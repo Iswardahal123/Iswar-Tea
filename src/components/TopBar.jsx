@@ -6,7 +6,7 @@ import { useLang } from "../LanguageContext";
 import { langNames } from "../languages";
 
 export default function TopBar({ user, currentPage, isAdmin, onLangChange }) {
-  const { lang, t } = useLang();
+  const { lang } = useLang();
   const [showDropdown, setShowDropdown] = useState(false);
   const [showPwdModal, setShowPwdModal] = useState(false);
   const [showClearModal, setShowClearModal] = useState(false);
@@ -23,10 +23,10 @@ export default function TopBar({ user, currentPage, isAdmin, onLangChange }) {
   const dropdownRef = useRef(null);
 
   const pageNames = {
-    dashboard: t?.dashboard || "Dashboard",
-    entry: t?.entry || "Entry",
-    view: t?.records || "Records",
-    chat: t?.aiChat || "AI Chat",
+    dashboard: "Dashboard",
+    entry: "তথ্য",
+    view: "ৰেকৰ্ড",
+    chat: "AI চেট",
     admin: "Admin Dashboard",
   };
 
@@ -50,50 +50,49 @@ export default function TopBar({ user, currentPage, isAdmin, onLangChange }) {
 
   const handleAdvanceSave = async () => {
     const amt = parseFloat(newAdvanceAmt) || 0;
-    if (amt <= 0) { setMsg("Enter valid amount!"); setMsgType("error"); return; }
+    if (amt <= 0) { setMsg("সঠিক মূল্য লিখক!"); setMsgType("error"); return; }
     setLoading(true);
     try {
       const updated = currentAdvance + amt;
       await updateDoc(doc(db, "users", user.uid), { totalAdvanceTaken: updated });
       setCurrentAdvance(updated);
-      setMsg("✅ Updated! Rs " + updated.toFixed(0)); setMsgType("success");
-      setNewAdvanceAmt("");
+      setMsg("✅ এডভান্স সলনি হৈ গৈছে! টকা " + updated.toFixed(0));
+      setMsgType("success"); setNewAdvanceAmt("");
       setTimeout(() => { setShowAdvanceModal(false); setMsg(""); }, 1500);
     } catch (err) { setMsg("Error: " + err.message); setMsgType("error"); }
     setLoading(false);
   };
 
   const handleUpdatePassword = async () => {
-    if (!currentPwd || !newPwd) { setMsg("Fill both fields!"); setMsgType("error"); return; }
-    if (newPwd.length < 6) { setMsg("Min 6 characters!"); setMsgType("error"); return; }
+    if (!currentPwd || !newPwd) { setMsg("দুয়োটা ঠাইত লিখক!"); setMsgType("error"); return; }
+    if (newPwd.length < 6) { setMsg("পাছৱৰ্ড অলপ দীঘল ৰাখক!"); setMsgType("error"); return; }
     setLoading(true);
     try {
       const credential = EmailAuthProvider.credential(user.email, currentPwd);
       await reauthenticateWithCredential(auth.currentUser, credential);
       await updatePassword(auth.currentUser, newPwd);
-      setMsg("✅ Password updated!"); setMsgType("success");
+      setMsg("✅ পাছৱৰ্ড সলনি হৈ গ'ল!"); setMsgType("success");
       setCurrentPwd(""); setNewPwd("");
       setTimeout(() => { setShowPwdModal(false); setMsg(""); }, 2000);
     } catch (err) {
-      setMsg(err.code === "auth/wrong-password" ? "Wrong password!" : "Error: " + err.message);
+      setMsg(err.code === "auth/wrong-password" ? "পুৰণা পাছৱৰ্ড ভুল হৈছে!" : "Error: " + err.message);
       setMsgType("error");
     }
     setLoading(false);
   };
 
   const handleClearData = async () => {
-    if (!clearPwd) { setMsg("Enter password!"); setMsgType("error"); return; }
+    if (!clearPwd) { setMsg("পাছৱৰ্ড লিখক!"); setMsgType("error"); return; }
     setLoading(true);
     try {
       const credential = EmailAuthProvider.credential(user.email, clearPwd);
       await reauthenticateWithCredential(auth.currentUser, credential);
       const snap = await getDocs(query(collection(db, "entries"), where("uid", "==", user.uid)));
       await Promise.all(snap.docs.map((d) => deleteDoc(doc(db, "entries", d.id))));
-      setMsg("✅ All data deleted!"); setMsgType("success");
-      setClearPwd("");
+      setMsg("✅ সকলো তথ্য মচি দিয়া হল!"); setMsgType("success"); setClearPwd("");
       setTimeout(() => { setShowClearModal(false); setMsg(""); window.location.reload(); }, 2000);
     } catch (err) {
-      setMsg(err.code === "auth/wrong-password" ? "Wrong password!" : "Error: " + err.message);
+      setMsg(err.code === "auth/wrong-password" ? "পাছৱৰ্ড ভুল হৈছে!" : "Error: " + err.message);
       setMsgType("error");
     }
     setLoading(false);
@@ -108,12 +107,12 @@ export default function TopBar({ user, currentPage, isAdmin, onLangChange }) {
         <div style={styles.left}>
           <span style={styles.logo}>🍃</span>
           <div>
-            <div style={styles.appName}>Chai Bagan</div>
+            <div style={styles.appName}>চাহ হিচাব (ঈশ্বৰ)</div>
             <div style={styles.pageName}>{pageNames[currentPage] || "Home"}</div>
           </div>
         </div>
         <div style={styles.right}>
-          {isAdmin && <span style={styles.adminBadge}>{t?.admin || "Admin"}</span>}
+          {isAdmin && <span style={styles.adminBadge}>Admin</span>}
           <div ref={dropdownRef} style={styles.avatarWrapper}>
             <div onClick={() => setShowDropdown(!showDropdown)} style={styles.avatarBtn}>
               {user.photoURL
@@ -129,33 +128,35 @@ export default function TopBar({ user, currentPage, isAdmin, onLangChange }) {
                     : <div style={styles.dropAvatarText}>{(user.email || "U")[0].toUpperCase()}</div>
                   }
                   <div style={styles.dropInfo}>
-                    <div style={styles.dropName}>{user.displayName || "User"}</div>
+                    <div style={styles.dropName}>{user.displayName || "সদস্য"}</div>
                     <div style={styles.dropEmail}>{user.email}</div>
                     <div style={{ ...styles.dropRole, background: isAdmin ? "#fef3c7" : "#f0fdf4", color: isAdmin ? "#92400e" : "#166534" }}>
-                      {isAdmin ? (t?.admin || "Admin") : (t?.user || "User")}
+                      {isAdmin ? "Admin" : "User"}
                     </div>
                   </div>
                 </div>
                 <div style={styles.dropDivider} />
-                {/* Language */}
+
+                {/* 🌐 Language */}
                 <div style={styles.dropItem} onClick={() => { setShowLangModal(true); setShowDropdown(false); }}>
                   <span style={styles.dropIcon}>{langFlags[lang] || "🌐"}</span>
-                  {t?.language || "Language"} — <strong>{langNames[lang]}</strong>
+                  ভাষা — <strong style={{ marginLeft: 4 }}>{langNames[lang]}</strong>
                 </div>
+
                 {!isGoogleUser && (
                   <div style={styles.dropItem} onClick={() => { setShowPwdModal(true); setShowDropdown(false); }}>
-                    <span style={styles.dropIcon}>🔑</span> {t?.changePassword || "Change Password"}
+                    <span style={styles.dropIcon}>🔑</span> পাছৱৰ্ড আপডেট কৰক
                   </div>
                 )}
                 <div style={styles.dropItem} onClick={openAdvanceModal}>
-                  <span style={styles.dropIcon}>💰</span> {t?.updateAdvance || "Update Advance"}
+                  <span style={styles.dropIcon}>💰</span> এডভান্স আপডেট কৰক
                 </div>
                 <div style={{ ...styles.dropItem, color: "#dc2626" }} onClick={() => { setShowClearModal(true); setShowDropdown(false); }}>
-                  <span style={styles.dropIcon}>🗑️</span> {t?.clearData || "Clear Data"}
+                  <span style={styles.dropIcon}>🗑️</span> তথ্য ডিলিট কৰক
                 </div>
                 <div style={styles.dropDivider} />
                 <div style={styles.dropItem} onClick={handleLogout}>
-                  <span style={styles.dropIcon}>🚪</span> {t?.logout || "Logout"}
+                  <span style={styles.dropIcon}>🚪</span> লগআউট
                 </div>
               </div>
             )}
@@ -163,26 +164,26 @@ export default function TopBar({ user, currentPage, isAdmin, onLangChange }) {
         </div>
       </div>
 
-      {/* LANGUAGE MODAL */}
+      {/* 🌐 LANGUAGE MODAL */}
       {showLangModal && (
         <div style={styles.overlay} onClick={() => setShowLangModal(false)}>
           <div style={styles.modal} onClick={(e) => e.stopPropagation()}>
             <div style={styles.modalHeader}>
-              <h3 style={styles.modalTitle}>🌐 {t?.language || "Language"}</h3>
+              <h3 style={styles.modalTitle}>🌐 ভাষা বাছক</h3>
               <button onClick={() => setShowLangModal(false)} style={styles.closeBtn}>✕</button>
             </div>
             <div style={{ padding: "16px 20px 24px", display: "flex", flexDirection: "column", gap: "10px" }}>
               {Object.keys(langNames).map(l => (
-                <button key={l} onClick={() => { onLangChange(l); setShowLangModal(false); }}
+                <button key={l} onClick={() => { onLangChange && onLangChange(l); setShowLangModal(false); }}
                   style={{
                     display: "flex", alignItems: "center", gap: "14px", padding: "14px 16px",
                     background: lang === l ? "#f0fdf4" : "#f9fafb",
                     border: lang === l ? "2px solid #86efac" : "2px solid #e5e7eb",
-                    borderRadius: "12px", cursor: "pointer", fontFamily: "inherit", textAlign: "left",
+                    borderRadius: "12px", cursor: "pointer", fontFamily: "inherit",
                   }}>
-                  <span style={{ fontSize: "24px" }}>{langFlags[l]}</span>
+                  <span style={{ fontSize: "26px" }}>{langFlags[l]}</span>
                   <span style={{ fontSize: "15px", fontWeight: "700", color: "#1a3a1a", flex: 1 }}>{langNames[l]}</span>
-                  {lang === l && <span style={{ color: "#16a34a", fontWeight: "800" }}>✓</span>}
+                  {lang === l && <span style={{ color: "#16a34a", fontSize: "18px", fontWeight: "900" }}>✓</span>}
                 </button>
               ))}
             </div>
@@ -190,79 +191,80 @@ export default function TopBar({ user, currentPage, isAdmin, onLangChange }) {
         </div>
       )}
 
-      {/* ADVANCE MODAL */}
+      {/* 💰 ADVANCE MODAL */}
       {showAdvanceModal && (
         <div style={styles.overlay} onClick={() => { setShowAdvanceModal(false); setMsg(""); }}>
           <div style={styles.modal} onClick={(e) => e.stopPropagation()}>
             <div style={styles.modalHeader}>
-              <h3 style={styles.modalTitle}>💰 {t?.updateAdvance || "Update Advance"}</h3>
+              <h3 style={styles.modalTitle}>💰 এডভান্স আপডেট</h3>
               <button onClick={() => { setShowAdvanceModal(false); setMsg(""); }} style={styles.closeBtn}>✕</button>
             </div>
             <div style={styles.modalBody}>
               <div style={{ background: "#fef3c7", borderRadius: "12px", padding: "14px", textAlign: "center" }}>
-                <div style={{ fontSize: "12px", color: "#92400e", fontWeight: "700" }}>{t?.totalAdvance || "Total Advance"}</div>
-                <div style={{ fontSize: "28px", fontWeight: "900", color: "#d97706" }}>Rs {currentAdvance.toFixed(0)}</div>
+                <div style={{ fontSize: "12px", color: "#92400e", fontWeight: "700" }}>এতিয়া লৈকে এডভান্স টকা ল'লে</div>
+                <div style={{ fontSize: "28px", fontWeight: "900", color: "#d97706" }}>টকা {currentAdvance.toFixed(0)}</div>
               </div>
               <div style={styles.field}>
-                <label style={styles.fieldLabel}>{t?.advanceAmount || "New Advance Amount (Rs)"}</label>
-                <input type="number" value={newAdvanceAmt} onChange={(e) => setNewAdvanceAmt(e.target.value)} placeholder="0" style={styles.fieldInput} />
+                <label style={styles.fieldLabel}>কিমান এডভান্স ল'লে? (টকা)</label>
+                <input type="number" value={newAdvanceAmt} onChange={(e) => setNewAdvanceAmt(e.target.value)} placeholder="টকা" style={styles.fieldInput} />
               </div>
               {parseFloat(newAdvanceAmt) > 0 && (
                 <div style={{ background: "#f0fdf4", borderRadius: "10px", padding: "10px 14px", fontSize: "13px", color: "#166534", fontWeight: "700" }}>
-                  → Rs {(currentAdvance + parseFloat(newAdvanceAmt)).toFixed(0)}
+                  নতুন মুঠ: টকা {(currentAdvance + parseFloat(newAdvanceAmt)).toFixed(0)}
                 </div>
               )}
               {msg && <div style={{ ...styles.msgBox, background: msgType === "success" ? "#f0fdf4" : "#fef2f2", color: msgType === "success" ? "#16a34a" : "#dc2626" }}>{msg}</div>}
               <button onClick={handleAdvanceSave} disabled={loading} style={styles.saveBtn}>
-                {loading ? "..." : (t?.addAdvance || "Add Advance")}
+                {loading ? "আপডেট হৈ আছে..." : "✅ আপডেট কৰক"}
               </button>
             </div>
           </div>
         </div>
       )}
 
-      {/* PASSWORD MODAL */}
+      {/* 🔑 PASSWORD MODAL */}
       {showPwdModal && (
         <div style={styles.overlay} onClick={() => { setShowPwdModal(false); setMsg(""); }}>
           <div style={styles.modal} onClick={(e) => e.stopPropagation()}>
             <div style={styles.modalHeader}>
-              <h3 style={styles.modalTitle}>🔑 {t?.changePassword || "Change Password"}</h3>
+              <h3 style={styles.modalTitle}>🔑 পাছৱৰ্ড আপডেট</h3>
               <button onClick={() => { setShowPwdModal(false); setMsg(""); }} style={styles.closeBtn}>✕</button>
             </div>
             <div style={styles.modalBody}>
               <div style={styles.field}>
-                <label style={styles.fieldLabel}>{t?.confirmPwd || "Current Password"}</label>
-                <input type="password" value={currentPwd} onChange={(e) => setCurrentPwd(e.target.value)} style={styles.fieldInput} />
+                <label style={styles.fieldLabel}>পুৰণা পাছৱৰ্ড</label>
+                <input type="password" value={currentPwd} onChange={(e) => setCurrentPwd(e.target.value)} placeholder="বৰ্তমান পাছৱৰ্ড" style={styles.fieldInput} />
               </div>
               <div style={styles.field}>
-                <label style={styles.fieldLabel}>{t?.newPassword || "New Password"}</label>
-                <input type="password" value={newPwd} onChange={(e) => setNewPwd(e.target.value)} style={styles.fieldInput} />
+                <label style={styles.fieldLabel}>নতুন পাছৱৰ্ড</label>
+                <input type="password" value={newPwd} onChange={(e) => setNewPwd(e.target.value)} placeholder="৬ টাতকৈ অধিক আখৰ" style={styles.fieldInput} />
               </div>
               {msg && <div style={{ ...styles.msgBox, background: msgType === "success" ? "#f0fdf4" : "#fef2f2", color: msgType === "success" ? "#16a34a" : "#dc2626" }}>{msg}</div>}
               <button onClick={handleUpdatePassword} disabled={loading} style={styles.saveBtn}>
-                {loading ? "..." : (t?.save || "Save")}
+                {loading ? "আপডেট হৈ আছে..." : "✅ আপডেট কৰক"}
               </button>
             </div>
           </div>
         </div>
       )}
 
-      {/* CLEAR DATA MODAL */}
+      {/* 🗑️ CLEAR DATA MODAL */}
       {showClearModal && (
         <div style={styles.overlay} onClick={() => { setShowClearModal(false); setMsg(""); }}>
           <div style={styles.modal} onClick={(e) => e.stopPropagation()}>
             <div style={styles.modalHeader}>
-              <h3 style={{ ...styles.modalTitle, color: "#dc2626" }}>⚠️ {t?.clearData || "Clear Data"}</h3>
+              <h3 style={{ ...styles.modalTitle, color: "#dc2626" }}>⚠️ তথ্য মচক</h3>
               <button onClick={() => { setShowClearModal(false); setMsg(""); }} style={styles.closeBtn}>✕</button>
             </div>
             <div style={styles.modalBody}>
-              <div style={styles.warningBox}>{t?.clearConfirm || "Enter password to confirm deletion"}</div>
+              <div style={styles.warningBox}>এই কাম কৰিলে সকলো তথ্য চিৰতৰে মচি যাব!</div>
               <div style={styles.field}>
-                <input type="password" value={clearPwd} onChange={(e) => setClearPwd(e.target.value)} placeholder="Password" style={{ ...styles.fieldInput, borderColor: "#fca5a5" }} />
+                <label style={styles.fieldLabel}>পাছৱৰ্ড নিশ্চিত কৰক</label>
+                <input type="password" value={clearPwd} onChange={(e) => setClearPwd(e.target.value)} placeholder="নিজৰ পাছৱৰ্ড দিয়ক" style={{ ...styles.fieldInput, borderColor: "#fca5a5" }} />
               </div>
               {msg && <div style={{ ...styles.msgBox, background: msgType === "success" ? "#f0fdf4" : "#fef2f2", color: msgType === "success" ? "#16a34a" : "#dc2626" }}>{msg}</div>}
               <button onClick={handleClearData} disabled={loading} style={{ ...styles.saveBtn, background: "linear-gradient(135deg,#7f1d1d,#dc2626)" }}>
-                {loading ? "..." : (t?.clearData || "Delete All")}
+                {loading ? "মচি আছে..." : "🗑️ সকলো তথ্য মচক"}
               </button>
             </div>
           </div>
@@ -284,7 +286,7 @@ const styles = {
   avatarBtn: { width: 36, height: 36, borderRadius: "50%", overflow: "hidden", cursor: "pointer", border: "2px solid rgba(255,255,255,0.6)", display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(255,255,255,0.15)" },
   avatarImg: { width: "100%", height: "100%", objectFit: "cover" },
   avatarText: { fontSize: "15px", fontWeight: "800", color: "white" },
-  dropdown: { position: "absolute", top: "calc(100% + 10px)", right: 0, width: "270px", background: "white", borderRadius: "16px", boxShadow: "0 8px 32px rgba(0,0,0,0.18)", zIndex: 999, overflow: "hidden", border: "1px solid #e5e7eb" },
+  dropdown: { position: "absolute", top: "calc(100% + 10px)", right: 0, width: "260px", background: "white", borderRadius: "16px", boxShadow: "0 8px 32px rgba(0,0,0,0.18)", zIndex: 999, overflow: "hidden", border: "1px solid #e5e7eb" },
   dropUserInfo: { display: "flex", alignItems: "center", gap: "12px", padding: "16px", background: "#f9fafb" },
   dropAvatar: { width: 44, height: 44, borderRadius: "50%", objectFit: "cover", flexShrink: 0 },
   dropAvatarText: { width: 44, height: 44, borderRadius: "50%", flexShrink: 0, background: "linear-gradient(135deg,#1a3a1a,#2d5a27)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "18px", fontWeight: "800", color: "white" },
