@@ -7,7 +7,6 @@ import { collection, query, where, getDocs } from "firebase/firestore";
 const GEMINI_KEYS = [
   process.env.REACT_APP_GEMINI_KEY_1,
   process.env.REACT_APP_GEMINI_KEY_2,
-  process.env.REACT_APP_GEMINI_KEY_3,
 ].filter(Boolean); // undefined keys hata do
 
 const GEMINI_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent";
