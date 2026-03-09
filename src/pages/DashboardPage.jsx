@@ -22,7 +22,6 @@ export default function DashboardPage({ user }) {
         const data = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
         setEntries(data);
         // Fetch total advance taken from user doc
-        const currentUser = user || { uid: null };
         if (currentUser.uid) {
           const userDoc = await getDoc(doc(db, "users", currentUser.uid));
           if (userDoc.exists()) {
