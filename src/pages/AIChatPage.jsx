@@ -8,9 +8,12 @@ const GEMINI_KEYS = [
   process.env.REACT_APP_GEMINI_KEY_1,
   process.env.REACT_APP_GEMINI_KEY_2,
   process.env.REACT_APP_GEMINI_KEY_3,
-].filter(Boolean); // undefined keys hata do
+].filter(k => k && k.length > 10);
 
-const GEMINI_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent";
+// Debug: console mein keys ka status dikhao
+console.log("Gemini keys loaded:", GEMINI_KEYS.length, GEMINI_KEYS.map(k => k ? k.slice(0,8)+"..." : "MISSING"));
+
+const GEMINI_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent";
 
 // Key rotation - exhausted keys track karo
 let currentKeyIndex = 0;
