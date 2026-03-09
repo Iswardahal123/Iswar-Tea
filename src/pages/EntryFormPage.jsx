@@ -16,7 +16,7 @@ export default function EntryFormPage({ user }) {
   };
 
   const handleSubmit = async () => {
-    if (!form.date || !form.weight) { setError("তাৰিখ আৰু ওজন লিখা বাধ্যতা মূলক!"); return; }
+    if (!form.date || !form.weight) { setError("তাৰিখ আৰু ওজন লিখা বাধ্যতামূলক!"); return; }
     if (parseFloat(form.weight) <= 0) { setError("সঠিক ওজন লিখক!"); return; }
     setLoading(true);
     setError("");
@@ -42,13 +42,13 @@ export default function EntryFormPage({ user }) {
     <div style={styles.page}>
       <div style={styles.card}>
         <h2 style={styles.title}>🍃 নতুন তথ্য অন্তৰ্ভুক্ত কৰক 🍃</h2>
-        <p style={styles.hint}>তাৰিখ আৰু ওজন অন্তৰ্ভুক্ত কৰক</p>
+        <p style={styles.hint}>তাৰিখ আৰু ওজন অন্তৰ্ভুক্ত কৰক </p>
 
         {success && (
-          <div style={styles.success}>✅ তথ্য অন্তৰ্ভুক্ত কৰা হ'ল !</div>
+          <div style={styles.success}>✅ তথ্য সফলভাৱে অন্তৰ্ভুক্ত কৰা হ'ল!</div>
         )}
         {error && (
-          <div style={styles.error}>⚠️ সন্তেক পাছত চেষ্টা কৰক</div>
+          <div style={styles.error}>⚠️ {error}</div>
         )}
 
         <div style={styles.field}>
@@ -64,13 +64,13 @@ export default function EntryFormPage({ user }) {
         </div>
 
         <div style={styles.field}>
-          <label style={styles.label}>⚖️ ওজন লিখক(কি:গ্ৰা:)</label>
+          <label style={styles.label}>⚖️ ওজন লিখক (কি:গ্ৰা:)</label>
           <input
             type="number"
             name="weight"
             value={form.weight}
             onChange={handleChange}
-            placeholder="যেনে : 50 কি:গ্ৰা:"
+            placeholder="যেনে: ৫০ কি:গ্ৰা:"
             min="0"
             style={styles.input}
           />
