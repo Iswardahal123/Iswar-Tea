@@ -22,8 +22,8 @@ const Loader = () => (
     color: "white", fontFamily: "'Segoe UI', sans-serif",
   }}>
     <div style={{ fontSize: "60px", marginBottom: "16px" }}>🍃</div>
-    <div style={{ fontSize: "22px", fontWeight: "800" }}>Chai Bagan</div>
-    <div style={{ fontSize: "14px", opacity: 0.7, marginTop: "8px" }}>Loading...</div>
+    <div style={{ fontSize: "22px", fontWeight: "800" }}>চাহ তথ্য সংগ্ৰাহক</div>
+    <div style={{ fontSize: "14px", opacity: 0.7, marginTop: "8px" }}>অপেক্ষা কৰক...</div>
   </div>
 );
 
