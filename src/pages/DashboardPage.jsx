@@ -1,11 +1,12 @@
 import React, { useEffect, useState } from "react";
 import { auth, db } from "../firebase/config";
-import { collection, query, where, getDocs } from "firebase/firestore";
+import { collection, query, where, getDocs, doc, getDoc } from "firebase/firestore";
 
 export default function DashboardPage({ user }) {
   const [entries, setEntries] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filterMonth, setFilterMonth] = useState("");
+  const [totalAdvanceTaken, setTotalAdvanceTaken] = useState(0);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -20,6 +21,14 @@ export default function DashboardPage({ user }) {
         const snap = await getDocs(q);
         const data = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
         setEntries(data);
+        // Fetch total advance taken from user doc
+        const currentUser = user || { uid: null };
+        if (currentUser.uid) {
+          const userDoc = await getDoc(doc(db, "users", currentUser.uid));
+          if (userDoc.exists()) {
+            setTotalAdvanceTaken(userDoc.data().totalAdvanceTaken || 0);
+          }
+        }
       } catch (err) {
         console.error("Fetch error:", err);
       }
@@ -38,8 +47,8 @@ export default function DashboardPage({ user }) {
   const totalAdvanceCut  = filtered.reduce((s, e) => s + (e.advanceCut || 0), 0);
   const totalBalance     = filtered.reduce((s, e) => s + (e.balanceAmount || 0), 0);
 
-  // Advance balance = jo advance diya tha uska hisaab
-  const advanceBalance = totalAmount - totalAdvanceCut - totalReceived;
+  // Advance Balance = Total Advance Liya - Total Advance Kata (entries mein)
+  const advanceBalance = totalAdvanceTaken - totalAdvanceCut;
 
   const currentUserObj = user || auth.currentUser;
   const greeting = () => {
@@ -105,13 +114,15 @@ export default function DashboardPage({ user }) {
         </div>
 
         <div style={{ ...styles.statCard, background: "linear-gradient(135deg, #92400e, #d97706)" }}>
-          <div style={styles.statLabel}>Advance Liya</div>
-          <div style={styles.statValue}>Rs {totalAdvanceCut.toFixed(0)}</div>
+          <div style={styles.statLabel}>Advance Liya (Total)</div>
+          <div style={styles.statValue}>Rs {totalAdvanceTaken.toFixed(0)}</div>
+          <div style={styles.statSub}>Kata: Rs {totalAdvanceCut.toFixed(0)}</div>
         </div>
 
-        <div style={{ ...styles.statCard, background: "linear-gradient(135deg, #4c1d95, #7c3aed)" }}>
-          <div style={styles.statLabel}>Advance Balance</div>
+        <div style={{ ...styles.statCard, background: advanceBalance >= 0 ? "linear-gradient(135deg, #4c1d95, #7c3aed)" : "linear-gradient(135deg, #7f1d1d, #dc2626)" }}>
+          <div style={styles.statLabel}>Advance Baaki</div>
           <div style={styles.statValue}>Rs {advanceBalance.toFixed(0)}</div>
+          <div style={styles.statSub}>{advanceBalance >= 0 ? "Abhi baaki hai" : "Zyada kata!"}</div>
         </div>
       </div>
 
