@@ -78,7 +78,7 @@ export default function DashboardPage({ user }) {
           </div>
           <div style={styles.leafBig}>🍃</div>
         </div>
-        <div style={styles.totalEntries}>{filtered.length} টা তথ্য পোৱা গৈছে • {totalWeight.toFixed(1)} কি:গ্ৰা: চাহ</div>
+        <div style={styles.totalEntries}>{filtered.length} টা তথ্য পোৱা গৈছে • মুঠ: {totalWeight.toFixed(1)} কি:গ্ৰা: চাহ</div>
       </div>
 
       {/* Month Filter */}
