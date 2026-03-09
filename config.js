@@ -4,12 +4,14 @@ import { getAuth } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
 
 const firebaseConfig = {
-  apiKey: "YOUR_API_KEY",
-  authDomain: "YOUR_AUTH_DOMAIN",
-  projectId: "YOUR_PROJECT_ID",
-  storageBucket: "YOUR_STORAGE_BUCKET",
-  messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
-  appId: "YOUR_APP_ID"
+  apiKey: "AIzaSyBEYwsMN218xBBsHeStYBYJvOr2gqJEgTU",
+  authDomain: "iswar-tea.firebaseapp.com",
+  databaseURL: "https://iswar-tea-default-rtdb.firebaseio.com",
+  projectId: "iswar-tea",
+  storageBucket: "iswar-tea.firebasestorage.app",
+  messagingSenderId: "858739038921",
+  appId: "1:858739038921:web:787705827d542324a68b18",
+  measurementId: "G-8GRLB8VRGF"
 };
 
 const app = initializeApp(firebaseConfig);
