@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from "react";
 
-const WHATSAPP_NUMBER = "917999999999"; // Apna number yahan daalo (country code + number)
-const WHATSAPP_MSG = "Namaste! Chai Bagan app se contact kar raha hoon.";
+const WHATSAPP_NUMBER = "919365374458"; // Apna number yahan daalo (country code + number)
+const WHATSAPP_MSG = "নমস্কাৰ ঈশ্বৰ.";
 
 export default function WhatsAppFloat() {
   const [pos, setPos] = useState({ x: null, y: null });
@@ -132,7 +132,7 @@ export default function WhatsAppFloat() {
           gap: "6px",
         }}>
           <span style={{ fontSize: "14px" }}>💬</span>
-          Koi samasya? Humse sampark karo!
+          মোক সম্পৰ্ক কৰক!
           <div style={{
             position: "absolute",
             right: pos.x > window.innerWidth / 2 ? "auto" : "-6px",
