@@ -3,7 +3,7 @@ import React, { useState, useRef, useEffect } from "react";
 import { auth, db } from "../firebase/config";
 import { collection, query, where, orderBy, getDocs } from "firebase/firestore";
 
-const OPENAI_API_KEY = "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";
+const OPENAI_API_KEY = "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";
 
 export default function AIChatPage() {
   const [messages, setMessages] = useState([
