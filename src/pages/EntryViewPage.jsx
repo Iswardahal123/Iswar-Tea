@@ -58,6 +58,7 @@ export default function EntryViewPage({ user }) {
   const handleEditChange = (e) => {
     setEditForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
   };
+  
 
   const eWeight = parseFloat(editForm.weight) || 0;
   const eRate = parseFloat(editForm.rate) || 0;
