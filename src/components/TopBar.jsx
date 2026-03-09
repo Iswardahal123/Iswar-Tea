@@ -134,7 +134,7 @@ export default function TopBar({ user, currentPage, isAdmin }) {
                     : <div style={styles.dropAvatarText}>{(user.email || "U")[0].toUpperCase()}</div>
                   }
                   <div style={styles.dropInfo}>
-                    <div style={styles.dropName}>{user.displayName || "User"}</div>
+                    <div style={styles.dropName}>{user.displayName || "সদস্য"}</div>
                     <div style={styles.dropEmail}>{user.email}</div>
                     <div style={{ ...styles.dropRole, background: isAdmin ? "#fef3c7" : "#f0fdf4", color: isAdmin ? "#92400e" : "#166534" }}>
                       {isAdmin ? "Admin" : "User"}
@@ -205,11 +205,11 @@ export default function TopBar({ user, currentPage, isAdmin }) {
             <div style={styles.modalBody}>
               <div style={styles.field}>
                 <label style={styles.fieldLabel}>পুৰণা পাচৱৰ্ড</label>
-                <input type="password" value={currentPwd} onChange={(e) => setCurrentPwd(e.target.value)} placeholder="Current password" style={styles.fieldInput} />
+                <input type="password" value={currentPwd} onChange={(e) => setCurrentPwd(e.target.value)} placeholder="বৰ্তমান পাচৱৰ্ড" style={styles.fieldInput} />
               </div>
               <div style={styles.field}>
                 <label style={styles.fieldLabel}>নতুন পাচৱৰ্ড</label>
-                <input type="password" value={newPwd} onChange={(e) => setNewPwd(e.target.value)} placeholder="Min 6 characters" style={styles.fieldInput} />
+                <input type="password" value={newPwd} onChange={(e) => setNewPwd(e.target.value)} placeholder="৬ টাত কৈ অধিক আখৰ লিখক" style={styles.fieldInput} />
               </div>
               {msg && <div style={{ ...styles.msgBox, background: msgType === "success" ? "#f0fdf4" : "#fef2f2", color: msgType === "success" ? "#16a34a" : "#dc2626" }}>{msg}</div>}
               <button onClick={handleUpdatePassword} disabled={loading} style={styles.saveBtn}>
