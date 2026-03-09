@@ -6,7 +6,7 @@ const generateReply = (msg, entries) => {
   const m = msg.toLowerCase().trim();
 
   if (entries.length === 0) {
-    return "এতিয়া কোনো তথ্য নাই! প্ৰথমে তথ্য টেবৰ পৰা পাত যোগ কৰক 🍃";
+    return "এতিয়া কোনো তথ্য নাই! প্ৰথমে তথ্য অন্তৰ্ভূক্ত কৰক 🍃";
   }
 
   const sorted = [...entries].sort((a, b) => (b.date || "").localeCompare(a.date || ""));
@@ -44,7 +44,7 @@ const generateReply = (msg, entries) => {
 
   // ── বাকী ──
   if (m.match(/বাকী|balance|বাকি|কিমান পাম|remaining/)) {
-    return `💳 বাকী পৰিমাণ\n\n${fmtTk(totalBalance)}\n\n• মুঠ উপাৰ্জন: ${fmtTk(totalAmount)}\n• পোৱা পৰিমাণ: ${fmtTk(totalReceived)}\n• এডভান্স কটা: ${fmtTk(totalAdvance)}\n\n${totalBalance > 0 ? "✅ টকা পোৱা বাকী আছে" : totalBalance < 0 ? "⚠️ অতিৰিক্ত টকা পোৱা হৈছে!" : "✅ হিচাব সমান আছে"}`;
+    return `💳 বাকী পৰিমাণ\n\n${fmtTk(totalBalance)} .}`;
   }
 
   // ── এডভান্স ──
@@ -62,7 +62,7 @@ const generateReply = (msg, entries) => {
 
   // ── হাৰ ──
   if (m.match(/হাৰ|rate|ভাৱ|দাম|কিলো/)) {
-    if (!latestWithRate) return "এতিয়ালৈ কোনো তথ্যত হাৰ নিৰ্ধাৰণ কৰা হোৱা নাই।\nতথ্য টেবৰ পৰা সম্পাদনা কৰি হাৰ দিয়ক!";
+    if (!latestWithRate) return "এতিয়ালৈ কোনো তথ্যত হাৰ নিৰ্ধাৰণ কৰা হোৱা নাই।\n অন্তৰ্ভূক্ত তথ্য টেবৰ পৰা সম্পাদনা কৰি হাৰ দিয়ক!";
     return `📊 হাৰৰ বিৱৰণ\n\n• শেষ হাৰ: ${latestWithRate.rate} টকা/কি:গ্ৰা:\n• গড় হাৰ: ${avgRate.toFixed(1)} টকা/কি:গ্ৰা:\n• সৰ্বাধিক: ${Math.max(...withRate.map(e => e.rate))} টকা/কি:গ্ৰা:\n• সৰ্বনিম্ন: ${Math.min(...withRate.map(e => e.rate))} টকা/কি:গ্ৰা:\n• হাৰ থকা তথ্য: ${withRate.length}/${entries.length}`;
   }
 
