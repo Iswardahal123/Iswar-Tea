@@ -1,12 +1,16 @@
 import React, { useState, useRef, useEffect } from "react";
 import { auth, db } from "../firebase/config";
 import { signOut, updatePassword, reauthenticateWithCredential, EmailAuthProvider } from "firebase/auth";
-import { doc, deleteDoc, collection, query, where, getDocs } from "firebase/firestore";
+import { doc, deleteDoc, collection, query, where, getDocs, getDoc, setDoc, updateDoc } from "firebase/firestore";
 
 export default function TopBar({ user, currentPage, isAdmin }) {
   const [showDropdown, setShowDropdown] = useState(false);
   const [showPwdModal, setShowPwdModal] = useState(false);
   const [showClearModal, setShowClearModal] = useState(false);
+  const [showAdvanceModal, setShowAdvanceModal] = useState(false);
+  const [currentAdvance, setCurrentAdvance] = useState(0);
+  const [newAdvanceAmt, setNewAdvanceAmt] = useState("");
+  const [advanceAction, setAdvanceAction] = useState("add");
   const [newPwd, setNewPwd] = useState("");
   const [currentPwd, setCurrentPwd] = useState("");
   const [clearPwd, setClearPwd] = useState("");
@@ -35,6 +39,38 @@ export default function TopBar({ user, currentPage, isAdmin }) {
   }, []);
 
   const handleLogout = () => { signOut(auth); setShowDropdown(false); };
+
+  const openAdvanceModal = async () => {
+    setShowAdvanceModal(true);
+    setShowDropdown(false);
+    try {
+      const userDoc = await getDoc(doc(db, "users", user.uid));
+      if (userDoc.exists()) {
+        setCurrentAdvance(userDoc.data().totalAdvanceTaken || 0);
+      }
+    } catch(err) { console.error(err); }
+  };
+
+  const handleAdvanceSave = async () => {
+    const amt = parseFloat(newAdvanceAmt) || 0;
+    if (amt <= 0) { setMsg("Sahi amount daalo!"); setMsgType("error"); return; }
+    setLoading(true);
+    try {
+      const userRef = doc(db, "users", user.uid);
+      const userDoc = await getDoc(userRef);
+      const existing = userDoc.exists() ? (userDoc.data().totalAdvanceTaken || 0) : 0;
+      const updated = advanceAction === "add" ? existing + amt : Math.max(0, existing - amt);
+      await updateDoc(userRef, { totalAdvanceTaken: updated });
+      setCurrentAdvance(updated);
+      setMsg("Advance update ho gaya! Rs " + updated.toFixed(0));
+      setMsgType("success");
+      setNewAdvanceAmt("");
+      setTimeout(() => { setShowAdvanceModal(false); setMsg(""); window.location.reload(); }, 1500);
+    } catch(err) {
+      setMsg("Error: " + err.message); setMsgType("error");
+    }
+    setLoading(false);
+  };
 
   const handleUpdatePassword = async () => {
     if (!currentPwd || !newPwd) { setMsg("Dono fields bharo!"); setMsgType("error"); return; }
@@ -133,6 +169,13 @@ export default function TopBar({ user, currentPage, isAdmin }) {
                   </div>
                 )}
                 <div
+                  style={styles.dropItem}
+                  onClick={openAdvanceModal}
+                >
+                  <span style={styles.dropIcon}>&#128176;</span>
+                  Advance Update Karo
+                </div>
+                <div
                   style={{ ...styles.dropItem, color: "#dc2626" }}
                   onClick={() => { setShowClearModal(true); setShowDropdown(false); }}
                 >
@@ -172,6 +215,57 @@ export default function TopBar({ user, currentPage, isAdmin }) {
               {msg && <div style={{ ...styles.msgBox, background: msgType === "success" ? "#f0fdf4" : "#fef2f2", color: msgType === "success" ? "#16a34a" : "#dc2626" }}>{msg}</div>}
               <button onClick={handleUpdatePassword} disabled={loading} style={styles.saveBtn}>
                 {loading ? "Update ho raha hai..." : "Update Karo"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ADVANCE MODAL */}
+      {showAdvanceModal && (
+        <div style={styles.overlay} onClick={() => { setShowAdvanceModal(false); setMsg(""); }}>
+          <div style={styles.modal} onClick={(e) => e.stopPropagation()}>
+            <div style={styles.modalHeader}>
+              <h3 style={styles.modalTitle}>&#128176; Advance Update</h3>
+              <button onClick={() => { setShowAdvanceModal(false); setMsg(""); }} style={styles.closeBtn}>X</button>
+            </div>
+            <div style={styles.modalBody}>
+              <div style={{ background: "#fef3c7", borderRadius: "12px", padding: "14px", textAlign: "center" }}>
+                <div style={{ fontSize: "12px", color: "#92400e", fontWeight: "700" }}>Abhi Tak Total Advance Liya</div>
+                <div style={{ fontSize: "28px", fontWeight: "900", color: "#d97706" }}>Rs {currentAdvance.toFixed(0)}</div>
+              </div>
+              <div style={{ display: "flex", gap: "8px" }}>
+                <button
+                  onClick={() => setAdvanceAction("add")}
+                  style={{ flex: 1, padding: "10px", borderRadius: "10px", border: "2px solid " + (advanceAction === "add" ? "#16a34a" : "#e5e7eb"), background: advanceAction === "add" ? "#f0fdf4" : "white", color: advanceAction === "add" ? "#16a34a" : "#6b7280", fontWeight: "700", cursor: "pointer", fontFamily: "inherit" }}
+                >
+                  + Naya Advance
+                </button>
+                <button
+                  onClick={() => setAdvanceAction("subtract")}
+                  style={{ flex: 1, padding: "10px", borderRadius: "10px", border: "2px solid " + (advanceAction === "subtract" ? "#dc2626" : "#e5e7eb"), background: advanceAction === "subtract" ? "#fef2f2" : "white", color: advanceAction === "subtract" ? "#dc2626" : "#6b7280", fontWeight: "700", cursor: "pointer", fontFamily: "inherit" }}
+                >
+                  - Minus Karo
+                </button>
+              </div>
+              <div style={styles.field}>
+                <label style={styles.fieldLabel}>{advanceAction === "add" ? "Kitna naya advance liya? (Rs)" : "Kitna minus karna hai? (Rs)"}</label>
+                <input
+                  type="number"
+                  value={newAdvanceAmt}
+                  onChange={(e) => setNewAdvanceAmt(e.target.value)}
+                  placeholder="Amount daalo"
+                  style={styles.fieldInput}
+                />
+              </div>
+              {newAdvanceAmt > 0 && (
+                <div style={{ background: "#f3f4f6", borderRadius: "10px", padding: "10px 14px", fontSize: "13px", color: "#374151" }}>
+                  Naya total: Rs {advanceAction === "add" ? (currentAdvance + parseFloat(newAdvanceAmt||0)).toFixed(0) : Math.max(0, currentAdvance - parseFloat(newAdvanceAmt||0)).toFixed(0)}
+                </div>
+              )}
+              {msg && <div style={{ ...styles.msgBox, background: msgType === "success" ? "#f0fdf4" : "#fef2f2", color: msgType === "success" ? "#16a34a" : "#dc2626" }}>{msg}</div>}
+              <button onClick={handleAdvanceSave} disabled={loading} style={styles.saveBtn}>
+                {loading ? "Save ho raha hai..." : "Update Karo"}
               </button>
             </div>
           </div>
