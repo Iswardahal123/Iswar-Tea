@@ -162,9 +162,9 @@ export default function EntryViewPage({ user }) {
           <div style={styles.confirmBox} onClick={(e) => e.stopPropagation()}>
             <div style={styles.confirmIcon}>🗑️</div>
             <div style={styles.confirmTitle}>তথ্য মচি পেলাব নে?</div>
-            <div style={styles.confirmMsg}>এই তথ্য চিৰতৰে মচি যাব। পুনৰুদ্ধাৰ কৰিব নোৱাৰিব!</div>
+            <div style={styles.confirmMsg}>এই তথ্য মচি দিয়াৰ পাছত ঘূৰাই নাপাব!</div>
             <div style={styles.confirmBtns}>
-              <button onClick={() => setDeleteId(null)} style={styles.cancelBtn}>বাতিল</button>
+              <button onClick={() => setDeleteId(null)} style={styles.cancelBtn}>বাতিল কৰক</button>
               <button onClick={handleDelete} style={styles.confirmDeleteBtn}>হয়, মচক</button>
             </div>
           </div>
@@ -189,7 +189,7 @@ export default function EntryViewPage({ user }) {
                 <input type="number" name="weight" value={editForm.weight} onChange={handleEditChange} placeholder="150" style={styles.fieldInput} />
               </div>
               <div style={styles.field}>
-                <label style={styles.fieldLabel}>হাৰ (Rs/কি:গ্ৰা:)</label>
+                <label style={styles.fieldLabel}>হাৰ (টকা/কি:গ্ৰা:)</label>
                 <input type="number" name="rate" value={editForm.rate} onChange={handleEditChange} placeholder="18" style={styles.fieldInput} />
               </div>
               {eTotalAmount > 0 && (
@@ -198,7 +198,7 @@ export default function EntryViewPage({ user }) {
                     <span>মুঠ পৰিমাণ</span>
                     <span style={styles.calcVal}> {eTotalAmount.toFixed(2)} টকা</span>
                   </div>
-                  <div style={styles.calcHint}>{eWeight} x Rs{eRate} = Rs{eTotalAmount.toFixed(2)}</div>
+                  <div style={styles.calcHint}>{eWeight} x Rs{eRate} = {eTotalAmount.toFixed(2)} টকা</div>
                 </div>
               )}
               <div style={styles.field}>
