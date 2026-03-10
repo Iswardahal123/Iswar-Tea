@@ -76,9 +76,13 @@ export default function App() {
     const u = auth.currentUser;
     if (!u) return;
     setUser(u);
-    const admin = await checkUserRole(u);
-    setIsAdmin(admin);
-    setCurrentPage(admin ? "admin" : "dashboard");
+    try {
+      const userDoc = await getDoc(doc(db, "users", u.uid));
+      const isAdminUser = userDoc.exists() ? userDoc.data().isAdmin === true : false;
+      if (userDoc.exists() && userDoc.data().language) setLang(userDoc.data().language);
+      setIsAdmin(isAdminUser);
+      setCurrentPage(isAdminUser ? "admin" : "dashboard");
+    } catch (err) { console.error(err); }
   };
 
   // Save language to Firestore when changed (if logged in)
