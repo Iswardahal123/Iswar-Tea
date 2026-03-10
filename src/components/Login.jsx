@@ -5,7 +5,7 @@ import { doc, setDoc, getDoc } from "firebase/firestore";
 import { useLang } from "../LanguageContext";
 import { langNames } from "../languages";
 
-const langFlags = { en: "🇬🇧", hi: "🇮🇳", as: "🌿" };
+const langFlags = { en: "🇬🇧", hi: "🇮🇳", as: "🌿", ne: "🇳🇵" };
 
 const txt = {
   en: {
@@ -43,6 +43,24 @@ const txt = {
     errWrongPwd: "पासवर्ड गलत है",
     errInUse: "यह ईमेल पहले से रजिस्टर है",
     errGoogle: "Google लॉगिन विफल: ",
+  },
+  ne: {
+    title: "चिया बगान", sub: "चिया बगान व्यवस्थापन",
+    name: "पूरा नाम", namePh: "तपाईंको नाम",
+    email: "इमेल", emailPh: "your@email.com",
+    pass: "पासवर्ड", passPh: "पासवर्ड",
+    lang: "भाषा",
+    loginBtn: "लगइन गर्नुस्", registerBtn: "खाता बनाउनुस्",
+    waiting: "कृपया प्रतीक्षा गर्नुस्...",
+    googleBtn: "Google बाट जारी राख्नुस्",
+    haveAcc: "खाता छ?", loginLink: "लगइन गर्नुस्",
+    noAcc: "नयाँ खाता?", regLink: "दर्ता गर्नुस्",
+    or: "वा",
+    errNotAllowed: "Firebase मा Email/Password सक्रिय गर्नुस्!",
+    errNotFound: "इमेल फेला परेन, दर्ता गर्नुस्",
+    errWrongPwd: "पासवर्ड गलत छ",
+    errInUse: "यो इमेल पहिले नै दर्ता भएको छ",
+    errGoogle: "Google लगइन असफल: ",
   },
   as: {
     title: "চাহ বাগান", sub: "চাহ বাগান ব্যৱস্থাপনা",
