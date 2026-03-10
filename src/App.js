@@ -5,7 +5,6 @@ import { onAuthStateChanged } from "firebase/auth";
 import { doc, getDoc, setDoc, updateDoc } from "firebase/firestore";
 
 import { useLang } from "./LanguageContext";
-import LanguageSelect from "./components/LanguageSelect";
 import Login from "./components/Login";
 import TopBar from "./components/TopBar";
 import BottomNav from "./components/BottomNav";
@@ -97,10 +96,7 @@ export default function App() {
     }
   };
 
-  // Step 1: Language not selected yet
-  if (!lang) return <LanguageSelect />;
-
-  // Step 2: Checking auth
+  // Step 1: Checking auth
   if (checkingAuth) return <Loader t={t} />;
 
   // Step 3: Not logged in
