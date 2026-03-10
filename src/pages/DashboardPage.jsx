@@ -66,6 +66,20 @@ export default function DashboardPage({ user }) {
       more: (n) => `+ ${n} और — रिकॉर्ड टैब देखें`,
       loading: "लोड हो रहा है...",
     },
+    ne: {
+      greet: () => { const h = new Date().getHours(); return h < 12 ? "शुभ बिहान ☕" : h < 17 ? "शुभ दिउँसो 🌞" : "शुभ साँझ 🌆"; },
+      entries: (n, kg) => `${n} वटा प्रविष्टि • ${kg} कि.ग्रा.`,
+      month: "📅 महिना:", clear: "हटाउनुस्",
+      earning: "कुल आम्दानी", received: "पाएको रकम",
+      balance: "बाँकी रकम", advTaken: "लिएको अग्रिम",
+      advCut: "काटिएको:", advLeft: "बाँकी अग्रिम",
+      stillLeft: "अझै बाँकी", overCut: "बढी काटियो!",
+      recent: "📋 भर्खरका प्रविष्टि",
+      noEntry: "कुनै प्रविष्टि छैन", noEntrySub: "प्रविष्टि ट्याबबाट थप्नुस्",
+      ratePending: "दर बाँकी", baaki: "बाँकी:",
+      more: (n) => `+ ${n} वटा — रेकर्ड ट्याब हेर्नुस्`,
+      loading: "कृपया प्रतीक्षा गर्नुस्...",
+    },
     as: {
       greet: () => { const h = new Date().getHours(); return h < 12 ? "শুভ পুৱা ☕" : h < 17 ? "শুভ অপৰাহ্ন 🌞" : "শুভ সন্ধিয়া 🌆"; },
       entries: (n, kg) => `${n} টা তথ্য • ${kg} কি:গ্ৰা:`,
@@ -83,7 +97,7 @@ export default function DashboardPage({ user }) {
   };
 
   const T = txt[lang] || txt.as;
-  const locale = lang === "en" ? "en-IN" : lang === "hi" ? "hi-IN" : "as-IN";
+  const locale = lang === "en" ? "en-IN" : lang === "hi" ? "hi-IN" : lang === "ne" ? "ne-NP" : "as-IN";
 
   if (loading) return (
     <div style={{ textAlign: "center", padding: "60px", color: "#6b7280", fontFamily: "'Segoe UI', sans-serif" }}>
