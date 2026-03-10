@@ -3,12 +3,29 @@ import { auth, db } from "../firebase/config";
 import { collection, query, where, getDocs } from "firebase/firestore";
 import { useLang } from "../LanguageContext";
 
-const generateReply = (msg, entries) => {
+// ── Reply generator — language aware ──
+const generateReply = (msg, entries, lang) => {
   const m = msg.toLowerCase().trim();
 
-  if (entries.length === 0) {
-    return "এতিয়া কোনো তথ্য নাই! প্ৰথমে তথ্য টেবৰ পৰা পাত যোগ কৰক 🍃";
-  }
+  const replies = {
+    noData: {
+      en: "No entries yet! Add leaf data from the Entry tab first 🍃",
+      hi: "अभी कोई प्रविष्टि नहीं! पहले Entry टैब से पत्ता डेटा जोड़ें 🍃",
+      ne: "अहिले कुनै प्रविष्टि छैन! पहिले Entry ट्याबबाट पात डेटा थप्नुस् 🍃",
+      as: "এতিয়া কোনো তথ্য নাই! প্ৰথমে তথ্য টেবৰ পৰা পাত যোগ কৰক 🍃",
+    },
+    notFound: {
+      en: "Didn't understand 😅\n\nTry these:\n• last entry\n• balance\n• this month\n• full report",
+      hi: "समझ नहीं आया 😅\n\nये try करें:\n• आखिरी प्रविष्टि\n• बाकी राशि\n• इस महीने\n• पूरा हिसाब",
+      ne: "बुझिएन 😅\n\nयी try गर्नुस्:\n• अन्तिम प्रविष्टि\n• बाँकी रकम\n• यो महिना\n• पूरा हिसाब",
+      as: "বুজিব পৰা নাই 😅\n\nএইবোৰ চেষ্টা কৰক:\n• শেষ তথ্য\n• বাকী পৰিমাণ\n• এই মাহ\n• সম্পূৰ্ণ হিচাব",
+    },
+  };
+
+  const L = lang || "as";
+  const t = (obj) => obj[L] || obj.as;
+
+  if (entries.length === 0) return t(replies.noData);
 
   const sorted = [...entries].sort((a, b) => (b.date || "").localeCompare(a.date || ""));
   const totalWeight   = entries.reduce((s, e) => s + (e.weight || 0), 0);
@@ -16,96 +33,195 @@ const generateReply = (msg, entries) => {
   const totalReceived = entries.reduce((s, e) => s + (e.amountReceived || 0), 0);
   const totalAdvance  = entries.reduce((s, e) => s + (e.advanceCut || 0), 0);
   const totalBalance  = entries.reduce((s, e) => s + (e.balanceAmount || 0), 0);
-
   const thisMonth = new Date().toISOString().slice(0, 7);
-  const monthEntries = entries.filter(e => e.date && e.date.startsWith(thisMonth));
+  const monthEntries = entries.filter(e => e.date?.startsWith(thisMonth));
   const monthWeight  = monthEntries.reduce((s, e) => s + (e.weight || 0), 0);
   const monthAmount  = monthEntries.reduce((s, e) => s + (e.totalAmount || 0), 0);
   const monthBalance = monthEntries.reduce((s, e) => s + (e.balanceAmount || 0), 0);
-
   const latest = sorted[0];
   const withRate = entries.filter(e => e.rate > 0);
-  const avgRate  = withRate.length ? withRate.reduce((s, e) => s + e.rate, 0) / withRate.length : 0;
+  const avgRate = withRate.length ? withRate.reduce((s, e) => s + e.rate, 0) / withRate.length : 0;
   const latestWithRate = sorted.find(e => e.rate > 0);
 
-  const fmtDate = (d) => { if (!d) return "N/A"; try { return new Date(d + "T00:00:00").toLocaleDateString(["as-IN","ne-NP","hi-IN"], { day: "numeric", month: "long", year: "numeric" }); } catch(e){ return d; } };
-  const fmtTk = (n) => (n || 0).toFixed(0) + " টকা";
+  const locales = { en: "en-IN", hi: "hi-IN", ne: "ne-NP", as: "as-IN" };
+  const fmtDate = (d) => {
+    try { return d ? new Date(d + "T00:00:00").toLocaleDateString(locales[L], { day: "numeric", month: "long", year: "numeric" }) : "N/A"; }
+    catch(e) { return d || "N/A"; }
+  };
 
-  // ── অভিনন্দন ──
-  if (m.match(/^(hi|hello|hii|hey|namaste|namaskar|নমস্কাৰ|হেলো|কেনে আছে|ভাল আছে)/)) {
-    const h = new Date().getHours();
-    const greet = h < 12 ? "শুভ পুৱা ☕" : h < 17 ? "শুভ অপৰাহ্ন 🌞" : "শুভ সন্ধিয়া 🌆";
-    return `${greet}\n\nনমস্কাৰ! 🙏 মই আপোনাৰ চাহ বাগান সহায়ক।\n\nআপুনি যিকোনো কথা সুধিব পাৰে:\n• উপাৰ্জন, বাকী, এডভান্স\n• এই মাহৰ তথ্য\n• পাতৰ ওজন বা হাৰ\n• সম্পূৰ্ণ হিচাব`;
+  const curr = { en: (n) => `Rs ${(n||0).toFixed(0)}`, hi: (n) => `Rs ${(n||0).toFixed(0)}`, ne: (n) => `Rs ${(n||0).toFixed(0)}`, as: (n) => `${(n||0).toFixed(0)} টকা` };
+  const wt = { en: (n) => `${n} kg`, hi: (n) => `${n} कि.ग्रा.`, ne: (n) => `${n} कि.ग्रा.`, as: (n) => `${n} কি:গ্ৰা:` };
+  const fmtC = (n) => curr[L](n);
+  const fmtW = (n) => wt[L](n);
+
+  // ── Last entry ──
+  if (m.match(/last|latest|recent|শেষ|আখৰী|aakhri|अन्तिम|आखिरी/)) {
+    const labels = {
+      en: ["📌 Last Entry","Date","Weight","Rate","Total","Advance","Received","Balance"],
+      hi: ["📌 आखिरी प्रविष्टि","तारीख","वजन","दर","कुल","अग्रिम","मिली","बाकी"],
+      ne: ["📌 अन्तिम प्रविष्टि","मिति","तौल","दर","कुल","अग्रिम","पाएको","बाँकी"],
+      as: ["📌 শেষ তথ্য","তাৰিখ","ওজন","হাৰ","মুঠ","এডভান্স","পোৱা","বাকী"],
+    };
+    const lb = labels[L];
+    const noRate = { en:"Not set", hi:"निर्धारित नहीं", ne:"निर्धारित छैन", as:"নিৰ্ধাৰণ হোৱা নাই" };
+    return `${lb[0]}\n\n📅 ${fmtDate(latest.date)}\n⚖️ ${lb[1]}: ${fmtW(latest.weight)}\n💲 ${lb[2]}: ${latest.rate ? fmtC(latest.rate) : t(noRate)}\n💰 ${lb[3]}: ${fmtC(latest.totalAmount)}\n✂️ ${lb[4]}: ${fmtC(latest.advanceCut)}\n💵 ${lb[5]}: ${fmtC(latest.amountReceived)}\n🟢 ${lb[6]}: ${fmtC(latest.balanceAmount)}${latest.notes ? "\n📝 " + latest.notes : ""}`;
   }
 
-  // ── শেষ তথ্য ──
-  if (m.match(/শেষ|last|latest|recent|আখৰী|নতুন|শেহতীয়া/)) {
-    return `📌 শেষ তথ্য\n\n📅 তাৰিখ: ${fmtDate(latest.date)}\n⚖️ ওজন: ${latest.weight} কি:গ্ৰা:\n💲 হাৰ: ${latest.rate ? latest.rate + " টকা/কি:গ্ৰা:" : "নিৰ্ধাৰণ কৰা হোৱা নাই"}\n💰 মুঠ পৰিমাণ: ${fmtTk(latest.totalAmount)}\n✂️ এডভান্স কটা: ${fmtTk(latest.advanceCut)}\n💵 পোৱা পৰিমাণ: ${fmtTk(latest.amountReceived)}\n🟢 বাকী: ${fmtTk(latest.balanceAmount)}${latest.notes ? "\n📝 টোকা: " + latest.notes : ""}`;
+  // ── Balance ──
+  if (m.match(/balance|বাকী|baaki|बाँकी|बाकी|remaining/)) {
+    const labels = {
+      en: ["💳 Balance","Total Earning","Received","Advance Cut","Pending","Overpaid","Settled"],
+      hi: ["💳 बाकी राशि","कुल कमाई","मिली राशि","अग्रिम कटा","बाकी बचा है","ज्यादा मिल गया!","हिसाब बराबर"],
+      ne: ["💳 बाँकी रकम","कुल आम्दानी","पाएको","अग्रिम काटिएको","अझै बाँकी","बढी पाइयो!","हिसाब बराबर"],
+      as: ["💳 বাকী পৰিমাণ","মুঠ উপাৰ্জন","পোৱা পৰিমাণ","এডভান্স কটা","টকা পোৱা বাকী","অতিৰিক্ত পোৱা হৈছে!","হিচাব সমান"],
+    };
+    const lb = labels[L];
+    return `${lb[0]}\n\n${fmtC(totalBalance)}\n\n• ${lb[1]}: ${fmtC(totalAmount)}\n• ${lb[2]}: ${fmtC(totalReceived)}\n• ${lb[3]}: ${fmtC(totalAdvance)}\n\n${totalBalance > 0 ? "✅ " + lb[4] : totalBalance < 0 ? "⚠️ " + lb[5] : "✅ " + lb[6]}`;
   }
 
-  // ── বাকী ──
-  if (m.match(/বাকী|balance|বাকি|কিমান পাম|remaining/)) {
-    return `💳 বাকী পৰিমাণ\n\n${fmtTk(totalBalance)}\n\n• মুঠ উপাৰ্জন: ${fmtTk(totalAmount)}\n• পোৱা পৰিমাণ: ${fmtTk(totalReceived)}\n• এডভান্স কটা: ${fmtTk(totalAdvance)}\n\n${totalBalance > 0 ? "✅ টকা পোৱা বাকী আছে" : totalBalance < 0 ? "⚠️ অতিৰিক্ত টকা পোৱা হৈছে!" : "✅ হিচাব সমান আছে"}`;
+  // ── Advance ──
+  if (m.match(/advance|এডভান্স|अग्रिम/)) {
+    const labels = {
+      en: ["💵 Advance","Total Cut"],
+      hi: ["💵 अग्रिम","कुल कटा"],
+      ne: ["💵 अग्रिम","कुल काटिएको"],
+      as: ["💵 এডভান্স","মুঠ কটা"],
+    };
+    const lb = labels[L];
+    const advE = entries.filter(e => e.advanceCut > 0);
+    return `${lb[0]}\n\n${lb[1]}: ${fmtC(totalAdvance)}\n\n${advE.slice(0,5).map(e => `• ${fmtDate(e.date)}: ${fmtC(e.advanceCut)}`).join("\n")}${advE.length > 5 ? `\n...+${advE.length-5}` : ""}`;
   }
 
-  // ── এডভান্স ──
-  if (m.match(/এডভান্স|advance|পেশগী|ধাৰ/)) {
-    const advEntries = entries.filter(e => e.advanceCut > 0);
-    return `💵 এডভান্স বিৱৰণ\n\nমুঠ এডভান্স কটা: ${fmtTk(totalAdvance)}\n\n${advEntries.slice(0, 5).map(e => `• ${fmtDate(e.date)}: ${fmtTk(e.advanceCut)}`).join("\n")}${advEntries.length > 5 ? `\n\n...আৰু ${advEntries.length - 5} টা তথ্য` : ""}`;
+  // ── This month ──
+  if (m.match(/month|মাহ|महिना|महीने|this month|এই মাহ|यो महिना/)) {
+    const mName = new Date().toLocaleString(locales[L], { month: "long", year: "numeric" });
+    const noEntry = { en: `No entries yet in ${mName}.`, hi: `${mName} में अभी कोई प्रविष्टि नहीं।`, ne: `${mName} मा अहिले कुनै प्रविष्टि छैन।`, as: `${mName}ত এতিয়ালৈ কোনো তথ্য নাই।` };
+    if (!monthEntries.length) return t(noEntry);
+    const labels = { en:["📅","entries"], hi:["📅","प्रविष्टियां"], ne:["📅","वटा प्रविष्टि"], as:["📅","টা তথ্য"] };
+    const lb = labels[L];
+    return `${lb[0]} ${mName}\n\n⚖️ ${fmtW(monthWeight.toFixed(1))}\n💰 ${fmtC(monthAmount)}\n🟢 ${fmtC(monthBalance)}\n📋 ${monthEntries.length} ${lb[1]}`;
   }
 
-  // ── এই মাহ ──
-  if (m.match(/মাহ|month|এই বাৰ|বৰ্তমান|এতিয়া/)) {
-    const mName = new Date().toLocaleString("as-IN", { month: "long", year: "numeric" });
-    if (monthEntries.length === 0) return `📅 ${mName}ত এতিয়ালৈ কোনো তথ্য নাই।\n\nতথ্য টেবৰ পৰা নতুন তথ্য যোগ কৰক!`;
-    return `📅 ${mName}\n\n⚖️ মুঠ ওজন: ${monthWeight.toFixed(1)} কি:গ্ৰা:\n💰 উপাৰ্জন: ${fmtTk(monthAmount)}\n🟢 বাকী: ${fmtTk(monthBalance)}\n📋 তথ্য সংখ্যা: ${monthEntries.length}`;
+  // ── Earning ──
+  if (m.match(/earning|উপাৰ্জন|kamaai|आम्दानी|कमाई|income/)) {
+    const labels = {
+      en: ["💰 Earning","Total","Received","Balance","Advance","This Month"],
+      hi: ["💰 कमाई","कुल","मिली","बाकी","अग्रिम","इस महीने"],
+      ne: ["💰 आम्दानी","कुल","पाएको","बाँकी","अग्रिम","यो महिना"],
+      as: ["💰 উপাৰ্জন","মুঠ","পোৱা","বাকী","এডভান্স","এই মাহত"],
+    };
+    const lb = labels[L];
+    return `${lb[0]}\n\n• ${lb[1]}: ${fmtC(totalAmount)}\n• ${lb[2]}: ${fmtC(totalReceived)}\n• ${lb[3]}: ${fmtC(totalBalance)}\n• ${lb[4]}: ${fmtC(totalAdvance)}\n\n📅 ${lb[5]}: ${fmtC(monthAmount)}`;
   }
 
-  // ── হাৰ ──
-  if (m.match(/হাৰ|rate|ভাৱ|দাম|কিলো/)) {
-    if (!latestWithRate) return "এতিয়ালৈ কোনো তথ্যত হাৰ নিৰ্ধাৰণ কৰা হোৱা নাই।\nতথ্য টেবৰ পৰা সম্পাদনা কৰি হাৰ দিয়ক!";
-    return `📊 হাৰৰ বিৱৰণ\n\n• শেষ হাৰ: ${latestWithRate.rate} টকা/কি:গ্ৰা:\n• গড় হাৰ: ${avgRate.toFixed(1)} টকা/কি:গ্ৰা:\n• সৰ্বাধিক: ${Math.max(...withRate.map(e => e.rate))} টকা/কি:গ্ৰা:\n• সৰ্বনিম্ন: ${Math.min(...withRate.map(e => e.rate))} টকা/কি:গ্ৰা:\n• হাৰ থকা তথ্য: ${withRate.length}/${entries.length}`;
+  // ── Rate ──
+  if (m.match(/rate|হাৰ|दर/)) {
+    const labels = {
+      en: ["📊 Rate","Latest","Average","Max","Min","per kg","No rate data found."],
+      hi: ["📊 दर","आखिरी","औसत","अधिकतम","न्यूनतम","प्रति कि.ग्रा.","कोई दर डेटा नहीं।"],
+      ne: ["📊 दर","अन्तिम","औसत","अधिकतम","न्यूनतम","प्रति कि.ग्रा.","कुनै दर डेटा छैन।"],
+      as: ["📊 হাৰ","শেষ হাৰ","গড়","সৰ্বাধিক","সৰ্বনিম্ন","টকা/কি:গ্ৰা:","কোনো তথ্যত হাৰ নাই।"],
+    };
+    const lb = labels[L];
+    if (!latestWithRate) return lb[6];
+    return `${lb[0]}\n\n• ${lb[1]}: ${latestWithRate.rate} ${lb[5]}\n• ${lb[2]}: ${avgRate.toFixed(1)}\n• ${lb[3]}: ${Math.max(...withRate.map(e=>e.rate))}\n• ${lb[4]}: ${Math.min(...withRate.map(e=>e.rate))}`;
   }
 
-  // ── ওজন / পাত ──
-  if (m.match(/ওজন|weight|কি:গ্ৰা|পাত|চাহ/)) {
-    const best = sorted.reduce((a, b) => (b.weight || 0) > (a.weight || 0) ? b : a, sorted[0]);
-    return `⚖️ পাতৰ ওজন\n\n• মুঠ ওজন: ${totalWeight.toFixed(1)} কি:গ্ৰা:\n• মুঠ তথ্য: ${entries.length} টা\n• গড় প্ৰতি তথ্য: ${(totalWeight / entries.length).toFixed(1)} কি:গ্ৰা:\n• সৰ্বাধিক: ${best.weight} কি:গ্ৰা: (${fmtDate(best.date)})\n• এই মাহত: ${monthWeight.toFixed(1)} কি:গ্ৰা:`;
+  // ── Full report ──
+  if (m.match(/report|summary|সম্পূৰ্ণ|full|poora|pura|puro|पूरा|पूरो/)) {
+    const labels = {
+      en: ["📊 Full Report","Leaf","Total Weight","Total Entries","Money","Total Earning","Received","Advance","Balance","This Month"],
+      hi: ["📊 पूरा हिसाब","पत्ता","कुल वजन","कुल प्रविष्टियां","पैसा","कुल कमाई","मिली","अग्रिम","बाकी","इस महीने"],
+      ne: ["📊 पूरा हिसाब","पात","कुल तौल","कुल प्रविष्टि","पैसा","कुल आम्दानी","पाएको","अग्रिम","बाँकी","यो महिना"],
+      as: ["📊 সম্পূৰ্ণ হিচাব","পাত","মুঠ ওজন","মুঠ তথ্য","টকা","মুঠ উপাৰ্জন","পোৱা","এডভান্স","বাকী","এই মাহত"],
+    };
+    const lb = labels[L];
+    return `${lb[0]}\n\n🍃 ${lb[1]}\n• ${lb[2]}: ${fmtW(totalWeight.toFixed(1))}\n• ${lb[3]}: ${entries.length}\n\n💰 ${lb[4]}\n• ${lb[5]}: ${fmtC(totalAmount)}\n• ${lb[6]}: ${fmtC(totalReceived)}\n• ${lb[7]}: ${fmtC(totalAdvance)}\n• 🟢 ${lb[8]}: ${fmtC(totalBalance)}\n\n📅 ${lb[9]}\n• ${monthEntries.length} • ${fmtW(monthWeight.toFixed(1))} • ${fmtC(monthAmount)}`;
   }
 
-  // ── উপাৰ্জন ──
-  if (m.match(/উপাৰ্জন|টকা|কিমান পালোঁ|আয়|earning|income/)) {
-    return `💰 উপাৰ্জনৰ হিচাব\n\n• মুঠ উপাৰ্জন: ${fmtTk(totalAmount)}\n• পোৱা পৰিমাণ: ${fmtTk(totalReceived)}\n• বাকী পৰিমাণ: ${fmtTk(totalBalance)}\n• এডভান্স কটা: ${fmtTk(totalAdvance)}\n\n📅 এই মাহত: ${fmtTk(monthAmount)}`;
-  }
+  return t(replies.notFound);
+};
 
-  // ── সম্পূৰ্ণ হিচাব ──
-  if (m.match(/সম্পূৰ্ণ|সকলো|পূৰ্ণ|report|হিচাব|বিৱৰণ/)) {
-    return `📊 সম্পূৰ্ণ হিচাব\n\n🍃 পাত\n• মুঠ ওজন: ${totalWeight.toFixed(1)} কি:গ্ৰা:\n• মুঠ তথ্য: ${entries.length} টা\n• গড়: ${(totalWeight / entries.length).toFixed(1)} কি:গ্ৰা:/তথ্য\n\n💰 টকা\n• মুঠ উপাৰ্জন: ${fmtTk(totalAmount)}\n• পোৱা পৰিমাণ: ${fmtTk(totalReceived)}\n• এডভান্স কটা: ${fmtTk(totalAdvance)}\n• 🟢 বাকী: ${fmtTk(totalBalance)}\n\n📅 এই মাহত\n• ${monthEntries.length} টা তথ্য\n• ${monthWeight.toFixed(1)} কি:গ্ৰা:\n• ${fmtTk(monthAmount)} উপাৰ্জন`;
-  }
-
-  // ── সৰ্বাধিক ──
-  if (m.match(/সৰ্বাধিক|সেৰা|বেছি|max|highest|সৰ্বোচ্চ/)) {
-    const best = sorted.reduce((a, b) => (b.totalAmount || 0) > (a.totalAmount || 0) ? b : a, sorted[0]);
-    const heaviest = sorted.reduce((a, b) => (b.weight || 0) > (a.weight || 0) ? b : a, sorted[0]);
-    return `🏆 সৰ্বাধিক তথ্য\n\n💰 সৰ্বাধিক উপাৰ্জন:\n• ${fmtDate(best.date)}\n• ${best.weight} কি:গ্ৰা: @ ${best.rate} টকা/কি:গ্ৰা:\n• ${fmtTk(best.totalAmount)}\n\n⚖️ সৰ্বাধিক ওজন:\n• ${fmtDate(heaviest.date)}\n• ${heaviest.weight} কি:গ্ৰা:`;
-  }
-
-  // ── ধন্যবাদ ──
-  if (m.match(/ধন্যবাদ|thanks|thank|ভাল|সুন্দৰ|বাঢ়িয়া/)) {
-    return `কামত আহিলে ভাল লাগিল! 😊🍃\n\nআন কিবা জানিব বিচাৰিলে সুধিব!`;
-  }
-
-  // ── সহায় ──
-  if (m.match(/help|সহায়|কি কৰিব|কি সুধিব|menu/)) {
-    return `🤖 মই এইবোৰ ক'ব পাৰোঁ:\n\n• "শেষ তথ্য দেখুৱাওক"\n• "বাকী কিমান আছে"\n• "এই মাহৰ তথ্য"\n• "মুঠ উপাৰ্জন"\n• "এডভান্স বিৱৰণ"\n• "পাতৰ ওজন"\n• "হাৰ কিমান"\n• "সম্পূৰ্ণ হিচাব"`;
-  }
-
-  // ── default fallback ──
-  return `বুজিব পৰা নাই! 😅\n\nএইবোৰ চেষ্টা কৰক:\n• "সম্পূৰ্ণ হিচাব"\n• "বাকী পৰিমাণ"\n• "শেষ তথ্য"\n• "এই মাহৰ তথ্য"\n\nবা "সহায়" লিখক!`;
+// ── Chat config per language ──
+const chatConfig = {
+  en: {
+    title: "Chai Bagan Assistant", sub: "Ask anything about your entries",
+    helpTitle: "📋 What can you ask?",
+    helpRows: [
+      ["📌","Last Entry","Last time how much leaf given"],
+      ["💰","Total Earning","How much money received total"],
+      ["💳","Balance","How much money still pending"],
+      ["📅","This Month","Complete this month data"],
+      ["💵","Advance","How much advance deducted"],
+      ["📊","Full Report","Summary of all entries"],
+    ],
+    btns: [
+      {label:"Last Entry",msg:"last"},{label:"Balance",msg:"balance"},
+      {label:"This Month",msg:"month"},{label:"Earning",msg:"earning"},
+      {label:"Advance",msg:"advance"},{label:"Full Report",msg:"report"},
+    ],
+    back: "← Back", placeholder: "Type your question...",
+  },
+  hi: {
+    title: "चाय बागान सहायक", sub: "अपनी प्रविष्टियों के बारे में कुछ भी पूछें",
+    helpTitle: "📋 क्या पूछ सकते हैं?",
+    helpRows: [
+      ["📌","आखिरी प्रविष्टि","पिछली बार कितना पत्ता दिया"],
+      ["💰","कुल कमाई","कुल कितना पैसा मिला"],
+      ["💳","बाकी राशि","कितना पैसा अभी बाकी है"],
+      ["📅","इस महीने","इस महीने का पूरा डेटा"],
+      ["💵","अग्रिम","कितना अग्रिम काटा गया"],
+      ["📊","पूरा हिसाब","सभी प्रविष्टियों का सारांश"],
+    ],
+    btns: [
+      {label:"आखिरी",msg:"aakhri"},{label:"बाकी",msg:"balance"},
+      {label:"इस महीने",msg:"month"},{label:"कमाई",msg:"earning"},
+      {label:"अग्रिम",msg:"advance"},{label:"पूरा हिसाब",msg:"report"},
+    ],
+    back: "← वापस", placeholder: "प्रश्न लिखें...",
+  },
+  ne: {
+    title: "चिया बगान सहायक", sub: "आफ्नो प्रविष्टिबारे जे सोध्नुस्",
+    helpTitle: "📋 के सोध्न सकिन्छ?",
+    helpRows: [
+      ["📌","अन्तिम प्रविष्टि","अन्तिम पटक कति पात दियो"],
+      ["💰","कुल आम्दानी","जम्मा कति पैसा पाइयो"],
+      ["💳","बाँकी रकम","कति पैसा अझै बाँकी छ"],
+      ["📅","यो महिना","यो महिनाको पूरा डेटा"],
+      ["💵","अग्रिम","कति अग्रिम काटिएको छ"],
+      ["📊","पूरा हिसाब","सबै प्रविष्टिको सारांश"],
+    ],
+    btns: [
+      {label:"अन्तिम",msg:"last"},{label:"बाँकी",msg:"balance"},
+      {label:"यो महिना",msg:"month"},{label:"आम्दानी",msg:"earning"},
+      {label:"अग्रिम",msg:"advance"},{label:"पूरा हिसाब",msg:"report"},
+    ],
+    back: "← फर्कनुस्", placeholder: "प्रश्न लेख्नुस्...",
+  },
+  as: {
+    title: "চাহ বাগান সহায়ক", sub: "আপোনাৰ তথ্যৰ বিষয়ে যিকোনো কথা সুধিব পাৰে",
+    helpTitle: "📋 কি কি সুধিব পাৰে?",
+    helpRows: [
+      ["📌","শেষ তথ্য","শেষবাৰ কিমান পাত দিছিল"],
+      ["💰","মুঠ উপাৰ্জন","মুঠ কিমান টকা পালোঁ"],
+      ["💳","বাকী পৰিমাণ","কিমান টকা পোৱা বাকী"],
+      ["📅","এই মাহ","এই মাহৰ সম্পূৰ্ণ তথ্য"],
+      ["💵","এডভান্স","কিমান এডভান্স কটা হৈছে"],
+      ["📊","সম্পূৰ্ণ হিচাব","সকলো তথ্যৰ সাৰাংশ"],
+    ],
+    btns: [
+      {label:"শেষ তথ্য",msg:"শেষ"},{label:"বাকী",msg:"বাকী"},
+      {label:"এই মাহ",msg:"মাহ"},{label:"উপাৰ্জন",msg:"উপাৰ্জন"},
+      {label:"এডভান্স",msg:"এডভান্স"},{label:"সম্পূৰ্ণ",msg:"report"},
+    ],
+    back: "← ঘূৰি যাওক", placeholder: "যিকোনো প্ৰশ্ন লিখক...",
+  },
 };
 
 export default function AIChatPage({ user }) {
-  const { lang: appLang } = useLang();
+  const { lang } = useLang();
+  const C = chatConfig[lang] || chatConfig.as;
+
   const [started, setStarted] = useState(false);
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState("");
@@ -125,82 +241,12 @@ export default function AIChatPage({ user }) {
   useEffect(() => { loadEntries(); }, [loadEntries]);
   useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages, typing]);
 
-  const chatConfig = {
-    en: {
-      btns: [
-        { label: "Last Entry", msg: "last" }, { label: "Balance", msg: "balance" },
-        { label: "This Month", msg: "month" }, { label: "Total Earning", msg: "earning" },
-        { label: "Advance", msg: "advance" }, { label: "Full Report", msg: "full report" },
-      ],
-      helpRows: [
-        ["📌","Last Entry","Last time how much leaf given"],
-        ["💰","Total Earning","How much money received total"],
-        ["💳","Balance","How much money still pending"],
-        ["📅","This Month","Complete this month data"],
-        ["💵","Advance","How much advance deducted"],
-        ["📊","Full Report","Summary of all entries"],
-      ],
-      back: "← Back", placeholder: "Type your question...",
-    },
-    hi: {
-      btns: [
-        { label: "आखिरी प्रविष्टि", msg: "aakhri" }, { label: "बाकी राशि", msg: "baaki" },
-        { label: "इस महीने", msg: "mahine" }, { label: "कुल कमाई", msg: "kamaai" },
-        { label: "अग्रिम", msg: "advance" }, { label: "पूरा हिसाब", msg: "summary" },
-      ],
-      helpRows: [
-        ["📌","आखिरी प्रविष्टि","पिछली बार कितना पत्ता दिया"],
-        ["💰","कुल कमाई","कुल कितना पैसा मिला"],
-        ["💳","बाकी राशि","कितना पैसा अभी बाकी है"],
-        ["📅","इस महीने","इस महीने का पूरा डेटा"],
-        ["💵","अग्रिम","कितना अग्रिम काटा गया"],
-        ["📊","पूरा हिसाब","सभी प्रविष्टियों का सारांश"],
-      ],
-      back: "← वापस", placeholder: "प्रश्न लिखें...",
-    },
-    ne: {
-      btns: [
-        { label: "अन्तिम प्रविष्टि", msg: "last" }, { label: "बाँकी रकम", msg: "balance" },
-        { label: "यो महिना", msg: "month" }, { label: "कुल आम्दानी", msg: "earning" },
-        { label: "अग्रिम", msg: "advance" }, { label: "पूरा हिसाब", msg: "full report" },
-      ],
-      helpRows: [
-        ["📌","अन्तिम प्रविष्टि","अन्तिम पटक कति पात दियो"],
-        ["💰","कुल आम्दानी","जम्मा कति पैसा पाइयो"],
-        ["💳","बाँकी रकम","कति पैसा अझै बाँकी छ"],
-        ["📅","यो महिना","यो महिनाको पूरा डेटा"],
-        ["💵","अग्रिम","कति अग्रिम काटिएको छ"],
-        ["📊","पूरा हिसाब","सबै प्रविष्टिको सारांश"],
-      ],
-      back: "← फर्कनुस्", placeholder: "प्रश्न लेख्नुस्...",
-    },
-    as: {
-      btns: [
-        { label: "শেষ তথ্য", msg: "শেষ তথ্য" }, { label: "বাকী পৰিমাণ", msg: "বাকী" },
-        { label: "এই মাহ", msg: "এই মাহ" }, { label: "মুঠ উপাৰ্জন", msg: "উপাৰ্জন" },
-        { label: "এডভান্স", msg: "এডভান্স" }, { label: "সম্পূৰ্ণ হিচাব", msg: "সম্পূৰ্ণ হিচাব" },
-      ],
-      helpRows: [
-        ["📌","শেষ তথ্য","শেষবাৰ কিমান পাত দিছিল"],
-        ["💰","মুঠ উপাৰ্জন","মুঠ কিমান টকা পালোঁ"],
-        ["💳","বাকী পৰিমাণ","কিমান টকা পোৱা বাকী"],
-        ["📅","এই মাহ","এই মাহৰ সম্পূৰ্ণ তথ্য"],
-        ["💵","এডভান্স","কিমান এডভান্স কটা হৈছে"],
-        ["📊","সম্পূৰ্ণ হিচাব","সকলো তথ্যৰ সাৰাংশ"],
-      ],
-      back: "← ঘূৰি যাওক", placeholder: "যিকোনো প্ৰশ্ন লিখক...",
-    },
-  };
-
-  const C = chatConfig[appLang] || chatConfig.as;
-  const quickBtns = C.btns;
-
   const startChat = (msg) => {
     setStarted(true);
     setMessages([{ role: "user", text: msg }]);
     setTyping(true);
     setTimeout(() => {
-      setMessages(p => [...p, { role: "bot", text: generateReply(msg, entries) }]);
+      setMessages(p => [...p, { role: "bot", text: generateReply(msg, entries, lang) }]);
       setTyping(false);
     }, 500);
   };
@@ -212,31 +258,22 @@ export default function AIChatPage({ user }) {
     setMessages(p => [...p, { role: "user", text: msg }]);
     setTyping(true);
     setTimeout(() => {
-      setMessages(p => [...p, { role: "bot", text: generateReply(msg, entries) }]);
+      setMessages(p => [...p, { role: "bot", text: generateReply(msg, entries, lang) }]);
       setTyping(false);
     }, 500);
   };
 
-  // ── WELCOME SCREEN (before chat starts) ──
   if (!started) {
     return (
       <div style={styles.welcomePage}>
         <div style={styles.welcomeTop}>
           <div style={styles.welcomeIcon}>🍃</div>
-          <h2 style={styles.welcomeTitle}>চাহ বাগান সহায়ক</h2>
-          <p style={styles.welcomeSub}>আপোনাৰ তথ্যৰ বিষয়ে যিকোনো কথা সুধিব পাৰে</p>
+          <h2 style={styles.welcomeTitle}>{C.title}</h2>
+          <p style={styles.welcomeSub}>{C.sub}</p>
         </div>
-
         <div style={styles.helpCard}>
-          <div style={styles.helpTitle}>📋 কি কি সুধিব পাৰে?</div>
-          {[
-            ["📌", "শেষ তথ্য", "শেষবাৰ কিমান পাত দিছিল"],
-            ["💰", "উপাৰ্জন", "মুঠ কিমান টকা পালোঁ"],
-            ["💳", "বাকী পৰিমাণ", "কিমান টকা পোৱা বাকী"],
-            ["📅", "এই মাহ", "এই মাহৰ সম্পূৰ্ণ তথ্য"],
-            ["💵", "এডভান্স", "কিমান এডভান্স কটা হৈছে"],
-            ["📊", "সম্পূৰ্ণ হিচাব", "সকলো তথ্যৰ সাৰাংশ"],
-          ].map(([icon, title, desc]) => (
+          <div style={styles.helpTitle}>{C.helpTitle}</div>
+          {C.helpRows.map(([icon, title, desc]) => (
             <button key={title} onClick={() => startChat(title)} style={styles.helpRow}>
               <span style={styles.helpRowIcon}>{icon}</span>
               <div style={styles.helpRowText}>
@@ -247,24 +284,19 @@ export default function AIChatPage({ user }) {
             </button>
           ))}
         </div>
-
-
         <style>{`@keyframes blink{0%,80%,100%{opacity:.2;transform:scale(0.8)}40%{opacity:1;transform:scale(1)}}`}</style>
       </div>
     );
   }
 
-  // ── CHAT SCREEN ──
   return (
     <div style={styles.page}>
-      {/* Quick buttons */}
       <div style={styles.quickScroll}>
         <button onClick={() => { setStarted(false); setMessages([]); }} style={styles.backBtn}>{C.back}</button>
-        {quickBtns.map(q => (
+        {C.btns.map(q => (
           <button key={q.label} onClick={() => sendMessage(q.msg)} style={styles.quickBtn}>{q.label}</button>
         ))}
       </div>
-
       <div style={styles.messages}>
         {messages.map((msg, i) => (
           <div key={i} style={{ display: "flex", justifyContent: msg.role === "user" ? "flex-end" : "flex-start", marginBottom: "10px" }}>
@@ -295,16 +327,12 @@ export default function AIChatPage({ user }) {
         )}
         <div ref={bottomRef} />
       </div>
-
       <div style={styles.inputRow}>
-        <input
-          type="text" value={input}
-          onChange={e => setInput(e.target.value)}
+        <input type="text" value={input} onChange={e => setInput(e.target.value)}
           onKeyDown={e => e.key === "Enter" && sendMessage()}
-          placeholder={C.placeholder}
-          style={styles.textInput}
-        />
-        <button onClick={() => sendMessage()} disabled={!input.trim()} style={{ ...styles.sendBtn, opacity: input.trim() ? 1 : 0.5 }}>➤</button>
+          placeholder={C.placeholder} style={styles.textInput} />
+        <button onClick={() => sendMessage()} disabled={!input.trim()}
+          style={{ ...styles.sendBtn, opacity: input.trim() ? 1 : 0.5 }}>➤</button>
       </div>
       <style>{`@keyframes blink{0%,80%,100%{opacity:.2;transform:scale(0.8)}40%{opacity:1;transform:scale(1)}}`}</style>
     </div>
@@ -312,7 +340,6 @@ export default function AIChatPage({ user }) {
 }
 
 const styles = {
-  // Welcome screen
   welcomePage: { minHeight: "calc(100vh - 120px)", background: "#f0f4f0", padding: "20px 16px 100px", fontFamily: "'Segoe UI', sans-serif", display: "flex", flexDirection: "column", gap: "16px" },
   welcomeTop: { textAlign: "center", padding: "24px 0 8px" },
   welcomeIcon: { fontSize: "56px", marginBottom: "10px" },
@@ -325,10 +352,7 @@ const styles = {
   helpRowText: { flex: 1 },
   helpRowTitle: { fontSize: "14px", fontWeight: "800", color: "#1a3a1a" },
   helpRowDesc: { fontSize: "12px", color: "#9ca3af", marginTop: "2px" },
-  helpRowArrow: { fontSize: "22px", color: "#d1d5db", fontWeight: "300" },
-  orDivider: { textAlign: "center", fontSize: "12px", color: "#9ca3af", fontWeight: "600" },
-  welcomeInput: { display: "flex", gap: "10px" },
-  // Chat screen
+  helpRowArrow: { fontSize: "22px", color: "#d1d5db" },
   page: { display: "flex", flexDirection: "column", height: "calc(100vh - 120px)", background: "#f0f4f0", fontFamily: "'Segoe UI', sans-serif" },
   quickScroll: { display: "flex", gap: "8px", padding: "10px 12px", overflowX: "auto", background: "white", borderBottom: "1px solid #e5e7eb", flexShrink: 0 },
   backBtn: { background: "#f3f4f6", border: "none", color: "#374151", padding: "7px 12px", borderRadius: "20px", fontSize: "12px", fontWeight: "700", cursor: "pointer", whiteSpace: "nowrap", fontFamily: "inherit" },
