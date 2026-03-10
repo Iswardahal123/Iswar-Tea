@@ -287,7 +287,7 @@ export const translations = {
     chatBtns: ["শেষ তথ্য", "বাকী পৰিমাণ", "এই মাহ", "মুঠ উপাৰ্জন", "এডভান্স", "সম্পূৰ্ণ হিচাব"],
   },
   ne: {
-    welcome: "васвагत छ 🙏",
+    welcome: "स्वागत छ 🙏",
     loading: "कृपया प्रतीक्षा गर्नुस्...",
     loginTitle: "चिया बगान", loginSub: "चिया बगान व्यवस्थापन",
     emailPlaceholder: "इमेल ठेगाना", passwordPlaceholder: "पासवर्ड",
