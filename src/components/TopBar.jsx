@@ -99,7 +99,7 @@ export default function TopBar({ user, currentPage, isAdmin, onLangChange }) {
   };
 
   const isGoogleUser = user.providerData?.[0]?.providerId === "google.com";
-  const langFlags = { en: "🇬🇧", hi: "🇮🇳", as: "🌿" };
+  const langFlags = { en: "🇬🇧", hi: "🇮🇳", as: "🌿", ne: "🇳🇵" };
 
   return (
     <>
