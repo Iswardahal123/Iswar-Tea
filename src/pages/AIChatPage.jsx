@@ -1,12 +1,13 @@
 import React, { useState, useRef, useEffect, useCallback } from "react";
 import { auth, db } from "../firebase/config";
 import { collection, query, where, getDocs } from "firebase/firestore";
+import { useLang } from "../LanguageContext";
 
 const generateReply = (msg, entries) => {
   const m = msg.toLowerCase().trim();
 
   if (entries.length === 0) {
-    return "এতিয়া কোনো তথ্য নাই! প্ৰথমে তথ্য অন্তৰ্ভূক্ত কৰক 🍃";
+    return "এতিয়া কোনো তথ্য নাই! প্ৰথমে তথ্য টেবৰ পৰা পাত যোগ কৰক 🍃";
   }
 
   const sorted = [...entries].sort((a, b) => (b.date || "").localeCompare(a.date || ""));
@@ -27,7 +28,7 @@ const generateReply = (msg, entries) => {
   const avgRate  = withRate.length ? withRate.reduce((s, e) => s + e.rate, 0) / withRate.length : 0;
   const latestWithRate = sorted.find(e => e.rate > 0);
 
-  const fmtDate = (d) => d ? new Date(d + "T00:00:00").toLocaleDateString("as-IN", { day: "numeric", month: "long", year: "numeric" }) : "N/A";
+  const fmtDate = (d) => { if (!d) return "N/A"; try { return new Date(d + "T00:00:00").toLocaleDateString(["as-IN","ne-NP","hi-IN"], { day: "numeric", month: "long", year: "numeric" }); } catch(e){ return d; } };
   const fmtTk = (n) => (n || 0).toFixed(0) + " টকা";
 
   // ── অভিনন্দন ──
@@ -44,7 +45,7 @@ const generateReply = (msg, entries) => {
 
   // ── বাকী ──
   if (m.match(/বাকী|balance|বাকি|কিমান পাম|remaining/)) {
-    return `💳 বাকী পৰিমাণ\n\n${fmtTk(totalBalance)} .}`;
+    return `💳 বাকী পৰিমাণ\n\n${fmtTk(totalBalance)}\n\n• মুঠ উপাৰ্জন: ${fmtTk(totalAmount)}\n• পোৱা পৰিমাণ: ${fmtTk(totalReceived)}\n• এডভান্স কটা: ${fmtTk(totalAdvance)}\n\n${totalBalance > 0 ? "✅ টকা পোৱা বাকী আছে" : totalBalance < 0 ? "⚠️ অতিৰিক্ত টকা পোৱা হৈছে!" : "✅ হিচাব সমান আছে"}`;
   }
 
   // ── এডভান্স ──
@@ -62,7 +63,7 @@ const generateReply = (msg, entries) => {
 
   // ── হাৰ ──
   if (m.match(/হাৰ|rate|ভাৱ|দাম|কিলো/)) {
-    if (!latestWithRate) return "এতিয়ালৈ কোনো তথ্যত হাৰ নিৰ্ধাৰণ কৰা হোৱা নাই।\n অন্তৰ্ভূক্ত তথ্য টেবৰ পৰা সম্পাদনা কৰি হাৰ দিয়ক!";
+    if (!latestWithRate) return "এতিয়ালৈ কোনো তথ্যত হাৰ নিৰ্ধাৰণ কৰা হোৱা নাই।\nতথ্য টেবৰ পৰা সম্পাদনা কৰি হাৰ দিয়ক!";
     return `📊 হাৰৰ বিৱৰণ\n\n• শেষ হাৰ: ${latestWithRate.rate} টকা/কি:গ্ৰা:\n• গড় হাৰ: ${avgRate.toFixed(1)} টকা/কি:গ্ৰা:\n• সৰ্বাধিক: ${Math.max(...withRate.map(e => e.rate))} টকা/কি:গ্ৰা:\n• সৰ্বনিম্ন: ${Math.min(...withRate.map(e => e.rate))} টকা/কি:গ্ৰা:\n• হাৰ থকা তথ্য: ${withRate.length}/${entries.length}`;
   }
 
@@ -123,14 +124,77 @@ export default function AIChatPage({ user }) {
   useEffect(() => { loadEntries(); }, [loadEntries]);
   useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages, typing]);
 
-  const quickBtns = [
-    { label: "শেষ তথ্য", msg: "শেষ তথ্য" },
-    { label: "বাকী পৰিমাণ", msg: "বাকী" },
-    { label: "এই মাহ", msg: "এই মাহ" },
-    { label: "মুঠ উপাৰ্জন", msg: "উপাৰ্জন" },
-    { label: "এডভান্স", msg: "এডভান্স" },
-    { label: "সম্পূৰ্ণ হিচাব", msg: "সম্পূৰ্ণ হিচাব" },
-  ];
+  const { lang: appLang } = useLang ? useLang() : { lang: "as" };
+
+  const chatConfig = {
+    en: {
+      btns: [
+        { label: "Last Entry", msg: "last" }, { label: "Balance", msg: "balance" },
+        { label: "This Month", msg: "month" }, { label: "Total Earning", msg: "earning" },
+        { label: "Advance", msg: "advance" }, { label: "Full Report", msg: "full report" },
+      ],
+      helpRows: [
+        ["📌","Last Entry","Last time how much leaf given"],
+        ["💰","Total Earning","How much money received total"],
+        ["💳","Balance","How much money still pending"],
+        ["📅","This Month","Complete this month data"],
+        ["💵","Advance","How much advance deducted"],
+        ["📊","Full Report","Summary of all entries"],
+      ],
+      back: "← Back", placeholder: "Type your question...",
+    },
+    hi: {
+      btns: [
+        { label: "आखिरी प्रविष्टि", msg: "aakhri" }, { label: "बाकी राशि", msg: "baaki" },
+        { label: "इस महीने", msg: "mahine" }, { label: "कुल कमाई", msg: "kamaai" },
+        { label: "अग्रिम", msg: "advance" }, { label: "पूरा हिसाब", msg: "summary" },
+      ],
+      helpRows: [
+        ["📌","आखिरी प्रविष्टि","पिछली बार कितना पत्ता दिया"],
+        ["💰","कुल कमाई","कुल कितना पैसा मिला"],
+        ["💳","बाकी राशि","कितना पैसा अभी बाकी है"],
+        ["📅","इस महीने","इस महीने का पूरा डेटा"],
+        ["💵","अग्रिम","कितना अग्रिम काटा गया"],
+        ["📊","पूरा हिसाब","सभी प्रविष्टियों का सारांश"],
+      ],
+      back: "← वापस", placeholder: "प्रश्न लिखें...",
+    },
+    ne: {
+      btns: [
+        { label: "अन्तिम प्रविष्टि", msg: "last" }, { label: "बाँकी रकम", msg: "balance" },
+        { label: "यो महिना", msg: "month" }, { label: "कुल आम्दानी", msg: "earning" },
+        { label: "अग्रिम", msg: "advance" }, { label: "पूरा हिसाब", msg: "full report" },
+      ],
+      helpRows: [
+        ["📌","अन्तिम प्रविष्टि","अन्तिम पटक कति पात दियो"],
+        ["💰","कुल आम्दानी","जम्मा कति पैसा पाइयो"],
+        ["💳","बाँकी रकम","कति पैसा अझै बाँकी छ"],
+        ["📅","यो महिना","यो महिनाको पूरा डेटा"],
+        ["💵","अग्रिम","कति अग्रिम काटिएको छ"],
+        ["📊","पूरा हिसाब","सबै प्रविष्टिको सारांश"],
+      ],
+      back: "← फर्कनुस्", placeholder: "प्रश्न लेख्नुस्...",
+    },
+    as: {
+      btns: [
+        { label: "শেষ তথ্য", msg: "শেষ তথ্য" }, { label: "বাকী পৰিমাণ", msg: "বাকী" },
+        { label: "এই মাহ", msg: "এই মাহ" }, { label: "মুঠ উপাৰ্জন", msg: "উপাৰ্জন" },
+        { label: "এডভান্স", msg: "এডভান্স" }, { label: "সম্পূৰ্ণ হিচাব", msg: "সম্পূৰ্ণ হিচাব" },
+      ],
+      helpRows: [
+        ["📌","শেষ তথ্য","শেষবাৰ কিমান পাত দিছিল"],
+        ["💰","মুঠ উপাৰ্জন","মুঠ কিমান টকা পালোঁ"],
+        ["💳","বাকী পৰিমাণ","কিমান টকা পোৱা বাকী"],
+        ["📅","এই মাহ","এই মাহৰ সম্পূৰ্ণ তথ্য"],
+        ["💵","এডভান্স","কিমান এডভান্স কটা হৈছে"],
+        ["📊","সম্পূৰ্ণ হিচাব","সকলো তথ্যৰ সাৰাংশ"],
+      ],
+      back: "← ঘূৰি যাওক", placeholder: "যিকোনো প্ৰশ্ন লিখক...",
+    },
+  };
+
+  const C = chatConfig[appLang] || chatConfig.as;
+  const quickBtns = C.btns;
 
   const startChat = (msg) => {
     setStarted(true);
@@ -196,7 +260,7 @@ export default function AIChatPage({ user }) {
     <div style={styles.page}>
       {/* Quick buttons */}
       <div style={styles.quickScroll}>
-        <button onClick={() => { setStarted(false); setMessages([]); }} style={styles.backBtn}>← ঘূৰি যাওক</button>
+        <button onClick={() => { setStarted(false); setMessages([]); }} style={styles.backBtn}>{C.back}</button>
         {quickBtns.map(q => (
           <button key={q.label} onClick={() => sendMessage(q.msg)} style={styles.quickBtn}>{q.label}</button>
         ))}
@@ -238,7 +302,7 @@ export default function AIChatPage({ user }) {
           type="text" value={input}
           onChange={e => setInput(e.target.value)}
           onKeyDown={e => e.key === "Enter" && sendMessage()}
-          placeholder="যিকোনো প্ৰশ্ন লিখক..."
+          placeholder={C.placeholder}
           style={styles.textInput}
         />
         <button onClick={() => sendMessage()} disabled={!input.trim()} style={{ ...styles.sendBtn, opacity: input.trim() ? 1 : 0.5 }}>➤</button>
