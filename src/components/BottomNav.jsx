@@ -23,6 +23,12 @@ export default function BottomNav({ currentPage, setCurrentPage }) {
       { id: "view",      icon: "📋", label: "ৰেকৰ্ড" },
       { id: "chat",      icon: "🤖", label: "AI চেট" },
     ],
+    ne: [
+      { id: "dashboard", icon: "🏠", label: "ड्यासबोर्ड" },
+      { id: "entry",     icon: "➕", label: "प्रविष्टि" },
+      { id: "view",      icon: "📋", label: "रेकर्ड" },
+      { id: "chat",      icon: "🤖", label: "AI च्याट" },
+    ],
   };
 
   const currentTabs = tabs[lang] || tabs.as;
