@@ -105,6 +105,7 @@ const generateReply = (msg, entries) => {
 };
 
 export default function AIChatPage({ user }) {
+  const { lang: appLang } = useLang();
   const [started, setStarted] = useState(false);
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState("");
@@ -123,8 +124,6 @@ export default function AIChatPage({ user }) {
 
   useEffect(() => { loadEntries(); }, [loadEntries]);
   useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages, typing]);
-
-  const { lang: appLang } = useLang ? useLang() : { lang: "as" };
 
   const chatConfig = {
     en: {
