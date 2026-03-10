@@ -36,36 +36,31 @@ export default function App() {
   const [checkingAuth, setCheckingAuth] = useState(true);
   const [currentPage, setCurrentPage] = useState("dashboard");
 
-  const checkUserRole = async (u) => {
-    try {
-      const userRef = doc(db, "users", u.uid);
-      const userDoc = await getDoc(userRef);
-      if (!userDoc.exists()) {
-        await setDoc(userRef, {
-          uid: u.uid, email: u.email,
-          name: u.displayName || "", photo: u.photoURL || "",
-          isAdmin: false, language: lang || "en",
-          createdAt: new Date().toISOString(),
-        });
-        return false;
-      }
-      // Load saved language from Firestore
-      const data = userDoc.data();
-      if (data.language && data.language !== lang) {
-        setLang(data.language);
-      }
-      return data.isAdmin === true;
-    } catch (err) {
-      console.error("Role check error:", err);
-      return false;
-    }
-  };
 
   useEffect(() => {
+    const checkRole = async (u) => {
+      try {
+        const userRef = doc(db, "users", u.uid);
+        const userDoc = await getDoc(userRef);
+        if (!userDoc.exists()) {
+          await setDoc(userRef, {
+            uid: u.uid, email: u.email,
+            name: u.displayName || "", photo: u.photoURL || "",
+            isAdmin: false, language: lang || "as",
+            createdAt: new Date().toISOString(),
+          });
+          return false;
+        }
+        const data = userDoc.data();
+        if (data.language && data.language !== lang) setLang(data.language);
+        return data.isAdmin === true;
+      } catch (err) { console.error(err); return false; }
+    };
+
     const unsub = onAuthStateChanged(auth, async (u) => {
       if (u) {
         setUser(u);
-        const admin = await checkUserRole(u);
+        const admin = await checkRole(u);
         setIsAdmin(admin);
         setCurrentPage(admin ? "admin" : "dashboard");
       } else {
@@ -75,7 +70,7 @@ export default function App() {
       setCheckingAuth(false);
     });
     return () => unsub();
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleLogin = async () => {
     const u = auth.currentUser;
