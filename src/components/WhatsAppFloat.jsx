@@ -7,12 +7,14 @@ const waMsg = {
   en: "Hello Ishwar! I am contacting you from the Chai Bagan app.",
   hi: "नमस्ते ईश्वर! मैं Chai Bagan ऐप से संपर्क कर रहा हूं।",
   as: "নমস্কাৰ ঈশ্বৰ! মই Chai Bagan এপৰ পৰা সম্পৰ্ক কৰিছো।",
+  ne: "नमस्ते ईश्वर! म Chai Bagan एपबाट सम्पर्क गर्दैछु।",
 };
 
 const toastMsg = {
   en: "Contact me!",
   hi: "संपर्क करें!",
   as: "মোক সম্পৰ্ক কৰক!",
+  ne: "सम्पर्क गर्नुस्!",
 };
 
 export default function WhatsAppFloat() {
