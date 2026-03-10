@@ -108,7 +108,9 @@ export default function TopBar({ user, currentPage, isAdmin, onLangChange }) {
   const displayName = user.displayName || user.email?.split("@")[0] || "User";
   const initial = (displayName)[0].toUpperCase();
 
-  const settingsItems = [
+  const settingsItems = isAdmin ? [
+    { icon: "🚪", label: lang === "en" ? "Logout" : lang === "hi" ? "लॉगआउट" : lang === "ne" ? "लगआउट" : "লগআউট", sub: null, danger: true, action: handleLogout },
+  ] : [
     { icon: "🌐", label: lang === "en" ? "Language" : lang === "hi" ? "भाषा" : lang === "ne" ? "भाषा" : "ভাষা", sub: langNames[lang], action: () => openModal("lang") },
     { icon: "💰", label: lang === "en" ? "Update Advance" : lang === "hi" ? "अग्रिम अपडेट" : lang === "ne" ? "अग्रिम अपडेट" : "এডভান্স আপডেট", sub: null, action: () => openModal("advance") },
     ...(!isGoogleUser ? [{ icon: "🔑", label: lang === "en" ? "Change Password" : lang === "hi" ? "पासवर्ड बदलें" : lang === "ne" ? "पासवर्ड परिवर्तन" : "পাছৱৰ্ড সলনি", sub: null, action: () => openModal("password") }] : []),
