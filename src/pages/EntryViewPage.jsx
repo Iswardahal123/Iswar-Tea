@@ -1,11 +1,87 @@
 import React, { useEffect, useState, useCallback } from "react";
 import { auth, db } from "../firebase/config";
-import {
-  collection, query, where, getDocs,
-  deleteDoc, doc, updateDoc
-} from "firebase/firestore";
+import { collection, query, where, getDocs, deleteDoc, doc, updateDoc } from "firebase/firestore";
+import { useLang } from "../LanguageContext";
+
+const txt = {
+  en: {
+    loading: "Please wait...", monthLabel: "📅 Month:", clearBtn: "Clear",
+    countTotal: (n) => `${n} entries total`, countMonth: (n) => `${n} entries this month`,
+    noData: "No entries found", noDataSub: "Add new entry from Entry tab",
+    pending: "Rate Pending", baaki: "Bal: Rs",
+    editBtn: "✏️ Edit / Details", deleteTitle: "Delete Entry?",
+    deleteMsg: "This entry will be permanently deleted!",
+    cancelBtn: "Cancel", deleteBtn: "Yes, Delete",
+    editTitle: "✏️ Edit Entry",
+    fDate: "Date", fWeight: "Weight (kg)", fRate: "Rate (Rs/kg)",
+    fTotal: "Total Amount", fAdvCut: "Advance Cut (Rs)", fReceived: "Amount Received (Rs)",
+    fBalance: "Balance Amount", fNotes: "Notes", fNotesPh: "Any special note...",
+    calcHint: (w,r,t) => `${w} x ${r} = ${t}`,
+    balHint: (t,a,r,b) => `${t} - ${a} - ${r} = ${b}`,
+    currency: "Rs", unit: "kg", per: "/kg",
+    saveBtn: "✅ Save", saving: "⏳ Saving...",
+    locale: "en-IN",
+  },
+  hi: {
+    loading: "कृपया प्रतीक्षा करें...", monthLabel: "📅 महिना:", clearBtn: "हटाएं",
+    countTotal: (n) => `${n} प्रविष्टियां कुल`, countMonth: (n) => `${n} इस महीने`,
+    noData: "कोई प्रविष्टि नहीं मिली", noDataSub: "प्रविष्टि टैब से नई प्रविष्टि जोड़ें",
+    pending: "दर बाकी", baaki: "बाकी: Rs",
+    editBtn: "✏️ एडिट / विवरण", deleteTitle: "प्रविष्टि हटाएं?",
+    deleteMsg: "यह प्रविष्टि हमेशा के लिए हट जाएगी!",
+    cancelBtn: "रद्द करें", deleteBtn: "हां, हटाएं",
+    editTitle: "✏️ प्रविष्टि एडिट करें",
+    fDate: "तारीख", fWeight: "वजन (कि.ग्रा.)", fRate: "दर (Rs/कि.ग्रा.)",
+    fTotal: "कुल राशि", fAdvCut: "अग्रिम काटा (Rs)", fReceived: "मिली राशि (Rs)",
+    fBalance: "बाकी राशि", fNotes: "नोट्स", fNotesPh: "कोई खास बात...",
+    calcHint: (w,r,t) => `${w} x ${r} = ${t}`,
+    balHint: (t,a,r,b) => `${t} - ${a} - ${r} = ${b}`,
+    currency: "Rs", unit: "कि.ग्रा.", per: "/कि.ग्रा.",
+    saveBtn: "✅ सेव करें", saving: "⏳ सेव हो रहा है...",
+    locale: "hi-IN",
+  },
+  ne: {
+    loading: "कृपया प्रतीक्षा गर्नुस्...", monthLabel: "📅 महिना:", clearBtn: "हटाउनुस्",
+    countTotal: (n) => `${n} वटा प्रविष्टि जम्मा`, countMonth: (n) => `${n} यो महिना`,
+    noData: "कुनै प्रविष्टि फेला परेन", noDataSub: "प्रविष्टि ट्याबबाट थप्नुस्",
+    pending: "दर बाँकी", baaki: "बाँकी: Rs",
+    editBtn: "✏️ सम्पादन / विवरण", deleteTitle: "प्रविष्टि मेट्ने?",
+    deleteMsg: "यो प्रविष्टि सधैंका लागि मेटिनेछ!",
+    cancelBtn: "रद्द गर्नुस्", deleteBtn: "हो, मेट्नुस्",
+    editTitle: "✏️ प्रविष्टि सम्पादन गर्नुस्",
+    fDate: "मिति", fWeight: "तौल (कि.ग्रा.)", fRate: "दर (Rs/कि.ग्रा.)",
+    fTotal: "कुल रकम", fAdvCut: "अग्रिम काटिएको (Rs)", fReceived: "पाएको रकम (Rs)",
+    fBalance: "बाँकी रकम", fNotes: "टिप्पणी", fNotesPh: "कुनै विशेष कुरा...",
+    calcHint: (w,r,t) => `${w} x ${r} = ${t}`,
+    balHint: (t,a,r,b) => `${t} - ${a} - ${r} = ${b}`,
+    currency: "Rs", unit: "कि.ग्रा.", per: "/कि.ग्रा.",
+    saveBtn: "✅ सुरक्षित गर्नुस्", saving: "⏳ सुरक्षित हुँदैछ...",
+    locale: "ne-NP",
+  },
+  as: {
+    loading: "অনুগ্ৰহ কৰি অপেক্ষা কৰক...", monthLabel: "📅 মাহ:", clearBtn: "বাতিল",
+    countTotal: (n) => `${n} টা তথ্য মুঠ`, countMonth: (n) => `${n} টা তথ্য এই মাহত`,
+    noData: "কোনো তথ্য পোৱা নগ'ল", noDataSub: "তথ্য টেবৰ পৰা নতুন তথ্য যোগ কৰক",
+    pending: "হিচাব কৰা হোৱা নাই", baaki: "বাকী: Rs",
+    editBtn: "✏️ সম্পাদনা / বিৱৰণ", deleteTitle: "তথ্য মচি পেলাব নে?",
+    deleteMsg: "এই তথ্য মচি দিয়াৰ পাছত ঘূৰাই নাপাব!",
+    cancelBtn: "বাতিল কৰক", deleteBtn: "হয়, মচক",
+    editTitle: "✏️ তথ্য সম্পাদনা কৰক",
+    fDate: "তাৰিখ", fWeight: "ওজন (কি:গ্ৰা:)", fRate: "হাৰ (টকা/কি:গ্ৰা:)",
+    fTotal: "মুঠ পৰিমাণ", fAdvCut: "এডভান্স কটা (টকা)", fReceived: "পোৱা পৰিমাণ (টকা)",
+    fBalance: "বাকী পৰিমাণ", fNotes: "টোকা", fNotesPh: "কোনো বিশেষ কথা...",
+    calcHint: (w,r,t) => `${w} x ${r} = ${t} টকা`,
+    balHint: (t,a,r,b) => `${t} - ${a} - ${r} = ${b} টকা`,
+    currency: "টকা", unit: "কি:গ্ৰা:", per: "/কি:গ্ৰা:",
+    saveBtn: "✅ সংৰক্ষণ কৰক", saving: "⏳ সংৰক্ষণ হৈ আছে...",
+    locale: "as-IN",
+  },
+};
 
 export default function EntryViewPage({ user }) {
+  const { lang } = useLang();
+  const T = txt[lang] || txt.as;
+
   const [entries, setEntries] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filterMonth, setFilterMonth] = useState("");
@@ -19,40 +95,31 @@ export default function EntryViewPage({ user }) {
     try {
       const currentUser = user || auth.currentUser;
       if (!currentUser) { setLoading(false); return; }
-      const q = query(collection(db, "entries"), where("uid", "==", currentUser.uid));
-      const snap = await getDocs(q);
+      const snap = await getDocs(query(collection(db, "entries"), where("uid", "==", currentUser.uid)));
       setEntries(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
-    } catch (err) { console.error("Fetch error:", err); }
+    } catch (err) { console.error(err); }
     setLoading(false);
   }, [user]);
 
   useEffect(() => { fetchEntries(); }, [fetchEntries]);
 
-  const filtered = filterMonth
-    ? entries.filter((e) => e.date && e.date.startsWith(filterMonth))
-    : entries;
+  const filtered = filterMonth ? entries.filter(e => e.date?.startsWith(filterMonth)) : entries;
 
   const handleDelete = async () => {
     await deleteDoc(doc(db, "entries", deleteId));
-    setDeleteId(null);
-    fetchEntries();
+    setDeleteId(null); fetchEntries();
   };
 
   const openEdit = (entry) => {
     setEditEntry(entry);
     setEditForm({
-      date: entry.date || "",
-      weight: entry.weight || "",
-      rate: entry.rate || "",
-      advanceCut: entry.advanceCut || "",
-      amountReceived: entry.amountReceived || "",
+      date: entry.date || "", weight: entry.weight || "", rate: entry.rate || "",
+      advanceCut: entry.advanceCut || "", amountReceived: entry.amountReceived || "",
       notes: entry.notes || "",
     });
   };
 
-  const handleEditChange = (e) => {
-    setEditForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
-  };
+  const handleEditChange = (e) => setEditForm(p => ({ ...p, [e.target.name]: e.target.value }));
 
   const eWeight = parseFloat(editForm.weight) || 0;
   const eRate = parseFloat(editForm.rate) || 0;
@@ -66,99 +133,90 @@ export default function EntryViewPage({ user }) {
     setSaving(true);
     try {
       await updateDoc(doc(db, "entries", editEntry.id), {
-        date: editForm.date,
-        weight: eWeight,
-        rate: eRate,
-        totalAmount: eTotalAmount,
-        advanceCut: eAdvance,
-        amountReceived: eReceived,
-        balanceAmount: eBalance,
-        notes: editForm.notes,
+        date: editForm.date, weight: eWeight, rate: eRate,
+        totalAmount: eTotalAmount, advanceCut: eAdvance,
+        amountReceived: eReceived, balanceAmount: eBalance, notes: editForm.notes,
       });
-      setEditEntry(null);
-      fetchEntries();
+      setEditEntry(null); fetchEntries();
     } catch (err) { console.error(err); }
     setSaving(false);
   };
 
-  if (loading) {
-    return (
-      <div style={{ textAlign: "center", padding: "60px", color: "#6b7280", fontFamily: "Segoe UI, sans-serif" }}>
-        <div style={{ fontSize: "36px" }}>🍃</div>
-        <p>অনুগ্ৰহ কৰি অপেক্ষা কৰক...</p>
-      </div>
-    );
-  }
+  if (loading) return (
+    <div style={{ textAlign: "center", padding: "60px", color: "#6b7280", fontFamily: "'Segoe UI', sans-serif" }}>
+      <div style={{ fontSize: "36px" }}>🍃</div>
+      <p>{T.loading}</p>
+    </div>
+  );
 
   return (
     <div style={styles.container}>
 
       {/* Filter */}
       <div style={styles.filterRow}>
-        <label style={styles.filterLabel}>📅 মাহ:</label>
-        <input type="month" value={filterMonth} onChange={(e) => setFilterMonth(e.target.value)} style={styles.filterInput} />
-        {filterMonth && <button onClick={() => setFilterMonth("")} style={styles.clearBtn}>বাতিল</button>}
+        <label style={styles.filterLabel}>{T.monthLabel}</label>
+        <input type="month" value={filterMonth} onChange={e => setFilterMonth(e.target.value)} style={styles.filterInput} />
+        {filterMonth && <button onClick={() => setFilterMonth("")} style={styles.clearBtn}>{T.clearBtn}</button>}
       </div>
 
       {/* Count */}
       <div style={styles.countRow}>
-        {filtered.length} টা তথ্য {filterMonth ? "এই মাহত" : "মুঠ"}
+        {filterMonth ? T.countMonth(filtered.length) : T.countTotal(filtered.length)}
       </div>
 
       {/* Entries */}
       {filtered.length === 0 ? (
         <div style={styles.empty}>
           <div style={{ fontSize: "40px" }}>🍃</div>
-          <p>কোনো তথ্য পোৱা নগ'ল</p>
-          <p style={{ fontSize: "13px", color: "#9ca3af", marginTop: "6px" }}>তথ্য টেবৰ পৰা নতুন তথ্য যোগ কৰক</p>
+          <p>{T.noData}</p>
+          <p style={{ fontSize: "13px", color: "#9ca3af", marginTop: "6px" }}>{T.noDataSub}</p>
         </div>
       ) : (
-        filtered.map((entry) => (
+        filtered.map(entry => (
           <div key={entry.id} style={styles.entryCard}>
             <div style={styles.cardTop}>
               <div>
                 <div style={styles.cardDate}>
-                  {new Date(entry.date + "T00:00:00").toLocaleDateString("as-IN", { day: "numeric", month: "long", year: "numeric" })}
+                  {new Date(entry.date + "T00:00:00").toLocaleDateString(T.locale, { day: "numeric", month: "long", year: "numeric" })}
                 </div>
                 <div style={styles.cardWeight}>
-                  {entry.weight} কি:গ্ৰা:{entry.rate > 0 ? " @ Rs" + entry.rate + "/কি:গ্ৰা:" : ""}
+                  {entry.weight} {T.unit}{entry.rate > 0 ? ` @ Rs${entry.rate}${T.per}` : ""}
                 </div>
               </div>
               <div style={{ textAlign: "right" }}>
-                {entry.totalAmount > 0 ? (
-                  <div style={styles.cardTotal}>Rs {entry.totalAmount.toFixed(0)}</div>
-                ) : (
-                  <div style={styles.pendingBadge}>হিচাব কৰা হোৱা নাই</div>
-                )}
+                {entry.totalAmount > 0
+                  ? <div style={styles.cardTotal}>Rs {entry.totalAmount.toFixed(0)}</div>
+                  : <div style={styles.pendingBadge}>{T.pending}</div>
+                }
                 {entry.balanceAmount !== undefined && entry.balanceAmount !== 0 && (
                   <div style={{
                     ...styles.balanceBadge,
                     color: (entry.balanceAmount || 0) >= 0 ? "#16a34a" : "#dc2626",
                     background: (entry.balanceAmount || 0) >= 0 ? "#f0fdf4" : "#fef2f2",
                   }}>
-                    বাকী: Rs {(entry.balanceAmount || 0).toFixed(0)}
+                    {T.baaki} {(entry.balanceAmount || 0).toFixed(0)}
                   </div>
                 )}
               </div>
             </div>
             <div style={styles.actionRow}>
-              <button onClick={() => openEdit(entry)} style={styles.editBtn}>✏️ সম্পাদনা / বিৱৰণ</button>
+              <button onClick={() => openEdit(entry)} style={styles.editBtn}>{T.editBtn}</button>
               <button onClick={() => setDeleteId(entry.id)} style={styles.deleteBtn}>🗑️</button>
             </div>
           </div>
         ))
       )}
 
-      {/* DELETE CONFIRM POPUP */}
+      {/* DELETE CONFIRM */}
       {deleteId && (
         <div style={styles.overlay} onClick={() => setDeleteId(null)}>
-          <div style={styles.confirmBox} onClick={(e) => e.stopPropagation()}>
+          <div style={styles.confirmBox} onClick={e => e.stopPropagation()}>
             <div style={styles.confirmIcon}>🗑️</div>
-            <div style={styles.confirmTitle}>তথ্য মচি পেলাব নে?</div>
-            <div style={styles.confirmMsg}>এই তথ্য মচি দিয়াৰ পাছত ঘূৰাই নাপাব!</div>
+            <div style={styles.confirmTitle}>{T.deleteTitle}</div>
+            <div style={styles.confirmMsg}>{T.deleteMsg}</div>
             <div style={styles.confirmBtns}>
-              <button onClick={() => setDeleteId(null)} style={styles.cancelBtn}>বাতিল কৰক</button>
-              <button onClick={handleDelete} style={styles.confirmDeleteBtn}>হয়, মচক</button>
+              <button onClick={() => setDeleteId(null)} style={styles.cancelBtn}>{T.cancelBtn}</button>
+              <button onClick={handleDelete} style={styles.confirmDeleteBtn}>{T.deleteBtn}</button>
             </div>
           </div>
         </div>
@@ -167,58 +225,58 @@ export default function EntryViewPage({ user }) {
       {/* EDIT MODAL */}
       {editEntry && (
         <div style={styles.overlay} onClick={() => setEditEntry(null)}>
-          <div style={styles.modal} onClick={(e) => e.stopPropagation()}>
+          <div style={styles.modal} onClick={e => e.stopPropagation()}>
             <div style={styles.modalHeader}>
-              <h3 style={styles.modalTitle}>✏️ তথ্য সম্পাদনা কৰক</h3>
+              <h3 style={styles.modalTitle}>{T.editTitle}</h3>
               <button onClick={() => setEditEntry(null)} style={styles.closeBtn}>✕</button>
             </div>
             <div style={styles.modalBody}>
               <div style={styles.field}>
-                <label style={styles.fieldLabel}>তাৰিখ</label>
+                <label style={styles.fieldLabel}>{T.fDate}</label>
                 <input type="date" name="date" value={editForm.date} onChange={handleEditChange} style={styles.fieldInput} />
               </div>
               <div style={styles.field}>
-                <label style={styles.fieldLabel}>ওজন (কি:গ্ৰা:)</label>
+                <label style={styles.fieldLabel}>{T.fWeight}</label>
                 <input type="number" name="weight" value={editForm.weight} onChange={handleEditChange} placeholder="150" style={styles.fieldInput} />
               </div>
               <div style={styles.field}>
-                <label style={styles.fieldLabel}>হাৰ (টকা/কি:গ্ৰা:)</label>
+                <label style={styles.fieldLabel}>{T.fRate}</label>
                 <input type="number" name="rate" value={editForm.rate} onChange={handleEditChange} placeholder="18" style={styles.fieldInput} />
               </div>
               {eTotalAmount > 0 && (
                 <div style={styles.calcBox}>
                   <div style={styles.calcRow}>
-                    <span>মুঠ পৰিমাণ</span>
-                    <span style={styles.calcVal}>{eTotalAmount.toFixed(2)} টকা</span>
+                    <span>{T.fTotal}</span>
+                    <span style={styles.calcVal}>{eTotalAmount.toFixed(2)} {T.currency}</span>
                   </div>
-                  <div style={styles.calcHint}>{eWeight} x {eRate} = {eTotalAmount.toFixed(2)} টকা</div>
+                  <div style={styles.calcHint}>{T.calcHint(eWeight, eRate, eTotalAmount.toFixed(2))}</div>
                 </div>
               )}
               <div style={styles.field}>
-                <label style={styles.fieldLabel}>এডভান্স কটা (টকা)</label>
+                <label style={styles.fieldLabel}>{T.fAdvCut}</label>
                 <input type="number" name="advanceCut" value={editForm.advanceCut} onChange={handleEditChange} placeholder="0" style={styles.fieldInput} />
               </div>
               <div style={styles.field}>
-                <label style={styles.fieldLabel}>পোৱা পৰিমাণ (টকা)</label>
+                <label style={styles.fieldLabel}>{T.fReceived}</label>
                 <input type="number" name="amountReceived" value={editForm.amountReceived} onChange={handleEditChange} placeholder="0" style={styles.fieldInput} />
               </div>
               {eTotalAmount > 0 && (
                 <div style={{ ...styles.calcBox, background: eBalance >= 0 ? "#f0fdf4" : "#fef2f2", borderColor: eBalance >= 0 ? "#86efac" : "#fca5a5" }}>
                   <div style={styles.calcRow}>
-                    <span style={{ fontWeight: "800" }}>বাকী পৰিমাণ</span>
+                    <span style={{ fontWeight: "800" }}>{T.fBalance}</span>
                     <span style={{ fontSize: "22px", fontWeight: "900", color: eBalance >= 0 ? "#16a34a" : "#dc2626" }}>
-                      {eBalance.toFixed(2)} টকা
+                      {eBalance.toFixed(2)} {T.currency}
                     </span>
                   </div>
-                  <div style={styles.calcHint}>{eTotalAmount.toFixed(0)} - {eAdvance} - {eReceived} = {eBalance.toFixed(2)} টকা</div>
+                  <div style={styles.calcHint}>{T.balHint(eTotalAmount.toFixed(0), eAdvance, eReceived, eBalance.toFixed(2))}</div>
                 </div>
               )}
               <div style={styles.field}>
-                <label style={styles.fieldLabel}>টকা</label>
-                <textarea name="notes" value={editForm.notes} onChange={handleEditChange} placeholder="কোনো বিশেষ কথা..." rows={2} style={{ ...styles.fieldInput, resize: "none" }} />
+                <label style={styles.fieldLabel}>{T.fNotes}</label>
+                <textarea name="notes" value={editForm.notes} onChange={handleEditChange} placeholder={T.fNotesPh} rows={2} style={{ ...styles.fieldInput, resize: "none" }} />
               </div>
               <button onClick={handleSave} disabled={saving} style={styles.saveBtn}>
-                {saving ? "⏳ সংৰক্ষণ হৈ আছে..." : "✅ সংৰক্ষণ কৰক"}
+                {saving ? T.saving : T.saveBtn}
               </button>
             </div>
           </div>
@@ -229,7 +287,7 @@ export default function EntryViewPage({ user }) {
 }
 
 const styles = {
-  container: { minHeight: "calc(100vh - 120px)", background: "#f8faf8", padding: "16px", paddingBottom: "90px", fontFamily: "Segoe UI, sans-serif" },
+  container: { minHeight: "calc(100vh - 120px)", background: "#f8faf8", padding: "16px", paddingBottom: "90px", fontFamily: "'Segoe UI', sans-serif" },
   filterRow: { display: "flex", alignItems: "center", gap: "10px", marginBottom: "10px", background: "white", padding: "12px 16px", borderRadius: "12px", boxShadow: "0 2px 8px rgba(0,0,0,0.05)" },
   filterLabel: { fontSize: "13px", fontWeight: "700", whiteSpace: "nowrap" },
   filterInput: { border: "2px solid #e5e7eb", borderRadius: "8px", padding: "6px 10px", fontSize: "14px", flex: 1, outline: "none", fontFamily: "inherit" },
@@ -266,5 +324,5 @@ const styles = {
   calcRow: { display: "flex", justifyContent: "space-between", alignItems: "center" },
   calcVal: { fontSize: "20px", fontWeight: "800", color: "#16a34a" },
   calcHint: { fontSize: "11px", color: "#6b7280", marginTop: "3px" },
-  saveBtn: { background: "linear-gradient(135deg, #1a3a1a, #2d5a27)", color: "white", border: "none", padding: "15px", borderRadius: "12px", fontSize: "16px", fontWeight: "700", cursor: "pointer", fontFamily: "inherit", marginTop: "4px" },
+  saveBtn: { background: "linear-gradient(135deg,#1a3a1a,#2d5a27)", color: "white", border: "none", padding: "15px", borderRadius: "12px", fontSize: "16px", fontWeight: "700", cursor: "pointer", fontFamily: "inherit", marginTop: "4px" },
 };
