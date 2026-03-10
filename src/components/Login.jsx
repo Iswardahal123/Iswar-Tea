@@ -1,25 +1,92 @@
 import React, { useState } from "react";
 import { auth, db, googleProvider } from "../firebase/config";
-import { signInWithEmailAndPassword, createUserWithEmailAndPassword, signInWithPopup } from "firebase/auth";
+import { signInWithEmailAndPassword, createUserWithEmailAndPassword, signInWithPopup, updateProfile } from "firebase/auth";
 import { doc, setDoc, getDoc } from "firebase/firestore";
+import { useLang } from "../LanguageContext";
+import { langNames } from "../languages";
+
+const langFlags = { en: "🇬🇧", hi: "🇮🇳", as: "🌿" };
+
+const txt = {
+  en: {
+    title: "Chai Bagan", sub: "Tea Farm Management",
+    name: "Full Name", namePh: "Your name",
+    email: "Email", emailPh: "your@email.com",
+    pass: "Password", passPh: "Password",
+    lang: "Language",
+    loginBtn: "Login", registerBtn: "Create Account",
+    waiting: "Please wait...",
+    googleBtn: "Continue with Google",
+    haveAcc: "Already have an account?", loginLink: "Login",
+    noAcc: "Don't have an account?", regLink: "Register",
+    or: "or",
+    errNotAllowed: "Enable Email/Password in Firebase!",
+    errNotFound: "Email not found, please register",
+    errWrongPwd: "Wrong password",
+    errInUse: "This email is already registered",
+    errGoogle: "Google login failed: ",
+  },
+  hi: {
+    title: "चाय बागान", sub: "चाय बाग प्रबंधन",
+    name: "पूरा नाम", namePh: "आपका नाम",
+    email: "ईमेल", emailPh: "your@email.com",
+    pass: "पासवर्ड", passPh: "पासवर्ड",
+    lang: "भाषा",
+    loginBtn: "लॉगिन करें", registerBtn: "खाता बनाएं",
+    waiting: "कृपया प्रतीक्षा करें...",
+    googleBtn: "Google से जारी रखें",
+    haveAcc: "पहले से खाता है?", loginLink: "लॉगिन करें",
+    noAcc: "नया खाता?", regLink: "रजिस्टर करें",
+    or: "या",
+    errNotAllowed: "Firebase में Email/Password चालू करें!",
+    errNotFound: "ईमेल नहीं मिला, पहले रजिस्टर करें",
+    errWrongPwd: "पासवर्ड गलत है",
+    errInUse: "यह ईमेल पहले से रजिस्टर है",
+    errGoogle: "Google लॉगिन विफल: ",
+  },
+  as: {
+    title: "চাহ বাগান", sub: "চাহ বাগান ব্যৱস্থাপনা",
+    name: "সম্পূৰ্ণ নাম", namePh: "আপোনাৰ নাম",
+    email: "ইমেইল", emailPh: "your@email.com",
+    pass: "পাছৱৰ্ড", passPh: "পাছৱৰ্ড",
+    lang: "ভাষা",
+    loginBtn: "লগইন কৰক", registerBtn: "একাউণ্ট তৈয়াৰ কৰক",
+    waiting: "অনুগ্ৰহ কৰি অপেক্ষা কৰক...",
+    googleBtn: "Google ৰে অব্যাহত ৰাখক",
+    haveAcc: "একাউণ্ট আছে?", loginLink: "লগইন কৰক",
+    noAcc: "নতুন একাউণ্ট?", regLink: "পঞ্জীয়ন কৰক",
+    or: "অথবা",
+    errNotAllowed: "Firebase ত Email/Password সক্ৰিয় কৰক!",
+    errNotFound: "ইমেইল পোৱা নগ'ল, পঞ্জীয়ন কৰক",
+    errWrongPwd: "পাছৱৰ্ড ভুল হৈছে",
+    errInUse: "এই ইমেইল আগতেই পঞ্জীয়িত হৈছে",
+    errGoogle: "Google লগইন বিফল: ",
+  },
+};
 
 export default function Login({ onLogin }) {
+  const { lang, setLang } = useLang();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [name, setName] = useState("");
+  const [selectedLang, setSelectedLang] = useState(lang || "as");
   const [isRegister, setIsRegister] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const saveUserIfNew = async (firebaseUser) => {
+  const T = txt[selectedLang] || txt.as;
+
+  const saveUserIfNew = async (firebaseUser, overrideLang) => {
     const userRef = doc(db, "users", firebaseUser.uid);
     const snap = await getDoc(userRef);
     if (!snap.exists()) {
       await setDoc(userRef, {
         uid: firebaseUser.uid,
         email: firebaseUser.email,
-        name: firebaseUser.displayName || "",
+        name: firebaseUser.displayName || name || "",
         photo: firebaseUser.photoURL || "",
         isAdmin: false,
+        language: overrideLang || selectedLang || "as",
         createdAt: new Date().toISOString(),
       });
     }
@@ -27,97 +94,116 @@ export default function Login({ onLogin }) {
 
   const handleEmailAuth = async (e) => {
     e.preventDefault();
-    setLoading(true);
-    setError("");
+    setLoading(true); setError("");
     try {
       if (isRegister) {
         const cred = await createUserWithEmailAndPassword(auth, email, password);
+        // Save display name
+        if (name.trim()) await updateProfile(cred.user, { displayName: name.trim() });
         await saveUserIfNew(cred.user);
+        setLang(selectedLang);
       } else {
         await signInWithEmailAndPassword(auth, email, password);
+        setLang(selectedLang);
       }
       onLogin();
     } catch (err) {
       let msg = err.message;
-      if (err.code === "auth/operation-not-allowed") { msg = "Firebase mein Email/Password enable karo!"; }
-      else if (err.code === "auth/user-not-found") { msg = "Email nahi mila, pehle register karo"; }
-      else if (err.code === "auth/wrong-password") { msg = "Password galat hai"; }
-      else if (err.code === "auth/email-already-in-use") { msg = "Yeh email pehle se registered hai"; }
+      if (err.code === "auth/operation-not-allowed") msg = T.errNotAllowed;
+      else if (err.code === "auth/user-not-found") msg = T.errNotFound;
+      else if (err.code === "auth/wrong-password") msg = T.errWrongPwd;
+      else if (err.code === "auth/email-already-in-use") msg = T.errInUse;
       setError(msg);
     }
     setLoading(false);
   };
 
   const handleGoogle = async () => {
-    setLoading(true);
-    setError("");
+    setLoading(true); setError("");
     try {
       const result = await signInWithPopup(auth, googleProvider);
-      await saveUserIfNew(result.user);
+      await saveUserIfNew(result.user, "en"); // Google → default English
+      setLang("en");
       onLogin();
     } catch (err) {
-      setError("Google login failed: " + err.message);
+      setError(T.errGoogle + err.message);
     }
     setLoading(false);
   };
 
+  const switchMode = () => { setIsRegister(!isRegister); setError(""); setName(""); };
+
   return (
     <div style={styles.container}>
       <div style={styles.card}>
+
+        {/* Header */}
         <div style={styles.header}>
-          <span style={styles.leaf}>&#127807;</span>
-          <h1 style={styles.title}>Chai Bagan</h1>
-          <p style={styles.subtitle}>Tea Farm Management</p>
+          <span style={styles.leaf}>🍃</span>
+          <h1 style={styles.title}>{T.title}</h1>
+          <p style={styles.subtitle}>{T.sub}</p>
+        </div>
+
+        {/* Language Selector (always visible) */}
+        <div style={styles.langRow}>
+          {Object.keys(langNames).map(l => (
+            <button key={l} onClick={() => setSelectedLang(l)}
+              style={{
+                ...styles.langBtn,
+                background: selectedLang === l ? "linear-gradient(135deg,#1a3a1a,#2d5a27)" : "#f9fafb",
+                color: selectedLang === l ? "white" : "#374151",
+                border: selectedLang === l ? "2px solid #1a3a1a" : "2px solid #e5e7eb",
+              }}>
+              <span style={{ fontSize: "16px" }}>{langFlags[l]}</span>
+              <span style={{ fontSize: "12px", fontWeight: "700" }}>{langNames[l]}</span>
+            </button>
+          ))}
         </div>
 
         <form onSubmit={handleEmailAuth} style={styles.form}>
+          {/* Name — only on register */}
+          {isRegister && (
+            <div style={styles.inputGroup}>
+              <label style={styles.label}>{T.name}</label>
+              <input type="text" value={name} onChange={e => setName(e.target.value)}
+                placeholder={T.namePh} style={styles.input} required />
+            </div>
+          )}
+
           <div style={styles.inputGroup}>
-            <label style={styles.label}>Email</label>
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="your@email.com"
-              style={styles.input}
-              required
-            />
+            <label style={styles.label}>{T.email}</label>
+            <input type="email" value={email} onChange={e => setEmail(e.target.value)}
+              placeholder={T.emailPh} style={styles.input} required />
           </div>
+
           <div style={styles.inputGroup}>
-            <label style={styles.label}>Password</label>
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="password"
-              style={styles.input}
-              required
-            />
+            <label style={styles.label}>{T.pass}</label>
+            <input type="password" value={password} onChange={e => setPassword(e.target.value)}
+              placeholder={T.passPh} style={styles.input} required />
           </div>
-          {error && <p style={styles.error}>{error}</p>}
+
+          {error && <p style={styles.error}>⚠️ {error}</p>}
+
           <button type="submit" style={styles.btn} disabled={loading}>
-            {loading ? "Please wait..." : isRegister ? "Register" : "Login"}
+            {loading ? T.waiting : isRegister ? T.registerBtn : T.loginBtn}
           </button>
         </form>
 
         <div style={styles.divider}>
           <div style={styles.dividerLine} />
-          <span style={styles.dividerText}>ya phir</span>
+          <span style={styles.dividerText}>{T.or}</span>
           <div style={styles.dividerLine} />
         </div>
 
         <button onClick={handleGoogle} disabled={loading} style={styles.googleBtn}>
-          <img
-            src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg"
-            alt="Google"
-            style={{ width: 20, height: 20 }}
-          />
-          Google se Login Karo
+          <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google" style={{ width: 20, height: 20 }} />
+          {T.googleBtn}
         </button>
 
         <p style={styles.toggle}>
-          {isRegister ? "Pehle se account hai?" : "Naya account?"}{" "}
-          <span style={styles.link} onClick={() => { setIsRegister(!isRegister); setError(""); }}>
-            {isRegister ? "Login" : "Register"}
+          {isRegister ? T.haveAcc : T.noAcc}{" "}
+          <span style={styles.link} onClick={switchMode}>
+            {isRegister ? T.loginLink : T.regLink}
           </span>
         </p>
       </div>
@@ -126,85 +212,24 @@ export default function Login({ onLogin }) {
 }
 
 const styles = {
-  container: {
-    minHeight: "100vh",
-    background: "linear-gradient(135deg, #1a3a1a 0%, #2d5a27 50%, #4a7c3f 100%)",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    padding: "20px",
-    fontFamily: "Segoe UI, sans-serif",
-  },
-  card: {
-    background: "rgba(255,255,255,0.97)",
-    borderRadius: "24px",
-    padding: "40px 36px",
-    width: "100%",
-    maxWidth: "400px",
-    boxShadow: "0 20px 60px rgba(0,0,0,0.3)",
-  },
-  header: { textAlign: "center", marginBottom: "28px" },
-  leaf: { fontSize: "48px" },
-  title: { fontSize: "28px", fontWeight: "800", color: "#1a3a1a", margin: "8px 0 4px" },
-  subtitle: { color: "#6b7280", fontSize: "14px", margin: 0 },
+  container: { minHeight: "100vh", background: "linear-gradient(135deg,#1a3a1a,#2d5a27,#4a7c3f)", display: "flex", alignItems: "center", justifyContent: "center", padding: "20px", fontFamily: "'Segoe UI', sans-serif" },
+  card: { background: "rgba(255,255,255,0.97)", borderRadius: "24px", padding: "36px 28px", width: "100%", maxWidth: "400px", boxShadow: "0 20px 60px rgba(0,0,0,0.3)" },
+  header: { textAlign: "center", marginBottom: "20px" },
+  leaf: { fontSize: "44px" },
+  title: { fontSize: "26px", fontWeight: "900", color: "#1a3a1a", margin: "6px 0 2px" },
+  subtitle: { color: "#6b7280", fontSize: "13px", margin: 0 },
+  langRow: { display: "flex", gap: "8px", marginBottom: "20px" },
+  langBtn: { flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: "4px", padding: "10px 6px", borderRadius: "12px", cursor: "pointer", fontFamily: "inherit", transition: "all 0.15s" },
   form: { display: "flex", flexDirection: "column", gap: "14px" },
   inputGroup: { display: "flex", flexDirection: "column", gap: "6px" },
   label: { fontSize: "13px", fontWeight: "700", color: "#374151" },
-  input: {
-    padding: "12px 16px",
-    borderRadius: "10px",
-    border: "2px solid #e5e7eb",
-    fontSize: "15px",
-    outline: "none",
-    fontFamily: "inherit",
-    width: "100%",
-    boxSizing: "border-box",
-  },
-  btn: {
-    background: "linear-gradient(135deg, #2d5a27, #4a7c3f)",
-    color: "white",
-    border: "none",
-    padding: "14px",
-    borderRadius: "10px",
-    fontSize: "16px",
-    fontWeight: "700",
-    cursor: "pointer",
-    fontFamily: "inherit",
-    width: "100%",
-  },
-  error: {
-    color: "#dc2626",
-    fontSize: "13px",
-    background: "#fef2f2",
-    padding: "10px 14px",
-    borderRadius: "8px",
-    borderLeft: "3px solid #dc2626",
-    margin: 0,
-  },
-  divider: {
-    display: "flex",
-    alignItems: "center",
-    gap: "12px",
-    margin: "20px 0",
-  },
+  input: { padding: "12px 16px", borderRadius: "10px", border: "2px solid #e5e7eb", fontSize: "15px", outline: "none", fontFamily: "inherit", width: "100%", boxSizing: "border-box" },
+  btn: { background: "linear-gradient(135deg,#1a3a1a,#2d5a27)", color: "white", border: "none", padding: "14px", borderRadius: "10px", fontSize: "16px", fontWeight: "700", cursor: "pointer", fontFamily: "inherit", width: "100%" },
+  error: { color: "#dc2626", fontSize: "13px", background: "#fef2f2", padding: "10px 14px", borderRadius: "8px", borderLeft: "3px solid #dc2626", margin: 0 },
+  divider: { display: "flex", alignItems: "center", gap: "12px", margin: "18px 0" },
   dividerLine: { flex: 1, height: "1px", background: "#e5e7eb" },
-  dividerText: { fontSize: "12px", color: "#9ca3af", fontWeight: "600", whiteSpace: "nowrap" },
-  googleBtn: {
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: "10px",
-    width: "100%",
-    padding: "13px",
-    borderRadius: "10px",
-    border: "2px solid #e5e7eb",
-    background: "white",
-    fontSize: "15px",
-    fontWeight: "700",
-    cursor: "pointer",
-    fontFamily: "inherit",
-    color: "#374151",
-  },
-  toggle: { textAlign: "center", marginTop: "20px", fontSize: "14px", color: "#6b7280" },
+  dividerText: { fontSize: "12px", color: "#9ca3af", fontWeight: "600" },
+  googleBtn: { display: "flex", alignItems: "center", justifyContent: "center", gap: "10px", width: "100%", padding: "13px", borderRadius: "10px", border: "2px solid #e5e7eb", background: "white", fontSize: "15px", fontWeight: "700", cursor: "pointer", fontFamily: "inherit", color: "#374151" },
+  toggle: { textAlign: "center", marginTop: "18px", fontSize: "14px", color: "#6b7280" },
   link: { color: "#2d5a27", fontWeight: "700", cursor: "pointer" },
 };
