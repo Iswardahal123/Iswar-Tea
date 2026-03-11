@@ -2,9 +2,11 @@ import React, { useEffect, useState } from "react";
 import { auth, db } from "../firebase/config";
 import { collection, query, where, getDocs, doc, getDoc } from "firebase/firestore";
 import { useLang } from "../LanguageContext";
+import { useDark } from "../DarkModeContext";
 
 export default function DashboardPage({ user }) {
   const { lang } = useLang();
+  const { dark } = useDark();
   const [entries, setEntries] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filterMonth, setFilterMonth] = useState("");
@@ -33,10 +35,8 @@ export default function DashboardPage({ user }) {
   const totalAdvanceCut = filtered.reduce((s, e) => s + (e.advanceCut || 0), 0);
   const totalBalance    = filtered.reduce((s, e) => s + (e.balanceAmount || 0), 0);
   const advanceBalance  = totalAdvanceTaken - totalAdvanceCut;
+  const currentUserObj  = user || auth.currentUser;
 
-  const currentUserObj = user || auth.currentUser;
-
-  // ── Translations ──
   const txt = {
     en: {
       greet: () => { const h = new Date().getHours(); return h < 12 ? "Good Morning ☕" : h < 17 ? "Good Afternoon 🌞" : "Good Evening 🌆"; },
@@ -99,129 +99,110 @@ export default function DashboardPage({ user }) {
   const T = txt[lang] || txt.as;
   const locale = lang === "en" ? "en-IN" : lang === "hi" ? "hi-IN" : lang === "ne" ? "ne-NP" : "as-IN";
 
+  // Dark mode colors
+  const d = {
+    bg: dark ? "#0f172a" : "#f8faf8",
+    card: dark ? "#1e293b" : "white",
+    cardBorder: dark ? "#334155" : "transparent",
+    text: dark ? "#f1f5f9" : "#1a3a1a",
+    subtext: dark ? "#94a3b8" : "#6b7280",
+    filterBg: dark ? "#1e293b" : "white",
+    filterBorder: dark ? "#475569" : "#e5e7eb",
+    rateTag: dark ? { bg: "#14532d", color: "#86efac" } : { bg: "#f0fdf4", color: "#166534" },
+    pendingTag: dark ? { bg: "#78350f", color: "#fde68a" } : { bg: "#fef3c7", color: "#92400e" },
+    shadow: dark ? "0 2px 8px rgba(0,0,0,0.4)" : "0 1px 6px rgba(0,0,0,0.05)",
+  };
+
   if (loading) return (
-    <div style={{ textAlign: "center", padding: "60px", color: "#6b7280", fontFamily: "'Segoe UI', sans-serif" }}>
+    <div style={{ textAlign: "center", padding: "60px", color: d.subtext, fontFamily: "'Segoe UI', sans-serif", background: d.bg, minHeight: "100vh" }}>
       <div style={{ fontSize: "40px" }}>🍃</div>
       <p>{T.loading}</p>
     </div>
   );
 
   return (
-    <div style={styles.container}>
+    <div style={{ padding: "16px", paddingBottom: "90px", background: d.bg, minHeight: "calc(100vh - 60px)", fontFamily: "'Segoe UI', sans-serif" }}>
 
       {/* Greeting */}
-      <div style={styles.greetingCard}>
-        <div style={styles.greetingTop}>
+      <div style={{ background: "linear-gradient(135deg,#1a3a1a,#2d5a27,#4a7c3f)", borderRadius: "20px", padding: "20px", marginBottom: "16px", color: "white" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "8px" }}>
           <div>
-            <div style={styles.greetingText}>{T.greet()}</div>
-            <div style={styles.greetingName}>{currentUserObj?.displayName || currentUserObj?.email?.split("@")[0] || ""}</div>
+            <div style={{ fontSize: "13px", opacity: 0.8, marginBottom: "4px" }}>{T.greet()}</div>
+            <div style={{ fontSize: "22px", fontWeight: "900", letterSpacing: "-0.5px" }}>{currentUserObj?.displayName || currentUserObj?.email?.split("@")[0] || ""}</div>
           </div>
-          <div style={styles.leafBig}>🍃</div>
+          <div style={{ fontSize: "40px" }}>🍃</div>
         </div>
-        <div style={styles.totalEntries}>{T.entries(filtered.length, totalWeight.toFixed(1))}</div>
+        <div style={{ fontSize: "12px", opacity: 0.75, marginTop: "4px" }}>{T.entries(filtered.length, totalWeight.toFixed(1))}</div>
       </div>
 
       {/* Month Filter */}
-      <div style={styles.filterRow}>
-        <label style={styles.filterLabel}>{T.month}</label>
-        <input type="month" value={filterMonth} onChange={e => setFilterMonth(e.target.value)} style={styles.filterInput} />
-        {filterMonth && <button onClick={() => setFilterMonth("")} style={styles.clearBtn}>{T.clear}</button>}
+      <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "16px", background: d.filterBg, padding: "12px 16px", borderRadius: "12px", boxShadow: d.shadow, border: `1px solid ${d.cardBorder}` }}>
+        <label style={{ fontSize: "13px", fontWeight: "700", whiteSpace: "nowrap", color: d.text }}>{T.month}</label>
+        <input type="month" value={filterMonth} onChange={e => setFilterMonth(e.target.value)}
+          style={{ border: `2px solid ${d.filterBorder}`, borderRadius: "8px", padding: "6px 10px", fontSize: "14px", flex: 1, outline: "none", fontFamily: "inherit", background: d.filterBg, color: d.text }} />
+        {filterMonth && <button onClick={() => setFilterMonth("")}
+          style={{ background: "#fee2e2", color: "#dc2626", border: "none", padding: "6px 12px", borderRadius: "8px", cursor: "pointer", fontWeight: "700", fontFamily: "inherit" }}>{T.clear}</button>}
       </div>
 
       {/* Stats Grid */}
-      <div style={styles.statsGrid}>
-        <div style={{ ...styles.statCard, background: "linear-gradient(135deg,#1a3a1a,#2d5a27)", gridColumn: "span 2" }}>
-          <div style={styles.statLabel}>{T.earning}</div>
-          <div style={styles.statValueBig}>Rs {totalAmount.toFixed(2)}</div>
-          <div style={styles.statSub}>{totalWeight.toFixed(1)} kg</div>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px", marginBottom: "20px" }}>
+        <div style={{ background: "linear-gradient(135deg,#1a3a1a,#2d5a27)", borderRadius: "16px", padding: "16px", color: "white", gridColumn: "span 2" }}>
+          <div style={{ fontSize: "11px", opacity: 0.85, fontWeight: "700", textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: "6px" }}>{T.earning}</div>
+          <div style={{ fontSize: "26px", fontWeight: "900", letterSpacing: "-0.5px" }}>Rs {totalAmount.toFixed(2)}</div>
+          <div style={{ fontSize: "11px", opacity: 0.75, marginTop: "4px" }}>{totalWeight.toFixed(1)} kg</div>
         </div>
-        <div style={{ ...styles.statCard, background: "linear-gradient(135deg,#1e40af,#3b82f6)" }}>
-          <div style={styles.statLabel}>{T.received}</div>
-          <div style={styles.statValue}>Rs {totalReceived.toFixed(0)}</div>
-        </div>
-        <div style={{ ...styles.statCard, background: totalBalance >= 0 ? "linear-gradient(135deg,#14532d,#16a34a)" : "linear-gradient(135deg,#7f1d1d,#dc2626)" }}>
-          <div style={styles.statLabel}>{T.balance}</div>
-          <div style={styles.statValue}>Rs {totalBalance.toFixed(0)}</div>
-        </div>
-        <div style={{ ...styles.statCard, background: "linear-gradient(135deg,#92400e,#d97706)" }}>
-          <div style={styles.statLabel}>{T.advTaken}</div>
-          <div style={styles.statValue}>Rs {totalAdvanceTaken.toFixed(0)}</div>
-          <div style={styles.statSub}>{T.advCut} Rs {totalAdvanceCut.toFixed(0)}</div>
-        </div>
-        <div style={{ ...styles.statCard, background: advanceBalance >= 0 ? "linear-gradient(135deg,#4c1d95,#7c3aed)" : "linear-gradient(135deg,#7f1d1d,#dc2626)" }}>
-          <div style={styles.statLabel}>{T.advLeft}</div>
-          <div style={styles.statValue}>Rs {advanceBalance.toFixed(0)}</div>
-          <div style={styles.statSub}>{advanceBalance >= 0 ? T.stillLeft : T.overCut}</div>
-        </div>
+        {[
+          { label: T.received, value: `Rs ${totalReceived.toFixed(0)}`, bg: "linear-gradient(135deg,#1e40af,#3b82f6)" },
+          { label: T.balance, value: `Rs ${totalBalance.toFixed(0)}`, bg: totalBalance >= 0 ? "linear-gradient(135deg,#14532d,#16a34a)" : "linear-gradient(135deg,#7f1d1d,#dc2626)" },
+          { label: T.advTaken, value: `Rs ${totalAdvanceTaken.toFixed(0)}`, sub: `${T.advCut} Rs ${totalAdvanceCut.toFixed(0)}`, bg: "linear-gradient(135deg,#92400e,#d97706)" },
+          { label: T.advLeft, value: `Rs ${advanceBalance.toFixed(0)}`, sub: advanceBalance >= 0 ? T.stillLeft : T.overCut, bg: advanceBalance >= 0 ? "linear-gradient(135deg,#4c1d95,#7c3aed)" : "linear-gradient(135deg,#7f1d1d,#dc2626)" },
+        ].map((s, i) => (
+          <div key={i} style={{ background: s.bg, borderRadius: "16px", padding: "16px", color: "white" }}>
+            <div style={{ fontSize: "11px", opacity: 0.85, fontWeight: "700", textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: "6px" }}>{s.label}</div>
+            <div style={{ fontSize: "20px", fontWeight: "900", letterSpacing: "-0.5px" }}>{s.value}</div>
+            {s.sub && <div style={{ fontSize: "11px", opacity: 0.75, marginTop: "4px" }}>{s.sub}</div>}
+          </div>
+        ))}
       </div>
 
       {/* Recent Entries */}
-      <div style={styles.sectionTitle}>{T.recent}</div>
+      <div style={{ fontSize: "15px", fontWeight: "800", color: d.text, marginBottom: "10px" }}>{T.recent}</div>
+
       {filtered.length === 0 ? (
-        <div style={styles.empty}>
+        <div style={{ textAlign: "center", padding: "40px", color: d.subtext, fontSize: "15px", background: d.card, borderRadius: "14px", border: `1px solid ${d.cardBorder}` }}>
           <p>{T.noEntry}</p>
-          <p style={{ fontSize: "13px", color: "#9ca3af", marginTop: "6px" }}>{T.noEntrySub}</p>
+          <p style={{ fontSize: "13px", marginTop: "6px" }}>{T.noEntrySub}</p>
         </div>
       ) : (
         filtered.slice(0, 10).map(entry => (
-          <div key={entry.id} style={styles.entryRow}>
-            <div style={styles.entryLeft}>
-              <div style={styles.entryDate}>
+          <div key={entry.id} style={{ background: d.card, borderRadius: "12px", padding: "12px 14px", display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "8px", boxShadow: d.shadow, border: `1px solid ${d.cardBorder}` }}>
+            <div style={{ minWidth: "60px" }}>
+              <div style={{ fontSize: "13px", fontWeight: "800", color: d.text }}>
                 {new Date(entry.date + "T00:00:00").toLocaleDateString(locale, { day: "numeric", month: "short" })}
               </div>
-              <div style={styles.entryWeight}>{entry.weight} {lang === "en" ? "kg" : "কি:গ্ৰা:"}</div>
+              <div style={{ fontSize: "12px", color: d.subtext, marginTop: "2px" }}>{entry.weight} {lang === "en" ? "kg" : "কি:গ্ৰা:"}</div>
             </div>
-            <div style={styles.entryMid}>
+            <div style={{ flex: 1, paddingLeft: "10px" }}>
               {entry.rate > 0
-                ? <span style={styles.rateTag}>Rs{entry.rate}/kg</span>
-                : <span style={styles.pendingTag}>{T.ratePending}</span>
+                ? <span style={{ fontSize: "12px", background: d.rateTag.bg, color: d.rateTag.color, padding: "3px 8px", borderRadius: "6px", fontWeight: "700" }}>Rs{entry.rate}/kg</span>
+                : <span style={{ fontSize: "11px", background: d.pendingTag.bg, color: d.pendingTag.color, padding: "3px 8px", borderRadius: "6px", fontWeight: "700" }}>{T.ratePending}</span>
               }
             </div>
-            <div style={styles.entryRight}>
-              {entry.totalAmount > 0 && <div style={styles.entryTotal}>Rs{entry.totalAmount.toFixed(0)}</div>}
-              <div style={{ ...styles.entryBalance, color: (entry.balanceAmount || 0) >= 0 ? "#16a34a" : "#dc2626" }}>
+            <div style={{ textAlign: "right" }}>
+              {entry.totalAmount > 0 && <div style={{ fontSize: "15px", fontWeight: "800", color: d.text }}>Rs{entry.totalAmount.toFixed(0)}</div>}
+              <div style={{ fontSize: "11px", fontWeight: "700", marginTop: "2px", color: (entry.balanceAmount || 0) >= 0 ? "#16a34a" : "#dc2626" }}>
                 {T.baaki} Rs{(entry.balanceAmount || 0).toFixed(0)}
               </div>
             </div>
           </div>
         ))
       )}
+
       {filtered.length > 10 && (
-        <div style={styles.moreText}>{T.more(filtered.length - 10)}</div>
+        <div style={{ textAlign: "center", fontSize: "13px", color: d.subtext, padding: "12px", background: d.card, borderRadius: "10px", marginTop: "4px", border: `1px solid ${d.cardBorder}` }}>
+          {T.more(filtered.length - 10)}
+        </div>
       )}
     </div>
   );
 }
-
-const styles = {
-  container: { padding: "16px", paddingBottom: "90px", background: "#f8faf8", minHeight: "calc(100vh - 60px)", fontFamily: "'Segoe UI', sans-serif" },
-  greetingCard: { background: "linear-gradient(135deg,#1a3a1a,#2d5a27,#4a7c3f)", borderRadius: "20px", padding: "20px", marginBottom: "16px", color: "white" },
-  greetingTop: { display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "8px" },
-  greetingText: { fontSize: "13px", opacity: 0.8, marginBottom: "4px" },
-  greetingName: { fontSize: "22px", fontWeight: "900", letterSpacing: "-0.5px" },
-  leafBig: { fontSize: "40px" },
-  totalEntries: { fontSize: "12px", opacity: 0.75, marginTop: "4px" },
-  filterRow: { display: "flex", alignItems: "center", gap: "10px", marginBottom: "16px", background: "white", padding: "12px 16px", borderRadius: "12px", boxShadow: "0 2px 8px rgba(0,0,0,0.05)" },
-  filterLabel: { fontSize: "13px", fontWeight: "700", whiteSpace: "nowrap" },
-  filterInput: { border: "2px solid #e5e7eb", borderRadius: "8px", padding: "6px 10px", fontSize: "14px", flex: 1, outline: "none", fontFamily: "inherit" },
-  clearBtn: { background: "#fee2e2", color: "#dc2626", border: "none", padding: "6px 12px", borderRadius: "8px", cursor: "pointer", fontWeight: "700", fontFamily: "inherit" },
-  statsGrid: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px", marginBottom: "20px" },
-  statCard: { borderRadius: "16px", padding: "16px", color: "white" },
-  statLabel: { fontSize: "11px", opacity: 0.85, fontWeight: "700", textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: "6px" },
-  statValueBig: { fontSize: "26px", fontWeight: "900", letterSpacing: "-0.5px" },
-  statValue: { fontSize: "20px", fontWeight: "900", letterSpacing: "-0.5px" },
-  statSub: { fontSize: "11px", opacity: 0.75, marginTop: "4px" },
-  sectionTitle: { fontSize: "15px", fontWeight: "800", color: "#1a3a1a", marginBottom: "10px" },
-  empty: { textAlign: "center", padding: "40px", color: "#6b7280", fontSize: "15px", background: "white", borderRadius: "14px" },
-  entryRow: { background: "white", borderRadius: "12px", padding: "12px 14px", display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "8px", boxShadow: "0 1px 6px rgba(0,0,0,0.05)" },
-  entryLeft: { minWidth: "60px" },
-  entryDate: { fontSize: "13px", fontWeight: "800", color: "#1a3a1a" },
-  entryWeight: { fontSize: "12px", color: "#6b7280", marginTop: "2px" },
-  entryMid: { flex: 1, paddingLeft: "10px" },
-  rateTag: { fontSize: "12px", background: "#f0fdf4", color: "#166534", padding: "3px 8px", borderRadius: "6px", fontWeight: "700" },
-  pendingTag: { fontSize: "11px", background: "#fef3c7", color: "#92400e", padding: "3px 8px", borderRadius: "6px", fontWeight: "700" },
-  entryRight: { textAlign: "right" },
-  entryTotal: { fontSize: "15px", fontWeight: "800", color: "#1a3a1a" },
-  entryBalance: { fontSize: "11px", fontWeight: "700", marginTop: "2px" },
-  moreText: { textAlign: "center", fontSize: "13px", color: "#6b7280", padding: "12px", background: "white", borderRadius: "10px", marginTop: "4px" },
-};
