@@ -107,7 +107,7 @@ export default function TopBar({ user, currentPage, isAdmin, onLangChange }) {
   };
 
   const isGoogleUser = user.providerData?.[0]?.providerId === "google.com";
-  const displayName = user.displayName || user.email?.split("@")[0] || "User";
+  
 
   const settingsItems = isAdmin ? [
     { icon: "🚪", label: lang === "en" ? "Logout" : lang === "hi" ? "लॉगआउट" : lang === "ne" ? "लगआउट" : "লগআউট", sub: null, danger: true, action: handleLogout },
