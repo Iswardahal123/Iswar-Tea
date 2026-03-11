@@ -19,8 +19,6 @@ import AdminDashboard from "./pages/admin/AdminDashboard";
 import WelcomePopup from "./components/WelcomePopup";
 import InstallBanner from "./components/InstallBanner";
 
-export const APP_VERSION = "1.0.0"; // Change this on every deploy
-
 const Loader = ({ t }) => (
   <div style={{
     display: "flex", height: "100vh", alignItems: "center", justifyContent: "center",
@@ -33,41 +31,6 @@ const Loader = ({ t }) => (
     <div style={{ fontSize: "14px", opacity: 0.7, marginTop: "8px" }}>{t?.loading || "Please wait..."}</div>
   </div>
 );
-
-// ── Update Ticker ──
-const tickerText = {
-  en: (v, note) => `🚀 New update v${v}${note ? " — " + note : ""} • Must try! ✨`,
-  hi: (v, note) => `🚀 नया अपडेट v${v}${note ? " — " + note : ""} • जरूर आज़माएं! ✨`,
-  ne: (v, note) => `🚀 नयाँ अपडेट v${v}${note ? " — " + note : ""} • अवश्य हेर्नुस्! ✨`,
-  as: (v, note) => `🚀 নতুন আপডেট v${v}${note ? " — " + note : ""} • চেষ্টা কৰক! ✨`,
-};
-
-const UpdateTicker = ({ config, lang }) => {
-  const fn = tickerText[lang] || tickerText.as;
-  const msg = fn(config.latestVersion, config.releaseNote);
-  return (
-    <div style={{
-      background: "linear-gradient(135deg,#1e293b,#0f172a)",
-      overflow: "hidden", height: "32px", display: "flex", alignItems: "center",
-      borderBottom: "1px solid rgba(99,102,241,0.3)",
-    }}>
-      <style>{`
-        @keyframes ticker {
-          0%   { transform: translateX(100vw); }
-          100% { transform: translateX(-100%); }
-        }
-      `}</style>
-      <div style={{
-        whiteSpace: "nowrap", fontSize: "12px", fontWeight: "700",
-        color: "#a5b4fc", fontFamily: "'Segoe UI', sans-serif",
-        animation: "ticker 18s linear 1 forwards",
-        paddingLeft: "100vw",
-      }}>
-        {msg}
-      </div>
-    </div>
-  );
-};
 
 // ── Announcement Ticker ──
 const AnnouncementTicker = ({ lang }) => {
@@ -127,7 +90,6 @@ export default function App() {
   const [isAdmin, setIsAdmin] = useState(false);
   const [checkingAuth, setCheckingAuth] = useState(true);
   const [currentPage, setCurrentPage] = useState("dashboard");
-  const [releaseConfig, setReleaseConfig] = useState(null);
   const [showWelcome, setShowWelcome] = useState(false);
 
   const triggerWelcome = () => {
@@ -136,23 +98,6 @@ export default function App() {
       triggerWelcome();
     }
   };
-  const [showUpdateBanner, setShowUpdateBanner] = useState(false);
-
-  // ── Check release config ──
-  useEffect(() => {
-    const checkRelease = async () => {
-      try {
-        const snap = await getDoc(doc(db, "config", "release"));
-        if (snap.exists()) {
-          const config = snap.data();
-          setReleaseConfig(config);
-          // Will compare after we know if user is test user (checked in auth flow)
-          window._releaseConfig = config;
-        }
-      } catch (err) { console.error("Release check:", err); }
-    };
-    checkRelease();
-  }, []);
 
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, async (u) => {
@@ -177,14 +122,7 @@ export default function App() {
             setIsAdmin(admin);
             setCurrentPage(admin ? "admin" : "dashboard");
             if (!admin) triggerWelcome();
-            // Version check — test users see testVersion, others see latestVersion
-            if (!admin && window._releaseConfig) {
-              const rc = window._releaseConfig;
-              const versionToCheck = data.isTestUser ? rc.testVersion : rc.latestVersion;
-              if (versionToCheck && versionToCheck !== APP_VERSION) {
-                setShowUpdateBanner(true);
-              }
-            }
+          }
           }
         } catch (err) {
           console.error("Auth error:", err);
@@ -245,7 +183,6 @@ export default function App() {
   return (
     <div style={{ fontFamily: "'Segoe UI',sans-serif", background: dark ? "#0f172a" : "#f8faf8", minHeight: "100vh", color: dark ? "#f1f5f9" : "#1a1a1a" }}>
       <TopBar user={user} currentPage={isAdmin ? "admin" : currentPage} isAdmin={isAdmin} onLangChange={handleLangChange} />
-      {showUpdateBanner && !isAdmin && <UpdateTicker config={releaseConfig} lang={lang} />}
       <InstallBanner />
       {!isAdmin && <AnnouncementTicker lang={lang} />}
       {showWelcome && !isAdmin && <WelcomePopup userName={user.displayName || user.email} onClose={() => setShowWelcome(false)} />}
