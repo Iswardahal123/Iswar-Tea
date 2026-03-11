@@ -75,6 +75,13 @@ export default function App() {
   const [currentPage, setCurrentPage] = useState("dashboard");
   const [releaseConfig, setReleaseConfig] = useState(null);
   const [showWelcome, setShowWelcome] = useState(false);
+
+  const triggerWelcome = () => {
+    if (!sessionStorage.getItem("welcomed")) {
+      sessionStorage.setItem("welcomed", "1");
+      triggerWelcome();
+    }
+  };
   const [showUpdateBanner, setShowUpdateBanner] = useState(false);
 
   // ── Check release config ──
@@ -115,7 +122,7 @@ export default function App() {
             const admin = data.isAdmin === true;
             setIsAdmin(admin);
             setCurrentPage(admin ? "admin" : "dashboard");
-            if (!admin) setShowWelcome(true);
+            if (!admin) triggerWelcome();
             // Version check — test users see testVersion, others see latestVersion
             if (!admin && window._releaseConfig) {
               const rc = window._releaseConfig;
