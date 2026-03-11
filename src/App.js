@@ -16,12 +16,14 @@ import EntryViewPage from "./pages/EntryViewPage";
 import AIChatPage from "./pages/AIChatPage";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 
+export const APP_VERSION = "1.0.0"; // Change this on every deploy
+
 const Loader = ({ t }) => (
   <div style={{
-    display: "flex", height: "100vh", alignItems: "center",
-    justifyContent: "center", flexDirection: "column",
-    background: "linear-gradient(135deg, #1a3a1a 0%, #2d5a27 50%, #4a7c3f 100%)",
-    color: "white", fontFamily: "'Segoe UI', sans-serif",
+    display: "flex", height: "100vh", alignItems: "center", justifyContent: "center",
+    flexDirection: "column",
+    background: "linear-gradient(135deg,#1a3a1a,#2d5a27,#4a7c3f)",
+    color: "white", fontFamily: "'Segoe UI',sans-serif",
   }}>
     <div style={{ fontSize: "60px", marginBottom: "16px" }}>🍃</div>
     <div style={{ fontSize: "22px", fontWeight: "800" }}>{t?.welcome || "Welcome 🙏"}</div>
@@ -29,40 +31,102 @@ const Loader = ({ t }) => (
   </div>
 );
 
+// ── Update Ticker ──
+const tickerText = {
+  en: (v, note) => `🚀 New update v${v}${note ? " — " + note : ""} • Must try! ✨`,
+  hi: (v, note) => `🚀 नया अपडेट v${v}${note ? " — " + note : ""} • जरूर आज़माएं! ✨`,
+  ne: (v, note) => `🚀 नयाँ अपडेट v${v}${note ? " — " + note : ""} • अवश्य हेर्नुस्! ✨`,
+  as: (v, note) => `🚀 নতুন আপডেট v${v}${note ? " — " + note : ""} • চেষ্টা কৰক! ✨`,
+};
+
+const UpdateTicker = ({ config, lang }) => {
+  const fn = tickerText[lang] || tickerText.as;
+  const msg = fn(config.latestVersion, config.releaseNote);
+  return (
+    <div style={{
+      background: "linear-gradient(135deg,#1e293b,#0f172a)",
+      overflow: "hidden", height: "32px", display: "flex", alignItems: "center",
+      borderBottom: "1px solid rgba(99,102,241,0.3)",
+    }}>
+      <style>{`
+        @keyframes ticker {
+          0%   { transform: translateX(100vw); }
+          100% { transform: translateX(-100%); }
+        }
+      `}</style>
+      <div style={{
+        whiteSpace: "nowrap", fontSize: "12px", fontWeight: "700",
+        color: "#a5b4fc", fontFamily: "'Segoe UI', sans-serif",
+        animation: "ticker 18s linear 1 forwards",
+        paddingLeft: "100vw",
+      }}>
+        {msg}
+      </div>
+    </div>
+  );
+};
+
 export default function App() {
   const { lang, setLang, t } = useLang();
   const [user, setUser] = useState(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [checkingAuth, setCheckingAuth] = useState(true);
   const [currentPage, setCurrentPage] = useState("dashboard");
+  const [releaseConfig, setReleaseConfig] = useState(null);
+  const [showUpdateBanner, setShowUpdateBanner] = useState(false);
 
+  // ── Check release config ──
+  useEffect(() => {
+    const checkRelease = async () => {
+      try {
+        const snap = await getDoc(doc(db, "config", "release"));
+        if (snap.exists()) {
+          const config = snap.data();
+          setReleaseConfig(config);
+          // Will compare after we know if user is test user (checked in auth flow)
+          window._releaseConfig = config;
+        }
+      } catch (err) { console.error("Release check:", err); }
+    };
+    checkRelease();
+  }, []);
 
   useEffect(() => {
-    const checkRole = async (u) => {
-      try {
-        const userRef = doc(db, "users", u.uid);
-        const userDoc = await getDoc(userRef);
-        if (!userDoc.exists()) {
-          await setDoc(userRef, {
-            uid: u.uid, email: u.email,
-            name: u.displayName || "", photo: u.photoURL || "",
-            isAdmin: false, language: lang || "as",
-            createdAt: new Date().toISOString(),
-          });
-          return false;
-        }
-        const data = userDoc.data();
-        if (data.language && data.language !== lang) setLang(data.language);
-        return data.isAdmin === true;
-      } catch (err) { console.error(err); return false; }
-    };
-
     const unsub = onAuthStateChanged(auth, async (u) => {
       if (u) {
         setUser(u);
-        const admin = await checkRole(u);
-        setIsAdmin(admin);
-        setCurrentPage(admin ? "admin" : "dashboard");
+        try {
+          const userRef = doc(db, "users", u.uid);
+          const userDoc = await getDoc(userRef);
+          if (!userDoc.exists()) {
+            await setDoc(userRef, {
+              uid: u.uid, email: u.email,
+              name: u.displayName || "", photo: u.photoURL || "",
+              isAdmin: false, language: lang || "as",
+              createdAt: new Date().toISOString(),
+            });
+            setIsAdmin(false);
+            setCurrentPage("dashboard");
+          } else {
+            const data = userDoc.data();
+            if (data.language) setLang(data.language);
+            const admin = data.isAdmin === true;
+            setIsAdmin(admin);
+            setCurrentPage(admin ? "admin" : "dashboard");
+            // Version check — test users see testVersion, others see latestVersion
+            if (!admin && window._releaseConfig) {
+              const rc = window._releaseConfig;
+              const versionToCheck = data.isTestUser ? rc.testVersion : rc.latestVersion;
+              if (versionToCheck && versionToCheck !== APP_VERSION) {
+                setShowUpdateBanner(true);
+              }
+            }
+          }
+        } catch (err) {
+          console.error("Auth error:", err);
+          setIsAdmin(false);
+          setCurrentPage("dashboard");
+        }
       } else {
         setUser(null);
         setIsAdmin(false);
@@ -78,14 +142,19 @@ export default function App() {
     setUser(u);
     try {
       const userDoc = await getDoc(doc(db, "users", u.uid));
-      const isAdminUser = userDoc.exists() ? userDoc.data().isAdmin === true : false;
-      if (userDoc.exists() && userDoc.data().language) setLang(userDoc.data().language);
-      setIsAdmin(isAdminUser);
-      setCurrentPage(isAdminUser ? "admin" : "dashboard");
-    } catch (err) { console.error(err); }
+      if (userDoc.exists()) {
+        const data = userDoc.data();
+        if (data.language) setLang(data.language);
+        const admin = data.isAdmin === true;
+        setIsAdmin(admin);
+        setCurrentPage(admin ? "admin" : "dashboard");
+      } else {
+        setIsAdmin(false);
+        setCurrentPage("dashboard");
+      }
+    } catch (err) { console.error("Login error:", err); }
   };
 
-  // Save language to Firestore when changed (if logged in)
   const handleLangChange = async (newLang) => {
     setLang(newLang);
     if (user) {
@@ -95,10 +164,7 @@ export default function App() {
     }
   };
 
-  // Step 1: Checking auth
   if (checkingAuth) return <Loader t={t} />;
-
-  // Step 3: Not logged in
   if (!user) return <Login onLogin={handleLogin} />;
 
   const renderPage = () => {
@@ -113,8 +179,9 @@ export default function App() {
   };
 
   return (
-    <div style={{ fontFamily: "'Segoe UI', sans-serif", background: "#f8faf8", minHeight: "100vh" }}>
+    <div style={{ fontFamily: "'Segoe UI',sans-serif", background: "#f8faf8", minHeight: "100vh" }}>
       <TopBar user={user} currentPage={isAdmin ? "admin" : currentPage} isAdmin={isAdmin} onLangChange={handleLangChange} />
+      {showUpdateBanner && !isAdmin && <UpdateTicker config={releaseConfig} lang={lang} />}
       <main>{renderPage()}</main>
       {!isAdmin && <BottomNav currentPage={currentPage} setCurrentPage={setCurrentPage} />}
       <WhatsAppFloat />
