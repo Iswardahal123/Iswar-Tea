@@ -6,7 +6,7 @@ import { useLang } from "../LanguageContext";
 
 const txt = {
   en: {
-    title: "Chai Bagan", sub: "Tea Farm Management",
+    title: "Tea Data Management", sub: "Manage your tea data easily",
     name: "Full Name", namePh: "Your name",
     email: "Email", emailPh: "your@email.com",
     pass: "Password", passPh: "Password",
