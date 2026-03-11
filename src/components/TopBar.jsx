@@ -135,18 +135,6 @@ export default function TopBar({ user, currentPage, isAdmin, onLangChange }) {
 
         {/* Right: Profile pill + dark toggle + gear */}
         <div style={styles.right}>
-          {/* Profile pill — no email */}
-          <div style={styles.profilePill}>
-            <div style={styles.avatar}>{user.photoURL
-              ? <img src={user.photoURL} alt="" style={styles.avatarImg} />
-              : <span style={styles.avatarInitial}>{initial}</span>
-            }</div>
-            <div style={styles.profileInfo}>
-              <div style={styles.profileName}>{displayName}</div>
-            </div>
-            {isAdmin && <span style={styles.adminBadge}>Admin</span>}
-          </div>
-
           {/* Dark mode toggle */}
           <button onClick={toggleDark} style={{
             background: dark ? "rgba(255,255,255,0.15)" : "rgba(255,255,255,0.15)",
