@@ -1,0 +1,27 @@
+{
+  "name": "Chai Bagan - চাহ হিচাব",
+  "short_name": "Chai Bagan",
+  "description": "Tea leaf entry management app",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0f172a",
+  "theme_color": "#1a3a1a",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/1f333.png",
+      "sizes": "72x72",
+      "type": "image/png"
+    },
+    {
+      "src": "https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/1f333.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/1f333.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
