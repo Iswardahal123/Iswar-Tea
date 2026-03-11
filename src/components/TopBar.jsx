@@ -127,7 +127,7 @@ export default function TopBar({ user, currentPage, isAdmin, onLangChange }) {
         <div style={styles.left}>
           <span style={styles.logo}>🍃</span>
           <div>
-            <div style={styles.appName}>চাহ হিচাব</div>
+            <div style={styles.appName}>Tea Data Management</div>
             <div style={styles.pageName}>{pn[currentPage] || "Home"}</div>
           </div>
         </div>
