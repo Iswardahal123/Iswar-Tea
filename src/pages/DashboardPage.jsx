@@ -9,7 +9,7 @@ export default function DashboardPage({ user }) {
   const { dark } = useDark();
   const [entries, setEntries] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [filterMonth, setFilterMonth] = useState("");
+  const [filterYear, setFilterYear] = useState("");
   const [calDate, setCalDate] = useState(new Date());
   const [selectedDay, setSelectedDay] = useState(null);
   const [totalAdvanceTaken, setTotalAdvanceTaken] = useState(0);
@@ -30,7 +30,7 @@ export default function DashboardPage({ user }) {
     fetchData();
   }, [user]);
 
-  const filtered = filterMonth ? entries.filter(e => e.date?.startsWith(filterMonth)) : entries;
+  const filtered = filterYear ? entries.filter(e => e.date?.startsWith(filterYear)) : entries;
   const totalWeight     = filtered.reduce((s, e) => s + (e.weight || 0), 0);
   const totalAmount     = filtered.reduce((s, e) => s + (e.totalAmount || 0), 0);
   const totalReceived   = filtered.reduce((s, e) => s + (e.amountReceived || 0), 0);
@@ -43,7 +43,7 @@ export default function DashboardPage({ user }) {
     en: {
       greet: () => { const h = new Date().getHours(); return h < 12 ? "Good Morning ☕" : h < 17 ? "Good Afternoon 🌞" : "Good Evening 🌆"; },
       entries: (n, kg) => `${n} entries • ${kg} kg`,
-      month: "📅 Month:", clear: "Clear",
+      year: "📅 Year:", clear: "Clear",
       earning: "Total Earning", received: "Received",
       balance: "Balance", advTaken: "Advance Taken",
       advCut: "Cut:", advLeft: "Advance Left",
@@ -59,7 +59,7 @@ export default function DashboardPage({ user }) {
     hi: {
       greet: () => { const h = new Date().getHours(); return h < 12 ? "शुभ प्रभात ☕" : h < 17 ? "नमस्ते 🌞" : "शुभ संध्या 🌆"; },
       entries: (n, kg) => `${n} प्रविष्टियां • ${kg} कि.ग्रा.`,
-      month: "📅 महीना:", clear: "हटाएं",
+      year: "📅 साल:", clear: "हटाएं",
       earning: "कुल कमाई", received: "मिली राशि",
       balance: "बाकी राशि", advTaken: "लिया अग्रिम",
       advCut: "कटा:", advLeft: "बचा अग्रिम",
@@ -75,7 +75,7 @@ export default function DashboardPage({ user }) {
     ne: {
       greet: () => { const h = new Date().getHours(); return h < 12 ? "शुभ बिहान ☕" : h < 17 ? "शुभ दिउँसो 🌞" : "शुभ साँझ 🌆"; },
       entries: (n, kg) => `${n} वटा प्रविष्टि • ${kg} कि.ग्रा.`,
-      month: "📅 महिना:", clear: "हटाउनुस्",
+      year: "📅 वर्ष:", clear: "हटाउनुस्",
       earning: "कुल आम्दानी", received: "पाएको रकम",
       balance: "बाँकी रकम", advTaken: "लिएको अग्रिम",
       advCut: "काटिएको:", advLeft: "बाँकी अग्रिम",
@@ -91,7 +91,7 @@ export default function DashboardPage({ user }) {
     as: {
       greet: () => { const h = new Date().getHours(); return h < 12 ? "শুভ পুৱা ☕" : h < 17 ? "শুভ অপৰাহ্ন 🌞" : "শুভ সন্ধিয়া 🌆"; },
       entries: (n, kg) => `${n} টা তথ্য • ${kg} কি:গ্ৰা:`,
-      month: "📅 মাহ:", clear: "বাতিল",
+      year: "📅 চন:", clear: "বাতিল",
       earning: "মুঠ উপাৰ্জন", received: "পোৱা পৰিমাণ",
       balance: "বাকী পৰিমাণ", advTaken: "লোৱা এডভান্স",
       advCut: "কটা:", advLeft: "বাকী এডভান্স",
@@ -145,14 +145,25 @@ export default function DashboardPage({ user }) {
         <div style={{ fontSize: "12px", opacity: 0.75, marginTop: "4px" }}>{T.entries(filtered.length, totalWeight.toFixed(1))}</div>
       </div>
 
-      {/* Month Filter */}
-      <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "16px", background: d.filterBg, padding: "12px 16px", borderRadius: "12px", boxShadow: d.shadow, border: `1px solid ${d.cardBorder}` }}>
-        <label style={{ fontSize: "13px", fontWeight: "700", whiteSpace: "nowrap", color: d.text }}>{T.month}</label>
-        <input type="month" value={filterMonth} onChange={e => setFilterMonth(e.target.value)}
-          style={{ border: `2px solid ${d.filterBorder}`, borderRadius: "8px", padding: "6px 10px", fontSize: "14px", flex: 1, outline: "none", fontFamily: "inherit", background: d.filterBg, color: d.text }} />
-        {filterMonth && <button onClick={() => setFilterMonth("")}
-          style={{ background: "#fee2e2", color: "#dc2626", border: "none", padding: "6px 12px", borderRadius: "8px", cursor: "pointer", fontWeight: "700", fontFamily: "inherit" }}>{T.clear}</button>}
-      </div>
+      {/* Year Filter */}
+      {(() => {
+        const years = [...new Set(entries.map(e => e.date?.slice(0,4)).filter(Boolean))].sort((a,b) => b-a);
+        return (
+          <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "16px", background: d.filterBg, padding: "10px 14px", borderRadius: "12px", boxShadow: d.shadow, border: `1px solid ${d.cardBorder}`, overflowX: "auto" }}>
+            <label style={{ fontSize: "13px", fontWeight: "700", whiteSpace: "nowrap", color: d.text }}>{T.year}</label>
+            <div style={{ display: "flex", gap: "6px", flexShrink: 0 }}>
+              <button onClick={() => setFilterYear("")} style={{ padding: "5px 12px", borderRadius: "8px", border: "none", cursor: "pointer", fontWeight: "700", fontSize: "13px", fontFamily: "inherit", background: !filterYear ? "#1a3a1a" : (dark ? "#334155" : "#f3f4f6"), color: !filterYear ? "white" : d.text }}>
+                All
+              </button>
+              {years.map(y => (
+                <button key={y} onClick={() => setFilterYear(y)} style={{ padding: "5px 12px", borderRadius: "8px", border: "none", cursor: "pointer", fontWeight: "700", fontSize: "13px", fontFamily: "inherit", background: filterYear === y ? "#1a3a1a" : (dark ? "#334155" : "#f3f4f6"), color: filterYear === y ? "white" : d.text }}>
+                  {y}
+                </button>
+              ))}
+            </div>
+          </div>
+        );
+      })()}
 
       {/* Stats Grid */}
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px", marginBottom: "20px" }}>
