@@ -100,12 +100,7 @@ export default function AdminDashboard({ user }) {
   const [actionLoading, setActionLoading] = useState(false);
 
   const [showAnnPanel, setShowAnnPanel] = useState(false);
-  const [annIcon, setAnnIcon] = useState("📢");
-  const [annTitleEn, setAnnTitleEn] = useState("");
-  const [annMsgEn, setAnnMsgEn] = useState("");
-  const [annMsgHi, setAnnMsgHi] = useState("");
-  const [annMsgAs, setAnnMsgAs] = useState("");
-  const [annMsgNe, setAnnMsgNe] = useState("");
+  const [annMsg, setAnnMsg] = useState("");
   const [annLoading, setAnnLoading] = useState(false);
   const [annResult, setAnnResult] = useState("");
 
@@ -169,13 +164,13 @@ export default function AdminDashboard({ user }) {
   const adminCount = users.filter(u => u.isAdmin).length;
 
   const handleSendAnnouncement = async () => {
-    if (!annMsgEn.trim()) { setAnnResult("❌ English message required!"); return; }
+    if (!annMsg.trim()) { setAnnResult("❌ English message required!"); return; }
     setAnnLoading(true); setAnnResult("");
     try {
       await setDoc(doc(db, "config", "announcement"), {
         active: true, icon: annIcon,
         title: { en: annTitleEn, hi: annTitleEn, ne: annTitleEn, as: annTitleEn },
-        message: { en: annMsgEn, hi: annMsgHi || annMsgEn, ne: annMsgNe || annMsgEn, as: annMsgAs || annMsgEn },
+        message: { en: annMsg, hi: annMsgHi || annMsg, ne: annMsgNe || annMsg, as: annMsgAs || annMsg },
         createdAt: { seconds: Math.floor(Date.now() / 1000) },
         sentBy: user?.email || "admin",
       }, { merge: false });
@@ -228,7 +223,7 @@ export default function AdminDashboard({ user }) {
               ))}
             </div>
             <input value={annTitleEn} onChange={e => setAnnTitleEn(e.target.value)} placeholder="Title (e.g. New Update!)" style={{ padding: "10px 14px", borderRadius: "10px", border: "2px solid #334155", background: "#0f172a", color: "white", fontSize: "14px", fontFamily: "inherit", outline: "none" }} />
-            <textarea value={annMsgEn} onChange={e => setAnnMsgEn(e.target.value)} placeholder="Message in English (required)" rows={2} style={{ padding: "10px 14px", borderRadius: "10px", border: "2px solid #334155", background: "#0f172a", color: "white", fontSize: "14px", fontFamily: "inherit", outline: "none", resize: "none" }} />
+            <textarea value={annMsg} onChange={e => setAnnMsg(e.target.value)} placeholder="Message in English (required)" rows={2} style={{ padding: "10px 14px", borderRadius: "10px", border: "2px solid #334155", background: "#0f172a", color: "white", fontSize: "14px", fontFamily: "inherit", outline: "none", resize: "none" }} />
             <textarea value={annMsgHi} onChange={e => setAnnMsgHi(e.target.value)} placeholder="Hindi message (optional)" rows={2} style={{ padding: "10px 14px", borderRadius: "10px", border: "2px solid #334155", background: "#0f172a", color: "white", fontSize: "14px", fontFamily: "inherit", outline: "none", resize: "none" }} />
             <textarea value={annMsgAs} onChange={e => setAnnMsgAs(e.target.value)} placeholder="Assamese message (optional)" rows={2} style={{ padding: "10px 14px", borderRadius: "10px", border: "2px solid #334155", background: "#0f172a", color: "white", fontSize: "14px", fontFamily: "inherit", outline: "none", resize: "none" }} />
             <textarea value={annMsgNe} onChange={e => setAnnMsgNe(e.target.value)} placeholder="Nepali message (optional)" rows={2} style={{ padding: "10px 14px", borderRadius: "10px", border: "2px solid #334155", background: "#0f172a", color: "white", fontSize: "14px", fontFamily: "inherit", outline: "none", resize: "none" }} />
