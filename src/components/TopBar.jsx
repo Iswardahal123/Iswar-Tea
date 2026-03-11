@@ -110,8 +110,6 @@ export default function TopBar({ user, currentPage, isAdmin, onLangChange }) {
   const displayName = user.displayName || user.email?.split("@")[0] || "User";
   const initial = (displayName)[0].toUpperCase();
 
-  const darkLabel = lang === "en" ? "Dark Mode" : lang === "hi" ? "डार्क मोड" : lang === "ne" ? "डार्क मोड" : "ডাৰ্ক মোড";
-
   const settingsItems = isAdmin ? [
     { icon: "🚪", label: lang === "en" ? "Logout" : lang === "hi" ? "लॉगआउट" : lang === "ne" ? "लगआउट" : "লগআউট", sub: null, danger: true, action: handleLogout },
   ] : [
