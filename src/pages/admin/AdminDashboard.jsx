@@ -1,23 +1,11 @@
 import React, { useEffect, useState } from "react";
 import { db } from "../../firebase/config";
-import { collection, getDocs, query, where, deleteDoc, doc, updateDoc, getDoc, setDoc } from "firebase/firestore";
+import { collection, getDocs, query, where, deleteDoc, doc, updateDoc, setDoc } from "firebase/firestore";
 import { useLang } from "../../LanguageContext";
-
-const APP_VERSION = "1.0.0";
 
 const txt = {
   en: {
     title: "👑 Admin Dashboard", loading: "Loading admin data...",
-    releaseControl: "🚀 Release Control", live: "🟢 Live",
-    currentLive: "Current Live", releasedBy: "Released By", date: "Date",
-    publishVersion: "📦 Publish New Version", versionNum: "Version Number",
-    versionPh: "e.g. 1.1.0", releaseNotes: "Release Notes",
-    releaseNotesPh: "What's new in this update...",
-    testRelease: "🧪 Test Release", goLive: "🚀 Go Live",
-    testMsg: (v) => `🧪 Test release v${v} pushed! Only testers will see it.`,
-    liveMsg: (v) => `🚀 v${v} released to all users!`,
-    errVersion: "❌ Enter version number!",
-    lastNote: "📝 Last note:",
     totalUsers: "Total", active: "Active", disabled: "Disabled", admins: "Admins",
     registeredUsers: "👥 Registered Users", noUsers: "No users found",
     you: "You", admin: "👑 Admin", user: "👤 User",
@@ -39,16 +27,6 @@ const txt = {
   },
   hi: {
     title: "👑 एडमिन डैशबोर्ड", loading: "एडमिन डेटा लोड हो रहा है...",
-    releaseControl: "🚀 रिलीज़ कंट्रोल", live: "🟢 लाइव",
-    currentLive: "वर्तमान लाइव", releasedBy: "द्वारा", date: "तारीख",
-    publishVersion: "📦 नया वर्शन प्रकाशित करें", versionNum: "वर्शन नंबर",
-    versionPh: "जैसे: 1.1.0", releaseNotes: "रिलीज़ नोट्स",
-    releaseNotesPh: "इस अपडेट में क्या नया है...",
-    testRelease: "🧪 टेस्ट रिलीज़", goLive: "🚀 लाइव करें",
-    testMsg: (v) => `🧪 टेस्ट v${v} भेजा! सिर्फ टेस्टर देखेंगे।`,
-    liveMsg: (v) => `🚀 v${v} सभी यूजर को रिलीज़!`,
-    errVersion: "❌ वर्शन नंबर डालें!",
-    lastNote: "📝 आखिरी नोट:",
     totalUsers: "कुल", active: "सक्रिय", disabled: "अक्षम", admins: "एडमिन",
     registeredUsers: "👥 पंजीकृत यूजर", noUsers: "कोई यूजर नहीं मिला",
     you: "आप", admin: "👑 एडमिन", user: "👤 यूजर",
@@ -69,16 +47,6 @@ const txt = {
   },
   ne: {
     title: "👑 एडमिन ड्यासबोर्ड", loading: "एडमिन डेटा लोड हुँदैछ...",
-    releaseControl: "🚀 रिलिज नियन्त्रण", live: "🟢 लाइभ",
-    currentLive: "हालको लाइभ", releasedBy: "द्वारा", date: "मिति",
-    publishVersion: "📦 नयाँ संस्करण प्रकाशित गर्नुस्", versionNum: "संस्करण नम्बर",
-    versionPh: "जस्तै: 1.1.0", releaseNotes: "रिलिज नोट्स",
-    releaseNotesPh: "यस अपडेटमा के नयाँ छ...",
-    testRelease: "🧪 टेस्ट रिलिज", goLive: "🚀 लाइभ गर्नुस्",
-    testMsg: (v) => `🧪 टेस्ट v${v} पठाइयो! केवल टेस्टरले देख्नेछन्।`,
-    liveMsg: (v) => `🚀 v${v} सबै प्रयोगकर्तालाई रिलिज!`,
-    errVersion: "❌ संस्करण नम्बर दिनुस्!",
-    lastNote: "📝 अन्तिम नोट:",
     totalUsers: "जम्मा", active: "सक्रिय", disabled: "अक्षम", admins: "एडमिन",
     registeredUsers: "👥 दर्ता प्रयोगकर्ता", noUsers: "कुनै प्रयोगकर्ता फेला परेन",
     you: "तपाईं", admin: "👑 एडमिन", user: "👤 प्रयोगकर्ता",
@@ -99,16 +67,6 @@ const txt = {
   },
   as: {
     title: "👑 এডমিন ড্যাশব'ৰ্ড", loading: "এডমিন ডেটা লোড হৈ আছে...",
-    releaseControl: "🚀 ৰিলিজ কন্ট্ৰ'ল", live: "🟢 লাইভ",
-    currentLive: "বৰ্তমান লাইভ", releasedBy: "দ্বাৰা", date: "তাৰিখ",
-    publishVersion: "📦 নতুন সংস্কৰণ প্ৰকাশ কৰক", versionNum: "সংস্কৰণ নম্বৰ",
-    versionPh: "যেনে: 1.1.0", releaseNotes: "ৰিলিজ টোকা",
-    releaseNotesPh: "এই আপডেটত কি নতুন আছে...",
-    testRelease: "🧪 পৰীক্ষা ৰিলিজ", goLive: "🚀 লাইভ কৰক",
-    testMsg: (v) => `🧪 পৰীক্ষা v${v} পঠোৱা হ'ল! কেৱল পৰীক্ষকে দেখিব।`,
-    liveMsg: (v) => `🚀 v${v} সকলো ব্যৱহাৰকাৰীলৈ ৰিলিজ!`,
-    errVersion: "❌ সংস্কৰণ নম্বৰ দিয়ক!",
-    lastNote: "📝 শেষ টোকা:",
     totalUsers: "মুঠ", active: "সক্ৰিয়", disabled: "নিষ্ক্ৰিয়", admins: "এডমিন",
     registeredUsers: "👥 পঞ্জীভুক্ত ব্যৱহাৰকাৰী", noUsers: "কোনো ব্যৱহাৰকাৰী পোৱা নগ'ল",
     you: "আপুনি", admin: "👑 এডমিন", user: "👤 ব্যৱহাৰকাৰী",
@@ -141,12 +99,6 @@ export default function AdminDashboard({ user }) {
   const [confirmDelete, setConfirmDelete] = useState(null);
   const [actionLoading, setActionLoading] = useState(false);
 
-  const [releaseConfig, setReleaseConfig] = useState(null);
-  const [showReleasePanel, setShowReleasePanel] = useState(false);
-  const [newVersion, setNewVersion] = useState("");
-  const [releaseNote, setReleaseNote] = useState("");
-  const [releaseLoading, setReleaseLoading] = useState(false);
-  const [releaseMsg, setReleaseMsg] = useState("");
   const [showAnnPanel, setShowAnnPanel] = useState(false);
   const [annIcon, setAnnIcon] = useState("📢");
   const [annTitleEn, setAnnTitleEn] = useState("");
@@ -166,35 +118,7 @@ export default function AdminDashboard({ user }) {
     setLoading(false);
   };
 
-  const fetchReleaseConfig = async () => {
-    try {
-      const snap = await getDoc(doc(db, "config", "release"));
-      if (snap.exists()) {
-        const data = snap.data();
-        setReleaseConfig(data);
-        setNewVersion(data.latestVersion || APP_VERSION);
-        setReleaseNote(data.releaseNote || "");
-      } else {
-        // Create default config if not exists
-        const defaultConfig = {
-          latestVersion: APP_VERSION, testVersion: APP_VERSION,
-          releaseNote: "Initial release",
-          releasedAt: new Date().toISOString(), releasedBy: user.email,
-        };
-        await setDoc(doc(db, "config", "release"), defaultConfig);
-        setReleaseConfig(defaultConfig);
-        setNewVersion(APP_VERSION);
-        setReleaseNote("Initial release");
-      }
-    } catch (err) {
-      console.error("Release config error:", err);
-      // Set a fallback so UI doesn't show "..."
-      setReleaseConfig({ latestVersion: APP_VERSION, releaseNote: "" });
-      setNewVersion(APP_VERSION);
-    }
-  };
-
-  useEffect(() => { fetchUsers(); fetchReleaseConfig(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { fetchUsers(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const openUserDetail = async (u) => {
     setSelectedUser(u);
@@ -238,27 +162,6 @@ export default function AdminDashboard({ user }) {
       await fetchUsers();
     } catch (err) { console.error(err); }
     setActionLoading(false);
-  };
-
-  const publishRelease = async (testOnly = false) => {
-    if (!newVersion.trim()) { setReleaseMsg(T.errVersion); return; }
-    setReleaseLoading(true);
-    try {
-      const updateData = testOnly ? {
-        testVersion: newVersion.trim(),
-        releaseNote: releaseNote.trim() || "Test update",
-        testReleasedAt: new Date().toISOString(), releasedBy: user.email,
-      } : {
-        latestVersion: newVersion.trim(), testVersion: newVersion.trim(),
-        releaseNote: releaseNote.trim() || "New update released",
-        releasedAt: new Date().toISOString(), releasedBy: user.email,
-      };
-      await setDoc(doc(db, "config", "release"), updateData, { merge: true });
-      setReleaseConfig(prev => ({ ...prev, ...updateData }));
-      setReleaseMsg(testOnly ? T.testMsg(newVersion.trim()) : T.liveMsg(newVersion.trim()));
-      setTimeout(() => setReleaseMsg(""), 4000);
-    } catch (err) { setReleaseMsg("❌ " + err.message); }
-    setReleaseLoading(false);
   };
 
   const totalUsers = users.length;
@@ -309,76 +212,6 @@ export default function AdminDashboard({ user }) {
           <div style={styles.headerSub}>{user.email}</div>
         </div>
         <button onClick={fetchUsers} style={styles.refreshBtn}>🔄</button>
-      </div>
-
-      {/* Release Control */}
-      <div style={styles.releaseCard}>
-        <div style={styles.releaseTop} onClick={() => setShowReleasePanel(p => !p)}>
-          <div>
-            <div style={styles.releaseTitle}>{T.releaseControl}</div>
-            <div style={styles.releaseSub}>
-              {releaseConfig ? `v${releaseConfig.latestVersion} • ${T.live}` : "..."}
-            </div>
-          </div>
-          <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-            <div style={{ width: 12, height: 12, borderRadius: "50%", background: "#16a34a", boxShadow: "0 0 8px #16a34a" }} />
-            <span style={{ color: "white", fontSize: "18px" }}>{showReleasePanel ? "▲" : "▼"}</span>
-          </div>
-        </div>
-
-        {showReleasePanel && releaseConfig && (
-          <div style={styles.releaseBody}>
-            <div style={styles.releaseStatusRow}>
-              <div style={styles.releaseStatBox}>
-                <div style={styles.releaseStatLabel}>{T.currentLive}</div>
-                <div style={styles.releaseStatVal}>v{releaseConfig.latestVersion}</div>
-              </div>
-              <div style={styles.releaseStatBox}>
-                <div style={styles.releaseStatLabel}>{T.releasedBy}</div>
-                <div style={{ fontSize: "10px", fontWeight: "700", color: "rgba(255,255,255,0.7)", marginTop: "4px" }}>
-                  {releaseConfig.releasedBy || "—"}
-                </div>
-              </div>
-              <div style={styles.releaseStatBox}>
-                <div style={styles.releaseStatLabel}>{T.date}</div>
-                <div style={{ fontSize: "11px", fontWeight: "700", color: "rgba(255,255,255,0.7)", marginTop: "4px" }}>
-                  {releaseConfig.releasedAt ? new Date(releaseConfig.releasedAt).toLocaleDateString() : "—"}
-                </div>
-              </div>
-            </div>
-
-            <div style={styles.releaseSection}>
-              <div style={styles.releaseSectionTitle}>{T.publishVersion}</div>
-              <div style={styles.field}>
-                <label style={styles.fieldLabel}>{T.versionNum}</label>
-                <input value={newVersion} onChange={e => setNewVersion(e.target.value)} placeholder={T.versionPh} style={styles.fieldInput} />
-              </div>
-              <div style={styles.field}>
-                <label style={styles.fieldLabel}>{T.releaseNotes}</label>
-                <textarea value={releaseNote} onChange={e => setReleaseNote(e.target.value)} placeholder={T.releaseNotesPh} rows={2} style={{ ...styles.fieldInput, resize: "none" }} />
-              </div>
-              <div style={{ display: "flex", gap: "8px" }}>
-                <button onClick={() => publishRelease(true)} disabled={releaseLoading}
-                  style={{ ...styles.publishBtn, flex: 1, background: "linear-gradient(135deg,#92400e,#d97706)", fontSize: "12px" }}>
-                  {releaseLoading ? "⏳..." : T.testRelease}
-                </button>
-                <button onClick={() => publishRelease(false)} disabled={releaseLoading}
-                  style={{ ...styles.publishBtn, flex: 1, fontSize: "12px" }}>
-                  {releaseLoading ? "⏳..." : T.goLive}
-                </button>
-              </div>
-            </div>
-
-            {releaseMsg && (
-              <div style={{ background: releaseMsg.startsWith("❌") ? "#fef2f2" : "#f0fdf4", color: releaseMsg.startsWith("❌") ? "#dc2626" : "#16a34a", padding: "10px 14px", borderRadius: "10px", fontSize: "13px", fontWeight: "700" }}>
-                {releaseMsg}
-              </div>
-            )}
-            {releaseConfig.releaseNote && (
-              <div style={styles.releaseNoteBox}>{T.lastNote} {releaseConfig.releaseNote}</div>
-            )}
-          </div>
-        )}
       </div>
 
       {/* Announcement Panel */}
@@ -599,22 +432,6 @@ const styles = {
   headerTitle: { fontSize: "18px", fontWeight: "900" },
   headerSub: { fontSize: "11px", opacity: 0.8, marginTop: "2px" },
   refreshBtn: { background: "rgba(255,255,255,0.2)", border: "none", color: "white", width: 36, height: 36, borderRadius: "50%", fontSize: "16px", cursor: "pointer" },
-  releaseCard: { background: "linear-gradient(135deg,#0f172a,#1e293b)", borderRadius: "16px", marginBottom: "16px", overflow: "hidden", boxShadow: "0 4px 20px rgba(0,0,0,0.2)" },
-  releaseTop: { padding: "16px 18px", display: "flex", justifyContent: "space-between", alignItems: "center", cursor: "pointer" },
-  releaseTitle: { fontSize: "16px", fontWeight: "900", color: "white" },
-  releaseSub: { fontSize: "12px", color: "rgba(255,255,255,0.65)", marginTop: "3px" },
-  releaseBody: { padding: "0 18px 18px", display: "flex", flexDirection: "column", gap: "12px" },
-  releaseStatusRow: { display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "8px" },
-  releaseStatBox: { background: "rgba(255,255,255,0.07)", borderRadius: "10px", padding: "10px 12px" },
-  releaseStatLabel: { fontSize: "10px", color: "rgba(255,255,255,0.5)", fontWeight: "700", textTransform: "uppercase" },
-  releaseStatVal: { fontSize: "16px", fontWeight: "900", color: "white", marginTop: "4px" },
-  releaseSection: { background: "rgba(255,255,255,0.05)", borderRadius: "12px", padding: "14px", display: "flex", flexDirection: "column", gap: "10px" },
-  releaseSectionTitle: { fontSize: "13px", fontWeight: "800", color: "rgba(255,255,255,0.8)" },
-  field: { display: "flex", flexDirection: "column", gap: "5px" },
-  fieldLabel: { fontSize: "12px", fontWeight: "700", color: "rgba(255,255,255,0.6)" },
-  fieldInput: { padding: "10px 14px", borderRadius: "10px", border: "none", background: "rgba(255,255,255,0.1)", color: "white", fontSize: "14px", outline: "none", fontFamily: "inherit", width: "100%", boxSizing: "border-box" },
-  publishBtn: { background: "linear-gradient(135deg,#1d4ed8,#3b82f6)", color: "white", border: "none", padding: "12px", borderRadius: "10px", fontSize: "14px", fontWeight: "800", cursor: "pointer", fontFamily: "inherit" },
-  releaseNoteBox: { fontSize: "12px", color: "rgba(255,255,255,0.5)", fontStyle: "italic", padding: "8px 12px", background: "rgba(255,255,255,0.05)", borderRadius: "8px" },
   statsRow: { display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: "8px", marginBottom: "18px" },
   statCard: { borderRadius: "12px", padding: "12px 10px", color: "white", textAlign: "center" },
   statNum: { fontSize: "22px", fontWeight: "900" },
