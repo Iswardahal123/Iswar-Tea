@@ -51,7 +51,7 @@ export default function TopBar({ user, currentPage, isAdmin, onLangChange }) {
 
   const closeModal = () => { setActiveModal(null); setMsg(""); };
 
-  const handleLogout = () => { signOut(auth); };
+  const handleLogout = () => { sessionStorage.removeItem("welcomed"); signOut(auth); };
 
   const handleAdvanceSave = async () => {
     const amt = parseFloat(newAdvanceAmt) || 0;
