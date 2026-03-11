@@ -147,6 +147,15 @@ export default function AdminDashboard({ user }) {
   const [releaseNote, setReleaseNote] = useState("");
   const [releaseLoading, setReleaseLoading] = useState(false);
   const [releaseMsg, setReleaseMsg] = useState("");
+  const [showAnnPanel, setShowAnnPanel] = useState(false);
+  const [annIcon, setAnnIcon] = useState("📢");
+  const [annTitleEn, setAnnTitleEn] = useState("");
+  const [annMsgEn, setAnnMsgEn] = useState("");
+  const [annMsgHi, setAnnMsgHi] = useState("");
+  const [annMsgAs, setAnnMsgAs] = useState("");
+  const [annMsgNe, setAnnMsgNe] = useState("");
+  const [annLoading, setAnnLoading] = useState(false);
+  const [annResult, setAnnResult] = useState("");
 
   const fetchUsers = async () => {
     setLoading(true);
@@ -161,10 +170,12 @@ export default function AdminDashboard({ user }) {
     try {
       const snap = await getDoc(doc(db, "config", "release"));
       if (snap.exists()) {
-        setReleaseConfig(snap.data());
-        setNewVersion(snap.data().latestVersion || APP_VERSION);
-        setReleaseNote(snap.data().releaseNote || "");
+        const data = snap.data();
+        setReleaseConfig(data);
+        setNewVersion(data.latestVersion || APP_VERSION);
+        setReleaseNote(data.releaseNote || "");
       } else {
+        // Create default config if not exists
         const defaultConfig = {
           latestVersion: APP_VERSION, testVersion: APP_VERSION,
           releaseNote: "Initial release",
@@ -173,8 +184,14 @@ export default function AdminDashboard({ user }) {
         await setDoc(doc(db, "config", "release"), defaultConfig);
         setReleaseConfig(defaultConfig);
         setNewVersion(APP_VERSION);
+        setReleaseNote("Initial release");
       }
-    } catch (err) { console.error(err); }
+    } catch (err) {
+      console.error("Release config error:", err);
+      // Set a fallback so UI doesn't show "..."
+      setReleaseConfig({ latestVersion: APP_VERSION, releaseNote: "" });
+      setNewVersion(APP_VERSION);
+    }
   };
 
   useEffect(() => { fetchUsers(); fetchReleaseConfig(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
@@ -236,7 +253,7 @@ export default function AdminDashboard({ user }) {
         releaseNote: releaseNote.trim() || "New update released",
         releasedAt: new Date().toISOString(), releasedBy: user.email,
       };
-      await updateDoc(doc(db, "config", "release"), updateData);
+      await setDoc(doc(db, "config", "release"), updateData, { merge: true });
       setReleaseConfig(prev => ({ ...prev, ...updateData }));
       setReleaseMsg(testOnly ? T.testMsg(newVersion.trim()) : T.liveMsg(newVersion.trim()));
       setTimeout(() => setReleaseMsg(""), 4000);
@@ -247,6 +264,33 @@ export default function AdminDashboard({ user }) {
   const totalUsers = users.length;
   const disabledCount = users.filter(u => u.disabled).length;
   const adminCount = users.filter(u => u.isAdmin).length;
+
+  const handleSendAnnouncement = async () => {
+    if (!annMsgEn.trim()) { setAnnResult("❌ English message required!"); return; }
+    setAnnLoading(true); setAnnResult("");
+    try {
+      await setDoc(doc(db, "config", "announcement"), {
+        active: true, icon: annIcon,
+        title: { en: annTitleEn, hi: annTitleEn, ne: annTitleEn, as: annTitleEn },
+        message: { en: annMsgEn, hi: annMsgHi || annMsgEn, ne: annMsgNe || annMsgEn, as: annMsgAs || annMsgEn },
+        createdAt: { seconds: Math.floor(Date.now() / 1000) },
+        sentBy: user?.email || "admin",
+      }, { merge: false });
+      setAnnResult("✅ Announcement sent! All users will see it.");
+      setTimeout(() => setAnnResult(""), 3000);
+    } catch (e) { setAnnResult("❌ " + e.message); }
+    setAnnLoading(false);
+  };
+
+  const handleClearAnnouncement = async () => {
+    setAnnLoading(true);
+    try {
+      await setDoc(doc(db, "config", "announcement"), { active: false }, { merge: true });
+      setAnnResult("✅ Announcement cleared.");
+      setTimeout(() => setAnnResult(""), 2000);
+    } catch (e) { setAnnResult("❌ " + e.message); }
+    setAnnLoading(false);
+  };
 
   if (loading) return (
     <div style={{ textAlign: "center", padding: "60px", color: "#6b7280", fontFamily: "'Segoe UI',sans-serif" }}>
@@ -333,6 +377,37 @@ export default function AdminDashboard({ user }) {
             {releaseConfig.releaseNote && (
               <div style={styles.releaseNoteBox}>{T.lastNote} {releaseConfig.releaseNote}</div>
             )}
+          </div>
+        )}
+      </div>
+
+      {/* Announcement Panel */}
+      <div style={{ background: "linear-gradient(135deg,#1e293b,#0f172a)", borderRadius: "16px", marginBottom: "14px", overflow: "hidden" }}>
+        <button onClick={() => setShowAnnPanel(s => !s)} style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between", padding: "14px 16px", background: "transparent", border: "none", cursor: "pointer", fontFamily: "inherit" }}>
+          <span style={{ fontSize: "15px", fontWeight: "800", color: "white" }}>📢 Announcement</span>
+          <span style={{ color: "white", fontSize: "18px" }}>{showAnnPanel ? "▲" : "▼"}</span>
+        </button>
+        {showAnnPanel && (
+          <div style={{ padding: "0 16px 20px", display: "flex", flexDirection: "column", gap: "12px" }}>
+            <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+              {["📢","🍃","🎉","⚠️","💰","🚀","🔔","🎯"].map(ic => (
+                <button key={ic} onClick={() => setAnnIcon(ic)} style={{ fontSize: "22px", background: annIcon === ic ? "rgba(255,255,255,0.25)" : "rgba(255,255,255,0.08)", border: annIcon === ic ? "2px solid white" : "2px solid transparent", borderRadius: "10px", width: 40, height: 40, cursor: "pointer" }}>{ic}</button>
+              ))}
+            </div>
+            <input value={annTitleEn} onChange={e => setAnnTitleEn(e.target.value)} placeholder="Title (e.g. New Update!)" style={{ padding: "10px 14px", borderRadius: "10px", border: "2px solid #334155", background: "#0f172a", color: "white", fontSize: "14px", fontFamily: "inherit", outline: "none" }} />
+            <textarea value={annMsgEn} onChange={e => setAnnMsgEn(e.target.value)} placeholder="Message in English (required)" rows={2} style={{ padding: "10px 14px", borderRadius: "10px", border: "2px solid #334155", background: "#0f172a", color: "white", fontSize: "14px", fontFamily: "inherit", outline: "none", resize: "none" }} />
+            <textarea value={annMsgHi} onChange={e => setAnnMsgHi(e.target.value)} placeholder="Hindi message (optional)" rows={2} style={{ padding: "10px 14px", borderRadius: "10px", border: "2px solid #334155", background: "#0f172a", color: "white", fontSize: "14px", fontFamily: "inherit", outline: "none", resize: "none" }} />
+            <textarea value={annMsgAs} onChange={e => setAnnMsgAs(e.target.value)} placeholder="Assamese message (optional)" rows={2} style={{ padding: "10px 14px", borderRadius: "10px", border: "2px solid #334155", background: "#0f172a", color: "white", fontSize: "14px", fontFamily: "inherit", outline: "none", resize: "none" }} />
+            <textarea value={annMsgNe} onChange={e => setAnnMsgNe(e.target.value)} placeholder="Nepali message (optional)" rows={2} style={{ padding: "10px 14px", borderRadius: "10px", border: "2px solid #334155", background: "#0f172a", color: "white", fontSize: "14px", fontFamily: "inherit", outline: "none", resize: "none" }} />
+            {annResult && <div style={{ background: annResult.startsWith("❌") ? "#fef2f2" : "#f0fdf4", color: annResult.startsWith("❌") ? "#dc2626" : "#16a34a", padding: "10px 14px", borderRadius: "10px", fontSize: "13px", fontWeight: "700" }}>{annResult}</div>}
+            <div style={{ display: "flex", gap: "10px" }}>
+              <button onClick={handleSendAnnouncement} disabled={annLoading} style={{ flex: 1, padding: "12px", background: "linear-gradient(135deg,#1a3a1a,#2d5a27)", color: "white", border: "none", borderRadius: "12px", fontSize: "14px", fontWeight: "800", cursor: "pointer", fontFamily: "inherit" }}>
+                {annLoading ? "⏳..." : "📢 Send to All"}
+              </button>
+              <button onClick={handleClearAnnouncement} disabled={annLoading} style={{ padding: "12px 16px", background: "#7f1d1d", color: "white", border: "none", borderRadius: "12px", fontSize: "14px", fontWeight: "800", cursor: "pointer", fontFamily: "inherit" }}>
+                🗑️ Clear
+              </button>
+            </div>
           </div>
         )}
       </div>
