@@ -210,7 +210,7 @@ export default function DashboardPage({ user }) {
         for (let i = 0; i < firstDay; i++) cells.push(null);
         for (let d2 = 1; d2 <= daysInMonth; d2++) cells.push(d2);
 
-        const selEntries = selectedDay ? (entryMap[selectedDay] || []) : [];
+        
 
         return (
           <>
