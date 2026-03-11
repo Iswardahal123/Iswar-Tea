@@ -9,7 +9,6 @@ export default function DashboardPage({ user }) {
   const { dark } = useDark();
   const [entries, setEntries] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [filterYear, setFilterYear] = useState("");
   const [calDate, setCalDate] = useState(new Date());
   const [selectedDay, setSelectedDay] = useState(null);
   const [totalAdvanceTaken, setTotalAdvanceTaken] = useState(0);
@@ -30,7 +29,7 @@ export default function DashboardPage({ user }) {
     fetchData();
   }, [user]);
 
-  const filtered = filterYear ? entries.filter(e => e.date?.startsWith(filterYear)) : entries;
+  const filtered = entries;
   const totalWeight     = filtered.reduce((s, e) => s + (e.weight || 0), 0);
   const totalAmount     = filtered.reduce((s, e) => s + (e.totalAmount || 0), 0);
   const totalReceived   = filtered.reduce((s, e) => s + (e.amountReceived || 0), 0);
@@ -43,7 +42,7 @@ export default function DashboardPage({ user }) {
     en: {
       greet: () => { const h = new Date().getHours(); return h < 12 ? "Good Morning ☕" : h < 17 ? "Good Afternoon 🌞" : "Good Evening 🌆"; },
       entries: (n, kg) => `${n} entries • ${kg} kg`,
-      year: "📅 Year:", clear: "Clear",
+      
       earning: "Total Earning", received: "Received",
       balance: "Balance", advTaken: "Advance Taken",
       advCut: "Cut:", advLeft: "Advance Left",
@@ -59,7 +58,7 @@ export default function DashboardPage({ user }) {
     hi: {
       greet: () => { const h = new Date().getHours(); return h < 12 ? "शुभ प्रभात ☕" : h < 17 ? "नमस्ते 🌞" : "शुभ संध्या 🌆"; },
       entries: (n, kg) => `${n} प्रविष्टियां • ${kg} कि.ग्रा.`,
-      year: "📅 साल:", clear: "हटाएं",
+      
       earning: "कुल कमाई", received: "मिली राशि",
       balance: "बाकी राशि", advTaken: "लिया अग्रिम",
       advCut: "कटा:", advLeft: "बचा अग्रिम",
@@ -75,7 +74,7 @@ export default function DashboardPage({ user }) {
     ne: {
       greet: () => { const h = new Date().getHours(); return h < 12 ? "शुभ बिहान ☕" : h < 17 ? "शुभ दिउँसो 🌞" : "शुभ साँझ 🌆"; },
       entries: (n, kg) => `${n} वटा प्रविष्टि • ${kg} कि.ग्रा.`,
-      year: "📅 वर्ष:", clear: "हटाउनुस्",
+      
       earning: "कुल आम्दानी", received: "पाएको रकम",
       balance: "बाँकी रकम", advTaken: "लिएको अग्रिम",
       advCut: "काटिएको:", advLeft: "बाँकी अग्रिम",
@@ -116,8 +115,6 @@ export default function DashboardPage({ user }) {
     cardBorder: dark ? "#334155" : "transparent",
     text: dark ? "#f1f5f9" : "#1a3a1a",
     subtext: dark ? "#94a3b8" : "#6b7280",
-    filterBg: dark ? "#1e293b" : "white",
-    filterBorder: dark ? "#475569" : "#e5e7eb",
     rateTag: dark ? { bg: "#14532d", color: "#86efac" } : { bg: "#f0fdf4", color: "#166534" },
     pendingTag: dark ? { bg: "#78350f", color: "#fde68a" } : { bg: "#fef3c7", color: "#92400e" },
     shadow: dark ? "0 2px 8px rgba(0,0,0,0.4)" : "0 1px 6px rgba(0,0,0,0.05)",
@@ -145,25 +142,7 @@ export default function DashboardPage({ user }) {
         <div style={{ fontSize: "12px", opacity: 0.75, marginTop: "4px" }}>{T.entries(filtered.length, totalWeight.toFixed(1))}</div>
       </div>
 
-      {/* Year Filter */}
-      {(() => {
-        const years = [...new Set(entries.map(e => e.date?.slice(0,4)).filter(Boolean))].sort((a,b) => b-a);
-        return (
-          <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "16px", background: d.filterBg, padding: "10px 14px", borderRadius: "12px", boxShadow: d.shadow, border: `1px solid ${d.cardBorder}`, overflowX: "auto" }}>
-            <label style={{ fontSize: "13px", fontWeight: "700", whiteSpace: "nowrap", color: d.text }}>{T.year}</label>
-            <div style={{ display: "flex", gap: "6px", flexShrink: 0 }}>
-              <button onClick={() => setFilterYear("")} style={{ padding: "5px 12px", borderRadius: "8px", border: "none", cursor: "pointer", fontWeight: "700", fontSize: "13px", fontFamily: "inherit", background: !filterYear ? "#1a3a1a" : (dark ? "#334155" : "#f3f4f6"), color: !filterYear ? "white" : d.text }}>
-                All
-              </button>
-              {years.map(y => (
-                <button key={y} onClick={() => setFilterYear(y)} style={{ padding: "5px 12px", borderRadius: "8px", border: "none", cursor: "pointer", fontWeight: "700", fontSize: "13px", fontFamily: "inherit", background: filterYear === y ? "#1a3a1a" : (dark ? "#334155" : "#f3f4f6"), color: filterYear === y ? "white" : d.text }}>
-                  {y}
-                </button>
-              ))}
-            </div>
-          </div>
-        );
-      })()}
+
 
       {/* Stats Grid */}
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px", marginBottom: "20px" }}>
