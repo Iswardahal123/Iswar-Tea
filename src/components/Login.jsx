@@ -3,9 +3,6 @@ import { auth, db, googleProvider } from "../firebase/config";
 import { signInWithEmailAndPassword, createUserWithEmailAndPassword, signInWithPopup, updateProfile } from "firebase/auth";
 import { doc, setDoc, getDoc } from "firebase/firestore";
 import { useLang } from "../LanguageContext";
-import { langNames } from "../languages";
-
-const langFlags = { en: "🇬🇧", hi: "🇮🇳", as: "🌿", ne: "🇳🇵" };
 
 const txt = {
   en: {
@@ -83,11 +80,11 @@ const txt = {
 };
 
 export default function Login({ onLogin }) {
-  const { lang, setLang } = useLang();
+  const { setLang } = useLang();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
-  const [selectedLang, setSelectedLang] = useState(lang || "as");
+  const selectedLang = "en";
   const [isRegister, setIsRegister] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -162,22 +159,6 @@ export default function Login({ onLogin }) {
           <p style={styles.subtitle}>{T.sub}</p>
         </div>
 
-        {/* Language Selector (always visible) */}
-        <div style={styles.langRow}>
-          {Object.keys(langNames).map(l => (
-            <button key={l} onClick={() => setSelectedLang(l)}
-              style={{
-                ...styles.langBtn,
-                background: selectedLang === l ? "linear-gradient(135deg,#1a3a1a,#2d5a27)" : "#f9fafb",
-                color: selectedLang === l ? "white" : "#374151",
-                border: selectedLang === l ? "2px solid #1a3a1a" : "2px solid #e5e7eb",
-              }}>
-              <span style={{ fontSize: "16px" }}>{langFlags[l]}</span>
-              <span style={{ fontSize: "12px", fontWeight: "700" }}>{langNames[l]}</span>
-            </button>
-          ))}
-        </div>
-
         <form onSubmit={handleEmailAuth} style={styles.form}>
           {/* Name — only on register */}
           {isRegister && (
@@ -236,8 +217,6 @@ const styles = {
   leaf: { fontSize: "44px" },
   title: { fontSize: "26px", fontWeight: "900", color: "#1a3a1a", margin: "6px 0 2px" },
   subtitle: { color: "#6b7280", fontSize: "13px", margin: 0 },
-  langRow: { display: "flex", gap: "8px", marginBottom: "20px" },
-  langBtn: { flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: "4px", padding: "10px 6px", borderRadius: "12px", cursor: "pointer", fontFamily: "inherit", transition: "all 0.15s" },
   form: { display: "flex", flexDirection: "column", gap: "14px" },
   inputGroup: { display: "flex", flexDirection: "column", gap: "6px" },
   label: { fontSize: "13px", fontWeight: "700", color: "#374151" },
