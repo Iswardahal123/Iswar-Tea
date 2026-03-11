@@ -113,13 +113,11 @@ export default function TopBar({ user, currentPage, isAdmin, onLangChange }) {
   const darkLabel = lang === "en" ? "Dark Mode" : lang === "hi" ? "डार्क मोड" : lang === "ne" ? "डार्क मोड" : "ডাৰ্ক মোড";
 
   const settingsItems = isAdmin ? [
-    { icon: dark ? "☀️" : "🌙", label: darkLabel, sub: null, action: toggleDark },
     { icon: "🚪", label: lang === "en" ? "Logout" : lang === "hi" ? "लॉगआउट" : lang === "ne" ? "लगआउट" : "লগআউট", sub: null, danger: true, action: handleLogout },
   ] : [
     { icon: "🌐", label: lang === "en" ? "Language" : lang === "hi" ? "भाषा" : lang === "ne" ? "भाषा" : "ভাষা", sub: langNames[lang], action: () => openModal("lang") },
     { icon: "💰", label: lang === "en" ? "Update Advance" : lang === "hi" ? "अग्रिम अपडेट" : lang === "ne" ? "अग्रिम अपडेट" : "এডভান্স আপডেট", sub: null, action: () => openModal("advance") },
     ...(!isGoogleUser ? [{ icon: "🔑", label: lang === "en" ? "Change Password" : lang === "hi" ? "पासवर्ड बदलें" : lang === "ne" ? "पासवर्ड परिवर्तन" : "পাছৱৰ্ড সলনি", sub: null, action: () => openModal("password") }] : []),
-    { icon: dark ? "☀️" : "🌙", label: darkLabel, sub: null, action: toggleDark },
     { icon: "🗑️", label: lang === "en" ? "Clear All Data" : lang === "hi" ? "सारा डेटा हटाएं" : lang === "ne" ? "सबै डेटा मेट्नुस्" : "সকলো তথ্য মচক", sub: null, danger: true, action: () => openModal("clear") },
     { icon: "🚪", label: lang === "en" ? "Logout" : lang === "hi" ? "लॉगआउट" : lang === "ne" ? "लगआउट" : "লগআউট", sub: null, danger: true, action: handleLogout },
   ];
@@ -137,9 +135,9 @@ export default function TopBar({ user, currentPage, isAdmin, onLangChange }) {
           </div>
         </div>
 
-        {/* Right: Profile card + settings */}
+        {/* Right: Profile pill + dark toggle + gear */}
         <div style={styles.right}>
-          {/* Profile pill */}
+          {/* Profile pill — no email */}
           <div style={styles.profilePill}>
             <div style={styles.avatar}>{user.photoURL
               ? <img src={user.photoURL} alt="" style={styles.avatarImg} />
@@ -147,10 +145,32 @@ export default function TopBar({ user, currentPage, isAdmin, onLangChange }) {
             }</div>
             <div style={styles.profileInfo}>
               <div style={styles.profileName}>{displayName}</div>
-              <div style={styles.profileEmail}>{user.email}</div>
             </div>
             {isAdmin && <span style={styles.adminBadge}>Admin</span>}
           </div>
+
+          {/* Dark mode toggle */}
+          <button onClick={toggleDark} style={{
+            background: dark ? "rgba(255,255,255,0.15)" : "rgba(255,255,255,0.15)",
+            border: "1px solid rgba(255,255,255,0.25)",
+            borderRadius: "20px", width: 52, height: 28,
+            cursor: "pointer", position: "relative",
+            display: "flex", alignItems: "center",
+            padding: "0 4px", flexShrink: 0,
+            transition: "background 0.3s",
+          }}>
+            <div style={{
+              width: 20, height: 20, borderRadius: "50%",
+              background: "white",
+              position: "absolute",
+              left: dark ? "calc(100% - 24px)" : "4px",
+              transition: "left 0.3s cubic-bezier(0.34,1.56,0.64,1)",
+              display: "flex", alignItems: "center", justifyContent: "center",
+              fontSize: "11px",
+            }}>
+              {dark ? "🌙" : "☀️"}
+            </div>
+          </button>
 
           {/* Settings gear button */}
           <div ref={settingsRef} style={{ position: "relative" }}>
