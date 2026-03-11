@@ -247,6 +247,29 @@ export default function DashboardPage({ user }) {
                         position: "relative",
                         transition: "all 0.15s",
                       }}>
+                      {/* Tooltip above date */}
+                      {isSel && hasEntry && (
+                        <div style={{
+                          position: "absolute", bottom: "calc(100% + 7px)", left: "50%",
+                          transform: "translateX(-50%)",
+                          background: "#1a3a1a", color: "white",
+                          padding: "4px 8px", borderRadius: "8px",
+                          fontSize: "11px", fontWeight: "800",
+                          whiteSpace: "nowrap", zIndex: 10,
+                          boxShadow: "0 4px 12px rgba(0,0,0,0.3)",
+                        }}>
+                          {entryMap[day].map(e => `🍃 ${e.weight} ${T.kg}`).join(" · ")}
+                          {/* Arrow */}
+                          <div style={{
+                            position: "absolute", top: "100%", left: "50%",
+                            transform: "translateX(-50%)",
+                            width: 0, height: 0,
+                            borderLeft: "5px solid transparent",
+                            borderRight: "5px solid transparent",
+                            borderTop: "5px solid #1a3a1a",
+                          }} />
+                        </div>
+                      )}
                       <span style={{ fontSize: "12px", fontWeight: itToday || isSel ? "900" : "600", color: isSel ? "white" : itToday ? "#1d4ed8" : d.text }}>
                         {day}
                       </span>
@@ -259,22 +282,7 @@ export default function DashboardPage({ user }) {
               </div>
             </div>
 
-            {/* Selected day popup */}
-            {selectedDay && (
-              <div style={{ background: d.card, borderRadius: "14px", padding: "14px 16px", border: `1px solid ${d.cardBorder}`, boxShadow: d.shadow, marginTop: "10px", animation: "fadeIn 0.2s ease" }}>
-                <style>{`@keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}`}</style>
-                <div style={{ fontSize: "13px", fontWeight: "800", color: d.text, marginBottom: "8px" }}>
-                  {new Date(year, month, selectedDay).toLocaleDateString(locale, { day: "numeric", month: "long" })}
-                </div>
-                {selEntries.length === 0 ? (
-                  <div style={{ fontSize: "13px", color: d.subtext }}>{T.noEntryDay}</div>
-                ) : selEntries.map((e, i) => (
-                  <div key={i} style={{ fontSize: "15px", fontWeight: "900", color: "#16a34a", padding: "4px 0" }}>
-                    🍃 {e.weight} {T.kg}
-                  </div>
-                ))}
-              </div>
-            )}
+
           </>
         );
       })()}
