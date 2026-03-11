@@ -18,6 +18,7 @@ import AIChatPage from "./pages/AIChatPage";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import WelcomePopup from "./components/WelcomePopup";
 import InstallBanner from "./components/InstallBanner";
+import AnnouncementPopup from "./components/AnnouncementPopup";
 
 export const APP_VERSION = "1.0.0"; // Change this on every deploy
 
@@ -196,6 +197,7 @@ export default function App() {
       <TopBar user={user} currentPage={isAdmin ? "admin" : currentPage} isAdmin={isAdmin} onLangChange={handleLangChange} />
       {showUpdateBanner && !isAdmin && <UpdateTicker config={releaseConfig} lang={lang} />}
       <InstallBanner />
+      <AnnouncementPopup user={user} isAdmin={isAdmin} />
       {showWelcome && !isAdmin && <WelcomePopup userName={user.displayName || user.email} onClose={() => setShowWelcome(false)} />}
       <main>{renderPage()}</main>
       {!isAdmin && <BottomNav currentPage={currentPage} setCurrentPage={setCurrentPage} />}
