@@ -1,11 +1,11 @@
 export const translations = {
   en: {
     // App / Loader
-    welcome: "Welcome 🙏",
-    loading: "Please wait...",
+    welcome: "Tea Data Management",
+    loading: "Loading please wait...",
 
     // Login
-    loginTitle: "Chai Bagan",
+    loginTitle: "Tea Data Management",
     loginSub: "Tea Farm Management",
     emailPlaceholder: "Email address",
     passwordPlaceholder: "Password",
