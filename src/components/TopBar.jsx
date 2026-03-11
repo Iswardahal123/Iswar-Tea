@@ -127,7 +127,7 @@ export default function TopBar({ user, currentPage, isAdmin, onLangChange }) {
   return (
     <>
       {/* ── TOP BAR ── */}
-      <div style={styles.bar}>
+      <div style={{ ...styles.bar, background: dark ? "linear-gradient(135deg,#0f172a,#1e293b)" : "linear-gradient(135deg,#1a3a1a,#2d5a27)" }}>
         {/* Left: App name + page */}
         <div style={styles.left}>
           <span style={styles.logo}>🍃</span>
@@ -286,7 +286,7 @@ export default function TopBar({ user, currentPage, isAdmin, onLangChange }) {
 }
 
 const styles = {
-  bar: { background: dark ? "linear-gradient(135deg,#0f172a,#1e293b)" : "linear-gradient(135deg,#1a3a1a,#2d5a27)", color: "white", padding: "10px 14px", display: "flex", alignItems: "center", justifyContent: "space-between", position: "sticky", top: 0, zIndex: 200, boxShadow: "0 2px 16px rgba(0,0,0,0.25)" },
+  bar: { background: "linear-gradient(135deg,#1a3a1a,#2d5a27)", color: "white", padding: "10px 14px", display: "flex", alignItems: "center", justifyContent: "space-between", position: "sticky", top: 0, zIndex: 200, boxShadow: "0 2px 16px rgba(0,0,0,0.25)" },
   left: { display: "flex", alignItems: "center", gap: "10px" },
   logo: { fontSize: "24px" },
   appName: { fontSize: "16px", fontWeight: "900", letterSpacing: "-0.3px" },
