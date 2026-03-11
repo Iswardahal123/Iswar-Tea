@@ -18,7 +18,6 @@ import AIChatPage from "./pages/AIChatPage";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import WelcomePopup from "./components/WelcomePopup";
 import InstallBanner from "./components/InstallBanner";
-import AnnouncementPopup from "./components/AnnouncementPopup";
 
 export const APP_VERSION = "1.0.0"; // Change this on every deploy
 
@@ -30,8 +29,8 @@ const Loader = ({ t }) => (
     color: "white", fontFamily: "'Segoe UI',sans-serif",
   }}>
     <div style={{ fontSize: "60px", marginBottom: "16px" }}>🍃</div>
-    <div style={{ fontSize: "22px", fontWeight: "800" }}>{t?.welcome || "Tea Data Management"}</div>
-    <div style={{ fontSize: "14px", opacity: 0.7, marginTop: "8px" }}>{t?.loading || "Loading please wait..."}</div>
+    <div style={{ fontSize: "22px", fontWeight: "800" }}>{t?.welcome || "Welcome 🙏"}</div>
+    <div style={{ fontSize: "14px", opacity: 0.7, marginTop: "8px" }}>{t?.loading || "Please wait..."}</div>
   </div>
 );
 
@@ -62,6 +61,57 @@ const UpdateTicker = ({ config, lang }) => {
         whiteSpace: "nowrap", fontSize: "12px", fontWeight: "700",
         color: "#a5b4fc", fontFamily: "'Segoe UI', sans-serif",
         animation: "ticker 18s linear 1 forwards",
+        paddingLeft: "100vw",
+      }}>
+        {msg}
+      </div>
+    </div>
+  );
+};
+
+// ── Announcement Ticker ──
+const AnnouncementTicker = ({ lang }) => {
+  const [msg, setMsg] = useState(null);
+  const [visible, setVisible] = useState(false);
+
+  useEffect(() => {
+    const fetch = async () => {
+      try {
+        const snap = await getDoc(doc(db, "config", "announcement"));
+        if (!snap.exists()) return;
+        const data = snap.data();
+        if (!data.active || !data.message) return;
+        const key = "ann_ticker_" + (data.createdAt?.seconds || "0");
+        if (sessionStorage.getItem(key)) return;
+        sessionStorage.setItem(key, "1");
+        const text = data.message?.[lang] || data.message?.en || data.message || "";
+        const icon = data.icon || "📢";
+        setMsg(icon + "  " + text + "  •  " + icon + "  " + text);
+        setVisible(true);
+      } catch (e) { console.error(e); }
+    };
+    fetch();
+  }, [lang]);
+
+  if (!visible || !msg) return null;
+
+  return (
+    <div style={{
+      background: "linear-gradient(135deg,#1e293b,#0f172a)",
+      overflow: "hidden", height: "34px", display: "flex", alignItems: "center",
+      borderBottom: "1px solid rgba(251,191,36,0.3)",
+      cursor: "pointer",
+    }} onClick={() => setVisible(false)}>
+      <style>{`
+        @keyframes annTicker {
+          0%   { transform: translateX(100vw); }
+          100% { transform: translateX(-100%); }
+        }
+      `}</style>
+      <div style={{
+        whiteSpace: "nowrap", fontSize: "12px", fontWeight: "700",
+        color: "#fde68a", fontFamily: "'Segoe UI', sans-serif",
+        animation: "annTicker 22s linear 1 forwards",
         paddingLeft: "100vw",
       }}>
         {msg}
@@ -197,7 +247,7 @@ export default function App() {
       <TopBar user={user} currentPage={isAdmin ? "admin" : currentPage} isAdmin={isAdmin} onLangChange={handleLangChange} />
       {showUpdateBanner && !isAdmin && <UpdateTicker config={releaseConfig} lang={lang} />}
       <InstallBanner />
-      <AnnouncementPopup user={user} isAdmin={isAdmin} />
+      {!isAdmin && <AnnouncementTicker lang={lang} />}
       {showWelcome && !isAdmin && <WelcomePopup userName={user.displayName || user.email} onClose={() => setShowWelcome(false)} />}
       <main>{renderPage()}</main>
       {!isAdmin && <BottomNav currentPage={currentPage} setCurrentPage={setCurrentPage} />}
