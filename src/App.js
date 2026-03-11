@@ -38,7 +38,7 @@ const AnnouncementTicker = ({ lang }) => {
   const [visible, setVisible] = useState(false);
 
   useEffect(() => {
-    const fetch = async () => {
+    const loadAnn = async () => {
       try {
         const snap = await getDoc(doc(db, "config", "announcement"));
         if (!snap.exists()) return;
@@ -53,7 +53,7 @@ const AnnouncementTicker = ({ lang }) => {
         setVisible(true);
       } catch (e) { console.error(e); }
     };
-    fetch();
+    loadAnn();
   }, [lang]);
 
   if (!visible || !msg) return null;
@@ -95,7 +95,7 @@ export default function App() {
   const triggerWelcome = () => {
     if (!sessionStorage.getItem("welcomed")) {
       sessionStorage.setItem("welcomed", "1");
-      triggerWelcome();
+      setShowWelcome(true);
     }
   };
 
@@ -122,7 +122,6 @@ export default function App() {
             setIsAdmin(admin);
             setCurrentPage(admin ? "admin" : "dashboard");
             if (!admin) triggerWelcome();
-          }
           }
         } catch (err) {
           console.error("Auth error:", err);
