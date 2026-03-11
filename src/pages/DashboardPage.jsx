@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { auth, db } from "../firebase/config";
 import { collection, query, where, getDocs, doc, getDoc } from "firebase/firestore";
 import { useLang } from "../LanguageContext";
@@ -10,6 +10,8 @@ export default function DashboardPage({ user }) {
   const [entries, setEntries] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filterMonth, setFilterMonth] = useState("");
+  const [calDate, setCalDate] = useState(new Date());
+  const [selectedDay, setSelectedDay] = useState(null);
   const [totalAdvanceTaken, setTotalAdvanceTaken] = useState(0);
 
   useEffect(() => {
@@ -48,6 +50,8 @@ export default function DashboardPage({ user }) {
       stillLeft: "Still pending", overCut: "Over cut!",
       recent: "📋 Recent Entries",
       noEntry: "No entries yet", noEntrySub: "Add entry from Entry tab",
+      calTitle: "📅 Entry Calendar", noEntryDay: "No entry", kg: "kg",
+      prevMonth: "‹", nextMonth: "›",
       ratePending: "Rate pending", baaki: "Bal:",
       more: (n) => `+ ${n} more — see Records tab`,
       loading: "Loading...",
@@ -62,6 +66,8 @@ export default function DashboardPage({ user }) {
       stillLeft: "अभी बाकी", overCut: "ज्यादा कटा!",
       recent: "📋 हाल की प्रविष्टियां",
       noEntry: "कोई प्रविष्टि नहीं", noEntrySub: "प्रविष्टि टैब से जोड़ें",
+      calTitle: "📅 एंट्री कैलेंडर", noEntryDay: "कोई प्रविष्टि नहीं", kg: "कि.ग्रा.",
+      prevMonth: "‹", nextMonth: "›",
       ratePending: "हाॅर बाकी", baaki: "बाकी:",
       more: (n) => `+ ${n} और — रिकॉर्ड टैब देखें`,
       loading: "लोड हो रहा है...",
@@ -76,6 +82,8 @@ export default function DashboardPage({ user }) {
       stillLeft: "अझै बाँकी", overCut: "बढी काटियो!",
       recent: "📋 भर्खरका प्रविष्टि",
       noEntry: "कुनै प्रविष्टि छैन", noEntrySub: "प्रविष्टि ट्याबबाट थप्नुस्",
+      calTitle: "📅 प्रविष्टि क्यालेन्डर", noEntryDay: "कुनै प्रविष्टि छैन", kg: "कि.ग्रा.",
+      prevMonth: "‹", nextMonth: "›",
       ratePending: "दर बाँकी", baaki: "बाँकी:",
       more: (n) => `+ ${n} वटा — रेकर्ड ट्याब हेर्नुस्`,
       loading: "कृपया प्रतीक्षा गर्नुस्...",
@@ -90,6 +98,8 @@ export default function DashboardPage({ user }) {
       stillLeft: "এতিয়াও বাকী", overCut: "বেছি কটা হৈছে!",
       recent: "📋 শেহতীয়া তথ্য",
       noEntry: "কোনো তথ্য নাই", noEntrySub: "তথ্য টেবৰ পৰা যোগ কৰক",
+      calTitle: "📅 তথ্য কেলেণ্ডাৰ", noEntryDay: "কোনো তথ্য নাই", kg: "কি:গ্ৰা:",
+      prevMonth: "‹", nextMonth: "›",
       ratePending: "হাৰ বাকী", baaki: "বাকী:",
       more: (n) => `+ ${n} টা — ৰেকৰ্ড টেব চাওক`,
       loading: "অনুগ্ৰহ কৰি অপেক্ষা কৰক...",
@@ -165,44 +175,109 @@ export default function DashboardPage({ user }) {
         ))}
       </div>
 
-      {/* Recent Entries */}
-      <div style={{ fontSize: "15px", fontWeight: "800", color: d.text, marginBottom: "10px" }}>{T.recent}</div>
+      {/* Calendar */}
+      {(() => {
+        const year = calDate.getFullYear();
+        const month = calDate.getMonth();
+        const firstDay = new Date(year, month, 1).getDay();
+        const daysInMonth = new Date(year, month + 1, 0).getDate();
+        const monthKey = `${year}-${String(month+1).padStart(2,"0")}`;
+        
+        // Build entry map for this month
+        const entryMap = {};
+        entries.forEach(e => {
+          if (e.date?.startsWith(monthKey)) {
+            const day = parseInt(e.date.split("-")[2]);
+            if (!entryMap[day]) entryMap[day] = [];
+            entryMap[day].push(e);
+          }
+        });
 
-      {filtered.length === 0 ? (
-        <div style={{ textAlign: "center", padding: "40px", color: d.subtext, fontSize: "15px", background: d.card, borderRadius: "14px", border: `1px solid ${d.cardBorder}` }}>
-          <p>{T.noEntry}</p>
-          <p style={{ fontSize: "13px", marginTop: "6px" }}>{T.noEntrySub}</p>
-        </div>
-      ) : (
-        filtered.slice(0, 10).map(entry => (
-          <div key={entry.id} style={{ background: d.card, borderRadius: "12px", padding: "12px 14px", display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "8px", boxShadow: d.shadow, border: `1px solid ${d.cardBorder}` }}>
-            <div style={{ minWidth: "60px" }}>
-              <div style={{ fontSize: "13px", fontWeight: "800", color: d.text }}>
-                {new Date(entry.date + "T00:00:00").toLocaleDateString(locale, { day: "numeric", month: "short" })}
-              </div>
-              <div style={{ fontSize: "12px", color: d.subtext, marginTop: "2px" }}>{entry.weight} {lang === "en" ? "kg" : "কি:গ্ৰা:"}</div>
-            </div>
-            <div style={{ flex: 1, paddingLeft: "10px" }}>
-              {entry.rate > 0
-                ? <span style={{ fontSize: "12px", background: d.rateTag.bg, color: d.rateTag.color, padding: "3px 8px", borderRadius: "6px", fontWeight: "700" }}>Rs{entry.rate}/kg</span>
-                : <span style={{ fontSize: "11px", background: d.pendingTag.bg, color: d.pendingTag.color, padding: "3px 8px", borderRadius: "6px", fontWeight: "700" }}>{T.ratePending}</span>
-              }
-            </div>
-            <div style={{ textAlign: "right" }}>
-              {entry.totalAmount > 0 && <div style={{ fontSize: "15px", fontWeight: "800", color: d.text }}>Rs{entry.totalAmount.toFixed(0)}</div>}
-              <div style={{ fontSize: "11px", fontWeight: "700", marginTop: "2px", color: (entry.balanceAmount || 0) >= 0 ? "#16a34a" : "#dc2626" }}>
-                {T.baaki} Rs{(entry.balanceAmount || 0).toFixed(0)}
-              </div>
-            </div>
-          </div>
-        ))
-      )}
+        const monthName = calDate.toLocaleString(locale, { month: "long", year: "numeric" });
+        const dayNames = lang === "en" ? ["Su","Mo","Tu","We","Th","Fr","Sa"]
+          : lang === "hi" ? ["रवि","सोम","मंगल","बुध","गुरु","शुक्र","शनि"]
+          : lang === "ne" ? ["आइत","सोम","मंगल","बुध","बिहि","शुक्र","शनि"]
+          : ["ৰবি","সোম","মঙল","বুধ","বৃহ","শুক্র","শনি"];
 
-      {filtered.length > 10 && (
-        <div style={{ textAlign: "center", fontSize: "13px", color: d.subtext, padding: "12px", background: d.card, borderRadius: "10px", marginTop: "4px", border: `1px solid ${d.cardBorder}` }}>
-          {T.more(filtered.length - 10)}
-        </div>
-      )}
+        const today = new Date();
+        const isToday = (d) => today.getFullYear()===year && today.getMonth()===month && today.getDate()===d;
+
+        const prevMonth = () => setCalDate(new Date(year, month-1, 1));
+        const nextMonth = () => setCalDate(new Date(year, month+1, 1));
+
+        // Build grid
+        const cells = [];
+        for (let i = 0; i < firstDay; i++) cells.push(null);
+        for (let d2 = 1; d2 <= daysInMonth; d2++) cells.push(d2);
+
+        const selEntries = selectedDay ? (entryMap[selectedDay] || []) : [];
+
+        return (
+          <>
+            <div style={{ background: d.card, borderRadius: "16px", padding: "14px", border: `1px solid ${d.cardBorder}`, boxShadow: d.shadow }}>
+              {/* Header */}
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "12px" }}>
+                <button onClick={prevMonth} style={{ background: "none", border: "none", fontSize: "20px", cursor: "pointer", color: d.text, padding: "4px 8px" }}>‹</button>
+                <div style={{ fontSize: "14px", fontWeight: "800", color: d.text }}>{monthName}</div>
+                <button onClick={nextMonth} style={{ background: "none", border: "none", fontSize: "20px", cursor: "pointer", color: d.text, padding: "4px 8px" }}>›</button>
+              </div>
+
+              {/* Day names */}
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(7,1fr)", gap: "2px", marginBottom: "6px" }}>
+                {dayNames.map(dn => (
+                  <div key={dn} style={{ textAlign: "center", fontSize: "10px", fontWeight: "700", color: d.subtext, padding: "2px 0" }}>{dn}</div>
+                ))}
+              </div>
+
+              {/* Calendar grid */}
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(7,1fr)", gap: "3px" }}>
+                {cells.map((day, idx) => {
+                  if (!day) return <div key={idx} />;
+                  const hasEntry = !!entryMap[day];
+                  const isSel = selectedDay === day;
+                  const itToday = isToday(day);
+                  return (
+                    <div key={day} onClick={() => setSelectedDay(isSel ? null : day)}
+                      style={{
+                        aspectRatio: "1", display: "flex", flexDirection: "column",
+                        alignItems: "center", justifyContent: "center",
+                        borderRadius: "10px", cursor: "pointer",
+                        background: isSel ? "#1a3a1a" : itToday ? (dark ? "#1e3a5f" : "#dbeafe") : hasEntry ? (dark ? "#14532d" : "#f0fdf4") : "transparent",
+                        border: isSel ? "2px solid #2d5a27" : itToday ? "2px solid #3b82f6" : "2px solid transparent",
+                        position: "relative",
+                        transition: "all 0.15s",
+                      }}>
+                      <span style={{ fontSize: "12px", fontWeight: itToday || isSel ? "900" : "600", color: isSel ? "white" : itToday ? "#1d4ed8" : d.text }}>
+                        {day}
+                      </span>
+                      {hasEntry && (
+                        <div style={{ width: 5, height: 5, borderRadius: "50%", background: isSel ? "white" : "#16a34a", marginTop: "1px" }} />
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Selected day popup */}
+            {selectedDay && (
+              <div style={{ background: d.card, borderRadius: "14px", padding: "14px 16px", border: `1px solid ${d.cardBorder}`, boxShadow: d.shadow, marginTop: "10px", animation: "fadeIn 0.2s ease" }}>
+                <style>{`@keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}`}</style>
+                <div style={{ fontSize: "13px", fontWeight: "800", color: d.text, marginBottom: "8px" }}>
+                  {new Date(year, month, selectedDay).toLocaleDateString(locale, { day: "numeric", month: "long" })}
+                </div>
+                {selEntries.length === 0 ? (
+                  <div style={{ fontSize: "13px", color: d.subtext }}>{T.noEntryDay}</div>
+                ) : selEntries.map((e, i) => (
+                  <div key={i} style={{ fontSize: "15px", fontWeight: "900", color: "#16a34a", padding: "4px 0" }}>
+                    🍃 {e.weight} {T.kg}
+                  </div>
+                ))}
+              </div>
+            )}
+          </>
+        );
+      })()}
     </div>
   );
 }
