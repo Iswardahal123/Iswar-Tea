@@ -30,8 +30,8 @@ const Loader = ({ t }) => (
     color: "white", fontFamily: "'Segoe UI',sans-serif",
   }}>
     <div style={{ fontSize: "60px", marginBottom: "16px" }}>🍃</div>
-    <div style={{ fontSize: "22px", fontWeight: "800" }}>{t?.welcome || "Welcome 🙏"}</div>
-    <div style={{ fontSize: "14px", opacity: 0.7, marginTop: "8px" }}>{t?.loading || "Please wait..."}</div>
+    <div style={{ fontSize: "22px", fontWeight: "800" }}>{t?.welcome || "Tea Data Management"}</div>
+    <div style={{ fontSize: "14px", opacity: 0.7, marginTop: "8px" }}>{t?.loading || "Loading please wait..."}</div>
   </div>
 );
 
