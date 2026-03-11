@@ -6,7 +6,7 @@ export const translations = {
 
     // Login
     loginTitle: "Tea Data Management",
-    loginSub: "Tea Farm Management",
+    loginSub: "Manage your data easily",
     emailPlaceholder: "Email address",
     passwordPlaceholder: "Password",
     loginBtn: "Login",
@@ -97,7 +97,7 @@ export const translations = {
     saving: "⏳ Saving...",
 
     // AI Chat
-    chatWelcomeTitle: "Chai Bagan Assistant",
+    chatWelcomeTitle: "Management Assistant",
     chatWelcomeSub: "Ask anything about your entries",
     chatHelpTitle: "📋 What can you ask?",
     chatBack: "← Back",
@@ -108,8 +108,8 @@ export const translations = {
   hi: {
     welcome: "आपका स्वागत है 🙏",
     loading: "कृपया प्रतीक्षा करें...",
-    loginTitle: "चाय बागान",
-    loginSub: "चाय बाग प्रबंधन",
+    loginTitle: "Tea Data Management",
+    loginSub: "Manage your data easily",
     emailPlaceholder: "ईमेल पता",
     passwordPlaceholder: "पासवर्ड",
     loginBtn: "लॉगिन करें",
@@ -197,10 +197,10 @@ export const translations = {
   },
 
   as: {
-    welcome: "আপোনাক স্বাগতম জনালোঁ 🙏",
+    welcome: "Tea Data Management 🙏",
     loading: "অনুগ্ৰহ কৰি অপেক্ষা কৰক...",
-    loginTitle: "চাহ বাগান",
-    loginSub: "চাহ বাগান ব্যৱস্থাপনা",
+    loginTitle: "Tea Data Management",
+    loginSub: "Manage your data easily",
     emailPlaceholder: "ইমেইল ঠিকনা",
     passwordPlaceholder: "পাছৱৰ্ড",
     loginBtn: "লগইন কৰক",
