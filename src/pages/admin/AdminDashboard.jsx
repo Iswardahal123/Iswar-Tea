@@ -177,7 +177,7 @@ export default function AdminDashboard({ user }) {
     } catch (err) { console.error(err); }
   };
 
-  useEffect(() => { fetchUsers(); fetchReleaseConfig(); }, []);
+  useEffect(() => { fetchUsers(); fetchReleaseConfig(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const openUserDetail = async (u) => {
     setSelectedUser(u);
