@@ -164,17 +164,16 @@ export default function AdminDashboard({ user }) {
   const adminCount = users.filter(u => u.isAdmin).length;
 
   const handleSendAnnouncement = async () => {
-    if (!annMsg.trim()) { setAnnResult("❌ English message required!"); return; }
+    if (!annMsg.trim()) { setAnnResult("❌ Message likhein!"); return; }
     setAnnLoading(true); setAnnResult("");
     try {
       await setDoc(doc(db, "config", "announcement"), {
-        active: true, icon: annIcon,
-        title: { en: annTitleEn, hi: annTitleEn, ne: annTitleEn, as: annTitleEn },
-        message: { en: annMsg, hi: annMsgHi || annMsg, ne: annMsgNe || annMsg, as: annMsgAs || annMsg },
+        active: true, icon: "📢",
+        message: { en: annMsg, hi: annMsg, ne: annMsg, as: annMsg },
         createdAt: { seconds: Math.floor(Date.now() / 1000) },
         sentBy: user?.email || "admin",
       }, { merge: false });
-      setAnnResult("✅ Announcement sent! All users will see it.");
+      setAnnResult("✅ Bhej diya!");
       setTimeout(() => setAnnResult(""), 3000);
     } catch (e) { setAnnResult("❌ " + e.message); }
     setAnnLoading(false);
@@ -217,16 +216,7 @@ export default function AdminDashboard({ user }) {
         </button>
         {showAnnPanel && (
           <div style={{ padding: "0 16px 20px", display: "flex", flexDirection: "column", gap: "12px" }}>
-            <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
-              {["📢","🍃","🎉","⚠️","💰","🚀","🔔","🎯"].map(ic => (
-                <button key={ic} onClick={() => setAnnIcon(ic)} style={{ fontSize: "22px", background: annIcon === ic ? "rgba(255,255,255,0.25)" : "rgba(255,255,255,0.08)", border: annIcon === ic ? "2px solid white" : "2px solid transparent", borderRadius: "10px", width: 40, height: 40, cursor: "pointer" }}>{ic}</button>
-              ))}
-            </div>
-            <input value={annTitleEn} onChange={e => setAnnTitleEn(e.target.value)} placeholder="Title (e.g. New Update!)" style={{ padding: "10px 14px", borderRadius: "10px", border: "2px solid #334155", background: "#0f172a", color: "white", fontSize: "14px", fontFamily: "inherit", outline: "none" }} />
-            <textarea value={annMsg} onChange={e => setAnnMsg(e.target.value)} placeholder="Message in English (required)" rows={2} style={{ padding: "10px 14px", borderRadius: "10px", border: "2px solid #334155", background: "#0f172a", color: "white", fontSize: "14px", fontFamily: "inherit", outline: "none", resize: "none" }} />
-            <textarea value={annMsgHi} onChange={e => setAnnMsgHi(e.target.value)} placeholder="Hindi message (optional)" rows={2} style={{ padding: "10px 14px", borderRadius: "10px", border: "2px solid #334155", background: "#0f172a", color: "white", fontSize: "14px", fontFamily: "inherit", outline: "none", resize: "none" }} />
-            <textarea value={annMsgAs} onChange={e => setAnnMsgAs(e.target.value)} placeholder="Assamese message (optional)" rows={2} style={{ padding: "10px 14px", borderRadius: "10px", border: "2px solid #334155", background: "#0f172a", color: "white", fontSize: "14px", fontFamily: "inherit", outline: "none", resize: "none" }} />
-            <textarea value={annMsgNe} onChange={e => setAnnMsgNe(e.target.value)} placeholder="Nepali message (optional)" rows={2} style={{ padding: "10px 14px", borderRadius: "10px", border: "2px solid #334155", background: "#0f172a", color: "white", fontSize: "14px", fontFamily: "inherit", outline: "none", resize: "none" }} />
+            <textarea value={annMsg} onChange={e => setAnnMsg(e.target.value)} placeholder="Message likho..." rows={3} style={{ padding: "12px 14px", borderRadius: "12px", border: "2px solid #334155", background: "#0f172a", color: "white", fontSize: "14px", fontFamily: "inherit", outline: "none", resize: "none" }} />
             {annResult && <div style={{ background: annResult.startsWith("❌") ? "#fef2f2" : "#f0fdf4", color: annResult.startsWith("❌") ? "#dc2626" : "#16a34a", padding: "10px 14px", borderRadius: "10px", fontSize: "13px", fontWeight: "700" }}>{annResult}</div>}
             <div style={{ display: "flex", gap: "10px" }}>
               <button onClick={handleSendAnnouncement} disabled={annLoading} style={{ flex: 1, padding: "12px", background: "linear-gradient(135deg,#1a3a1a,#2d5a27)", color: "white", border: "none", borderRadius: "12px", fontSize: "14px", fontWeight: "800", cursor: "pointer", fontFamily: "inherit" }}>
