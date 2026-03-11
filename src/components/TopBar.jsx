@@ -96,6 +96,7 @@ export default function TopBar({ user, currentPage, isAdmin, onLangChange }) {
       await reauthenticateWithCredential(auth.currentUser, credential);
       const snap = await getDocs(query(collection(db, "entries"), where("uid", "==", user.uid)));
       await Promise.all(snap.docs.map(d => deleteDoc(doc(db, "entries", d.id))));
+      await updateDoc(doc(db, "users", user.uid), { totalAdvanceTaken: 0 });
       setMsg("✅ All data deleted!"); setMsgType("success");
       setClearPwd("");
       setTimeout(() => { closeModal(); window.location.reload(); }, 2000);
@@ -127,7 +128,7 @@ export default function TopBar({ user, currentPage, isAdmin, onLangChange }) {
         <div style={styles.left}>
           <span style={styles.logo}>🍃</span>
           <div>
-            <div style={styles.appName}>Tea Data Management</div>
+            <div style={styles.appName}>চাহ হিচাব</div>
             <div style={styles.pageName}>{pn[currentPage] || "Home"}</div>
           </div>
         </div>
