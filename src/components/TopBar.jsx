@@ -3,12 +3,14 @@ import { auth, db } from "../firebase/config";
 import { signOut, updatePassword, reauthenticateWithCredential, EmailAuthProvider } from "firebase/auth";
 import { doc, deleteDoc, collection, query, where, getDocs, getDoc, updateDoc } from "firebase/firestore";
 import { useLang } from "../LanguageContext";
+import { useDark } from "../DarkModeContext";
 import { langNames } from "../languages";
 
 const langFlags = { en: "🇬🇧", hi: "🇮🇳", as: "🌿", ne: "🇳🇵" };
 
 export default function TopBar({ user, currentPage, isAdmin, onLangChange }) {
   const { lang } = useLang();
+  const { dark, toggleDark } = useDark();
   const [showSettings, setShowSettings] = useState(false);
   const [activeModal, setActiveModal] = useState(null); // 'lang' | 'password' | 'advance' | 'clear' | 'logout'
   const [currentAdvance, setCurrentAdvance] = useState(0);
@@ -108,12 +110,16 @@ export default function TopBar({ user, currentPage, isAdmin, onLangChange }) {
   const displayName = user.displayName || user.email?.split("@")[0] || "User";
   const initial = (displayName)[0].toUpperCase();
 
+  const darkLabel = lang === "en" ? "Dark Mode" : lang === "hi" ? "डार्क मोड" : lang === "ne" ? "डार्क मोड" : "ডাৰ্ক মোড";
+
   const settingsItems = isAdmin ? [
+    { icon: dark ? "☀️" : "🌙", label: darkLabel, sub: null, action: toggleDark },
     { icon: "🚪", label: lang === "en" ? "Logout" : lang === "hi" ? "लॉगआउट" : lang === "ne" ? "लगआउट" : "লগআউট", sub: null, danger: true, action: handleLogout },
   ] : [
     { icon: "🌐", label: lang === "en" ? "Language" : lang === "hi" ? "भाषा" : lang === "ne" ? "भाषा" : "ভাষা", sub: langNames[lang], action: () => openModal("lang") },
     { icon: "💰", label: lang === "en" ? "Update Advance" : lang === "hi" ? "अग्रिम अपडेट" : lang === "ne" ? "अग्रिम अपडेट" : "এডভান্স আপডেট", sub: null, action: () => openModal("advance") },
     ...(!isGoogleUser ? [{ icon: "🔑", label: lang === "en" ? "Change Password" : lang === "hi" ? "पासवर्ड बदलें" : lang === "ne" ? "पासवर्ड परिवर्तन" : "পাছৱৰ্ড সলনি", sub: null, action: () => openModal("password") }] : []),
+    { icon: dark ? "☀️" : "🌙", label: darkLabel, sub: null, action: toggleDark },
     { icon: "🗑️", label: lang === "en" ? "Clear All Data" : lang === "hi" ? "सारा डेटा हटाएं" : lang === "ne" ? "सबै डेटा मेट्नुस्" : "সকলো তথ্য মচক", sub: null, danger: true, action: () => openModal("clear") },
     { icon: "🚪", label: lang === "en" ? "Logout" : lang === "hi" ? "लॉगआउट" : lang === "ne" ? "लगआउट" : "লগআউট", sub: null, danger: true, action: handleLogout },
   ];
@@ -280,7 +286,7 @@ export default function TopBar({ user, currentPage, isAdmin, onLangChange }) {
 }
 
 const styles = {
-  bar: { background: "linear-gradient(135deg,#1a3a1a,#2d5a27)", color: "white", padding: "10px 14px", display: "flex", alignItems: "center", justifyContent: "space-between", position: "sticky", top: 0, zIndex: 200, boxShadow: "0 2px 16px rgba(0,0,0,0.25)" },
+  bar: { background: dark ? "linear-gradient(135deg,#0f172a,#1e293b)" : "linear-gradient(135deg,#1a3a1a,#2d5a27)", color: "white", padding: "10px 14px", display: "flex", alignItems: "center", justifyContent: "space-between", position: "sticky", top: 0, zIndex: 200, boxShadow: "0 2px 16px rgba(0,0,0,0.25)" },
   left: { display: "flex", alignItems: "center", gap: "10px" },
   logo: { fontSize: "24px" },
   appName: { fontSize: "16px", fontWeight: "900", letterSpacing: "-0.3px" },
