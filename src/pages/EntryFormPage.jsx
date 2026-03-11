@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { auth, db } from "../firebase/config";
 import { collection, addDoc, Timestamp } from "firebase/firestore";
 import { useLang } from "../LanguageContext";
+import { useDark } from "../DarkModeContext";
 
 const txt = {
   en: {
@@ -44,6 +45,7 @@ const txt = {
 
 export default function EntryFormPage({ user }) {
   const { lang } = useLang();
+  const { dark } = useDark();
   const T = txt[lang] || txt.as;
   const today = new Date().toISOString().split("T")[0];
   const [form, setForm] = useState({ date: today, weight: "" });
@@ -75,38 +77,49 @@ export default function EntryFormPage({ user }) {
     setLoading(false);
   };
 
+  const d = {
+    bg: dark ? "#0f172a" : "#f0f4f0",
+    card: dark ? "#1e293b" : "white",
+    cardShadow: dark ? "0 4px 20px rgba(0,0,0,0.4)" : "0 4px 20px rgba(0,0,0,0.08)",
+    text: dark ? "#f1f5f9" : "#1a3a1a",
+    label: dark ? "#cbd5e1" : "#374151",
+    hint: dark ? "#475569" : "#f9fafb",
+    hintText: dark ? "#94a3b8" : "#6b7280",
+    input: dark ? "#0f172a" : "white",
+    inputBorder: dark ? "#475569" : "#e5e7eb",
+    inputText: dark ? "#f1f5f9" : "#1a1a1a",
+  };
+
   return (
-    <div style={styles.page}>
-      <div style={styles.card}>
-        <h2 style={styles.title}>{T.title}</h2>
-        <p style={styles.hint}>{T.hint}</p>
-        {success && <div style={styles.success}>{T.successMsg}</div>}
-        {error && <div style={styles.error}>⚠️ {error}</div>}
-        <div style={styles.field}>
-          <label style={styles.label}>{T.dateLabel}</label>
-          <input type="date" name="date" value={form.date} max={today} onChange={handleChange} style={styles.input} />
+    <div style={{ minHeight: "calc(100vh - 120px)", background: d.bg, display: "flex", alignItems: "center", justifyContent: "center", padding: "20px", paddingBottom: "90px", fontFamily: "'Segoe UI', sans-serif" }}>
+      <div style={{ background: d.card, borderRadius: "20px", padding: "28px 24px", boxShadow: d.cardShadow, width: "100%", maxWidth: "400px", display: "flex", flexDirection: "column", gap: "18px" }}>
+
+        <h2 style={{ fontSize: "20px", fontWeight: "900", color: d.text, margin: 0, textAlign: "center" }}>{T.title}</h2>
+
+        <p style={{ fontSize: "12px", color: d.hintText, background: d.hint, padding: "10px 14px", borderRadius: "10px", margin: 0, lineHeight: "1.5", borderLeft: "3px solid #86efac" }}>
+          {T.hint}
+        </p>
+
+        {success && <div style={{ background: dark ? "#14532d" : "#f0fdf4", color: dark ? "#86efac" : "#16a34a", padding: "12px 14px", borderRadius: "10px", fontSize: "14px", fontWeight: "700", borderLeft: "3px solid #16a34a" }}>{T.successMsg}</div>}
+        {error && <div style={{ background: dark ? "#7f1d1d" : "#fef2f2", color: dark ? "#fca5a5" : "#dc2626", padding: "12px 14px", borderRadius: "10px", fontSize: "14px", fontWeight: "600", borderLeft: "3px solid #dc2626" }}>⚠️ {error}</div>}
+
+        <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+          <label style={{ fontSize: "14px", fontWeight: "700", color: d.label }}>{T.dateLabel}</label>
+          <input type="date" name="date" value={form.date} max={today} onChange={handleChange}
+            style={{ padding: "14px 16px", borderRadius: "12px", border: `2px solid ${d.inputBorder}`, fontSize: "16px", outline: "none", fontFamily: "inherit", width: "100%", boxSizing: "border-box", background: d.input, color: d.inputText }} />
         </div>
-        <div style={styles.field}>
-          <label style={styles.label}>{T.weightLabel}</label>
-          <input type="number" name="weight" value={form.weight} onChange={handleChange} placeholder={T.weightPh} min="0" style={styles.input} />
+
+        <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+          <label style={{ fontSize: "14px", fontWeight: "700", color: d.label }}>{T.weightLabel}</label>
+          <input type="number" name="weight" value={form.weight} onChange={handleChange} placeholder={T.weightPh} min="0"
+            style={{ padding: "14px 16px", borderRadius: "12px", border: `2px solid ${d.inputBorder}`, fontSize: "16px", outline: "none", fontFamily: "inherit", width: "100%", boxSizing: "border-box", background: d.input, color: d.inputText }} />
         </div>
-        <button onClick={handleSubmit} disabled={loading || !form.weight} style={{ ...styles.btn, opacity: loading || !form.weight ? 0.6 : 1 }}>
+
+        <button onClick={handleSubmit} disabled={loading || !form.weight}
+          style={{ background: "linear-gradient(135deg,#1a3a1a,#2d5a27)", color: "white", border: "none", padding: "16px", borderRadius: "12px", fontSize: "16px", fontWeight: "700", cursor: "pointer", fontFamily: "inherit", width: "100%", opacity: loading || !form.weight ? 0.6 : 1 }}>
           {loading ? T.submitting : T.submitBtn}
         </button>
       </div>
     </div>
   );
 }
-
-const styles = {
-  page: { minHeight: "calc(100vh - 120px)", background: "#f0f4f0", display: "flex", alignItems: "center", justifyContent: "center", padding: "20px", paddingBottom: "90px", fontFamily: "'Segoe UI', sans-serif" },
-  card: { background: "white", borderRadius: "20px", padding: "28px 24px", boxShadow: "0 4px 20px rgba(0,0,0,0.08)", width: "100%", maxWidth: "400px", display: "flex", flexDirection: "column", gap: "18px" },
-  title: { fontSize: "20px", fontWeight: "900", color: "#1a3a1a", margin: 0, textAlign: "center" },
-  hint: { fontSize: "12px", color: "#6b7280", background: "#f9fafb", padding: "10px 14px", borderRadius: "10px", margin: 0, lineHeight: "1.5", borderLeft: "3px solid #86efac" },
-  success: { background: "#f0fdf4", color: "#16a34a", padding: "12px 14px", borderRadius: "10px", fontSize: "14px", fontWeight: "700", borderLeft: "3px solid #16a34a" },
-  error: { background: "#fef2f2", color: "#dc2626", padding: "12px 14px", borderRadius: "10px", fontSize: "14px", fontWeight: "600", borderLeft: "3px solid #dc2626" },
-  field: { display: "flex", flexDirection: "column", gap: "8px" },
-  label: { fontSize: "14px", fontWeight: "700", color: "#374151" },
-  input: { padding: "14px 16px", borderRadius: "12px", border: "2px solid #e5e7eb", fontSize: "16px", outline: "none", fontFamily: "inherit", width: "100%", boxSizing: "border-box" },
-  btn: { background: "linear-gradient(135deg,#1a3a1a,#2d5a27)", color: "white", border: "none", padding: "16px", borderRadius: "12px", fontSize: "16px", fontWeight: "700", cursor: "pointer", fontFamily: "inherit", width: "100%" },
-};
