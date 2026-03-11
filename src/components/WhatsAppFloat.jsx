@@ -17,8 +17,9 @@ const toastMsg = {
   ne: "सम्पर्क गर्नुस्!",
 };
 
-export default function WhatsAppFloat() {
+export default function WhatsAppFloat({ isAdmin }) {
   const { lang } = useLang();
+  if (isAdmin) return null;
   const [pos, setPos] = useState({ x: null, y: null });
   const [dragging, setDragging] = useState(false);
   const [hasMoved, setHasMoved] = useState(false);
