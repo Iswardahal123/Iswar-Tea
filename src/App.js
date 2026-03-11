@@ -5,6 +5,7 @@ import { onAuthStateChanged } from "firebase/auth";
 import { doc, getDoc, setDoc, updateDoc } from "firebase/firestore";
 
 import { useLang } from "./LanguageContext";
+import { useDark } from "./DarkModeContext";
 import Login from "./components/Login";
 import TopBar from "./components/TopBar";
 import BottomNav from "./components/BottomNav";
@@ -16,6 +17,7 @@ import EntryViewPage from "./pages/EntryViewPage";
 import AIChatPage from "./pages/AIChatPage";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import WelcomePopup from "./components/WelcomePopup";
+import InstallBanner from "./components/InstallBanner";
 
 export const APP_VERSION = "1.0.0"; // Change this on every deploy
 
@@ -69,6 +71,7 @@ const UpdateTicker = ({ config, lang }) => {
 
 export default function App() {
   const { lang, setLang, t } = useLang();
+  const { dark } = useDark();
   const [user, setUser] = useState(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [checkingAuth, setCheckingAuth] = useState(true);
@@ -189,9 +192,10 @@ export default function App() {
   };
 
   return (
-    <div style={{ fontFamily: "'Segoe UI',sans-serif", background: "#f8faf8", minHeight: "100vh" }}>
+    <div style={{ fontFamily: "'Segoe UI',sans-serif", background: dark ? "#0f172a" : "#f8faf8", minHeight: "100vh", color: dark ? "#f1f5f9" : "#1a1a1a" }}>
       <TopBar user={user} currentPage={isAdmin ? "admin" : currentPage} isAdmin={isAdmin} onLangChange={handleLangChange} />
       {showUpdateBanner && !isAdmin && <UpdateTicker config={releaseConfig} lang={lang} />}
+      <InstallBanner />
       {showWelcome && !isAdmin && <WelcomePopup userName={user.displayName || user.email} onClose={() => setShowWelcome(false)} />}
       <main>{renderPage()}</main>
       {!isAdmin && <BottomNav currentPage={currentPage} setCurrentPage={setCurrentPage} />}
