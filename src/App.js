@@ -184,7 +184,7 @@ export default function App() {
       {showUpdateBanner && !isAdmin && <UpdateTicker config={releaseConfig} lang={lang} />}
       <main>{renderPage()}</main>
       {!isAdmin && <BottomNav currentPage={currentPage} setCurrentPage={setCurrentPage} />}
-      <WhatsAppFloat />
+      <WhatsAppFloat isAdmin={isAdmin} />
     </div>
   );
 }
