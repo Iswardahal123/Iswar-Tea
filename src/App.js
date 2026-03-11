@@ -15,6 +15,7 @@ import EntryFormPage from "./pages/EntryFormPage";
 import EntryViewPage from "./pages/EntryViewPage";
 import AIChatPage from "./pages/AIChatPage";
 import AdminDashboard from "./pages/admin/AdminDashboard";
+import WelcomePopup from "./components/WelcomePopup";
 
 export const APP_VERSION = "1.0.0"; // Change this on every deploy
 
@@ -73,6 +74,7 @@ export default function App() {
   const [checkingAuth, setCheckingAuth] = useState(true);
   const [currentPage, setCurrentPage] = useState("dashboard");
   const [releaseConfig, setReleaseConfig] = useState(null);
+  const [showWelcome, setShowWelcome] = useState(false);
   const [showUpdateBanner, setShowUpdateBanner] = useState(false);
 
   // ── Check release config ──
@@ -113,6 +115,7 @@ export default function App() {
             const admin = data.isAdmin === true;
             setIsAdmin(admin);
             setCurrentPage(admin ? "admin" : "dashboard");
+            if (!admin) setShowWelcome(true);
             // Version check — test users see testVersion, others see latestVersion
             if (!admin && window._releaseConfig) {
               const rc = window._releaseConfig;
@@ -182,6 +185,7 @@ export default function App() {
     <div style={{ fontFamily: "'Segoe UI',sans-serif", background: "#f8faf8", minHeight: "100vh" }}>
       <TopBar user={user} currentPage={isAdmin ? "admin" : currentPage} isAdmin={isAdmin} onLangChange={handleLangChange} />
       {showUpdateBanner && !isAdmin && <UpdateTicker config={releaseConfig} lang={lang} />}
+      {showWelcome && !isAdmin && <WelcomePopup userName={user.displayName || user.email} onClose={() => setShowWelcome(false)} />}
       <main>{renderPage()}</main>
       {!isAdmin && <BottomNav currentPage={currentPage} setCurrentPage={setCurrentPage} />}
       <WhatsAppFloat isAdmin={isAdmin} />
