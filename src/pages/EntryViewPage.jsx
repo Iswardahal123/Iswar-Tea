@@ -274,20 +274,6 @@ export default function EntryViewPage({ user }) {
 
         const cardContent = (
           <>
-            {/* 💧 Water badge — top right corner */}
-            {isWater && (
-              <div style={{
-                position: "absolute", top: 0, right: 0, zIndex: 2,
-                background: dark ? "#0c4a6e" : "#0ea5e9",
-                color: "white", fontSize: "10px", fontWeight: "800",
-                padding: "3px 10px 3px 8px",
-                borderRadius: "0 14px 0 10px",
-                letterSpacing: "0.3px",
-              }}>
-                {T.waterBadge}
-              </div>
-            )}
-
             <div style={{ position: "relative", zIndex: 1, padding: "14px 16px", display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
               <div>
                 <div style={{ fontSize: "14px", fontWeight: "800", color: d.text }}>
@@ -297,7 +283,7 @@ export default function EntryViewPage({ user }) {
                   {entry.weight} {T.unit}{entry.rate > 0 ? ` @ Rs${entry.rate}${T.per}` : ""}
                 </div>
               </div>
-              <div style={{ textAlign: "right", marginTop: isWater ? "14px" : "0" }}>
+              <div style={{ textAlign: "right" }}>
                 {entry.totalAmount > 0
                   ? <div style={{ fontSize: "20px", fontWeight: "900", color: d.text }}>Rs {entry.totalAmount.toFixed(0)}</div>
                   : <div style={{ fontSize: "12px", color: d.pendingColor, background: d.pendingBg, padding: "3px 8px", borderRadius: "6px", fontWeight: "700" }}>{T.pending}</div>
