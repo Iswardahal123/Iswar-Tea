@@ -21,6 +21,7 @@ const txt = {
     balHint: (t,a,r,b) => `${t} - ${a} - ${r} = ${b}`,
     currency: "Rs", unit: "kg", per: "/kg",
     saveBtn: "✅ Save", saving: "⏳ Saving...", locale: "en-IN",
+    waterBadge: "💧 Water",
   },
   hi: {
     loading: "कृपया प्रतीक्षा करें...", monthLabel: "📅 महिना:", clearBtn: "हटाएं",
@@ -38,6 +39,7 @@ const txt = {
     balHint: (t,a,r,b) => `${t} - ${a} - ${r} = ${b}`,
     currency: "Rs", unit: "कि.ग्रा.", per: "/कि.ग्रा.",
     saveBtn: "✅ सेव करें", saving: "⏳ सेव हो रहा है...", locale: "hi-IN",
+    waterBadge: "💧 पानी",
   },
   ne: {
     loading: "कृपया प्रतीक्षा गर्नुस्...", monthLabel: "📅 महिना:", clearBtn: "हटाउनुस्",
@@ -55,6 +57,7 @@ const txt = {
     balHint: (t,a,r,b) => `${t} - ${a} - ${r} = ${b}`,
     currency: "Rs", unit: "कि.ग्रा.", per: "/कि.ग्रा.",
     saveBtn: "✅ सुरक्षित गर्नुस्", saving: "⏳ सुरक्षित हुँदैछ...", locale: "ne-NP",
+    waterBadge: "💧 पानी",
   },
   as: {
     loading: "অনুগ্ৰহ কৰি অপেক্ষা কৰক...", monthLabel: "📅 মাহ:", clearBtn: "বাতিল",
@@ -72,6 +75,7 @@ const txt = {
     balHint: (t,a,r,b) => `${t} - ${a} - ${r} = ${b} টকা`,
     currency: "টকা", unit: "কি:গ্ৰা:", per: "/কি:গ্ৰা:",
     saveBtn: "✅ সংৰক্ষণ কৰক", saving: "⏳ সংৰক্ষণ হৈ আছে...", locale: "as-IN",
+    waterBadge: "💧 পানী",
   },
 };
 
@@ -101,7 +105,6 @@ export default function EntryViewPage({ user }) {
 
   useEffect(() => { fetchEntries(); }, [fetchEntries]);
 
-  // ✅ Newest first — date ke hisaab se descending sort
   const filtered = (filterMonth ? entries.filter(e => e.date?.startsWith(filterMonth)) : entries)
     .slice()
     .sort((a, b) => (b.date || "").localeCompare(a.date || ""));
@@ -143,7 +146,6 @@ export default function EntryViewPage({ user }) {
     setSaving(false);
   };
 
-  // Dark mode palette
   const d = {
     bg: dark ? "#0f172a" : "#f8faf8",
     card: dark ? "#1e293b" : "white",
@@ -202,7 +204,23 @@ export default function EntryViewPage({ user }) {
           <p style={{ fontSize: "13px", marginTop: "6px" }}>{T.noDataSub}</p>
         </div>
       ) : filtered.map(entry => (
-        <div key={entry.id} style={{ background: d.card, borderRadius: "14px", boxShadow: d.shadow, marginBottom: "10px", overflow: "hidden", border: d.cardBorder }}>
+        <div key={entry.id} style={{ position: "relative", background: d.card, borderRadius: "14px", boxShadow: d.shadow, marginBottom: "10px", overflow: "hidden", border: entry.waterStatus === "yes" ? `1.5px solid ${dark ? "#38bdf8" : "#7dd3fc"}` : d.cardBorder }}>
+
+          {/* 💧 Water badge — top-right corner */}
+          {entry.waterStatus === "yes" && (
+            <div style={{
+              position: "absolute", top: 0, right: 0,
+              background: dark ? "#0c4a6e" : "#0ea5e9",
+              color: "white",
+              fontSize: "10px", fontWeight: "800",
+              padding: "3px 10px 3px 8px",
+              borderRadius: "0 14px 0 10px",
+              letterSpacing: "0.3px",
+            }}>
+              {T.waterBadge}
+            </div>
+          )}
+
           <div style={{ padding: "14px 16px", display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
             <div>
               <div style={{ fontSize: "14px", fontWeight: "800", color: d.text }}>
@@ -212,7 +230,7 @@ export default function EntryViewPage({ user }) {
                 {entry.weight} {T.unit}{entry.rate > 0 ? ` @ Rs${entry.rate}${T.per}` : ""}
               </div>
             </div>
-            <div style={{ textAlign: "right" }}>
+            <div style={{ textAlign: "right", marginTop: entry.waterStatus === "yes" ? "14px" : "0" }}>
               {entry.totalAmount > 0
                 ? <div style={{ fontSize: "20px", fontWeight: "900", color: d.text }}>Rs {entry.totalAmount.toFixed(0)}</div>
                 : <div style={{ fontSize: "12px", color: d.pendingColor, background: d.pendingBg, padding: "3px 8px", borderRadius: "6px", fontWeight: "700" }}>{T.pending}</div>
