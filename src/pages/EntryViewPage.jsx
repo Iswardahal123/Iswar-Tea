@@ -6,10 +6,10 @@ import { useDark } from "../DarkModeContext";
 
 const RAIN_CSS = `
 @keyframes rainFall {
-  0%   { transform: translateY(-10px); opacity: 0; }
-  10%  { opacity: 1; }
-  90%  { opacity: 0.65; }
-  100% { transform: translateY(110px); opacity: 0; }
+  0%   { transform: translateY(0px); opacity: 0; }
+  8%   { opacity: 1; }
+  92%  { opacity: 0.5; }
+  100% { transform: translateY(var(--travel, 600px)); opacity: 0; }
 }
 .rain-drop {
   position: absolute;
@@ -22,29 +22,41 @@ const RAIN_CSS = `
 }
 `;
 
-function RainCard({ children, style }) {
+function RainCard({ children, style, onClick }) {
   const cardRef = useRef(null);
 
   useEffect(() => {
     const card = cardRef.current;
     if (!card) return;
-    const drops = [];
-    for (let i = 0; i < 28; i++) {
-      const d = document.createElement("div");
-      d.className = "rain-drop";
-      const left = Math.random() * 100;
-      const height = 8 + Math.random() * 10;
-      const dur = 0.55 + Math.random() * 0.6;
-      const delay = Math.random() * 2;
-      d.style.cssText = `left:${left}%;top:-12px;height:${height}px;animation-duration:${dur}s;animation-delay:${delay}s;`;
-      card.appendChild(d);
-      drops.push(d);
-    }
-    return () => drops.forEach(d => d.remove());
+    const frame = requestAnimationFrame(() => {
+      const h = card.getBoundingClientRect().height || 500;
+      const drops = [];
+      for (let i = 0; i < 40; i++) {
+        const d = document.createElement("div");
+        d.className = "rain-drop";
+        const left = Math.random() * 100;
+        const dropH = 14 + Math.random() * 12;
+        const dur = 1.0 + Math.random() * 1.2;
+        const delay = -(Math.random() * dur);
+        d.style.left = left + "%";
+        d.style.top = "-" + dropH + "px";
+        d.style.height = dropH + "px";
+        d.style.animationDuration = dur + "s";
+        d.style.animationDelay = delay + "s";
+        d.style.setProperty("--travel", (h + dropH + 10) + "px");
+        card.appendChild(d);
+        drops.push(d);
+      }
+      card._rainDrops = drops;
+    });
+    return () => {
+      cancelAnimationFrame(frame);
+      if (card._rainDrops) card._rainDrops.forEach(d => d.remove());
+    };
   }, []);
 
   return (
-    <div ref={cardRef} style={{ position: "relative", overflow: "hidden", ...style }}>
+    <div ref={cardRef} onClick={onClick} style={{ position: "relative", overflow: "hidden", ...style }}>
       {children}
     </div>
   );
