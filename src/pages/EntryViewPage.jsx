@@ -6,10 +6,10 @@ import { useDark } from "../DarkModeContext";
 
 const RAIN_CSS = `
 @keyframes rainFall {
-  0%   { transform: translateY(0px); opacity: 0; }
-  8%   { opacity: 1; }
+  0%   { transform: translateY(0); opacity: 0; }
+  8%   { opacity: 0.9; }
   92%  { opacity: 0.5; }
-  100% { transform: translateY(var(--travel, 600px)); opacity: 0; }
+  100% { transform: translateY(var(--travel, 120px)); opacity: 0; }
 }
 .rain-drop {
   position: absolute;
@@ -20,29 +20,36 @@ const RAIN_CSS = `
   pointer-events: none;
   z-index: 0;
 }
+.rain-drop-fixed {
+  position: fixed;
+  width: 1.5px;
+  background: linear-gradient(to bottom, transparent, #7dd3fa);
+  border-radius: 2px;
+  animation: rainFall linear infinite;
+  pointer-events: none;
+  z-index: 1050;
+}
 `;
 
+// For entry cards — drops are absolute inside card
 function RainCard({ children, style, onClick }) {
   const cardRef = useRef(null);
-
   useEffect(() => {
     const card = cardRef.current;
     if (!card) return;
     const frame = requestAnimationFrame(() => {
-      const h = card.getBoundingClientRect().height || 500;
+      const h = card.getBoundingClientRect().height || 120;
       const drops = [];
-      for (let i = 0; i < 40; i++) {
+      for (let i = 0; i < 35; i++) {
         const d = document.createElement("div");
         d.className = "rain-drop";
-        const left = Math.random() * 100;
-        const dropH = 14 + Math.random() * 12;
-        const dur = 1.0 + Math.random() * 1.2;
-        const delay = -(Math.random() * dur);
-        d.style.left = left + "%";
+        const dropH = 12 + Math.random() * 10;
+        const dur = 0.9 + Math.random() * 1.0;
+        d.style.left = (Math.random() * 100) + "%";
         d.style.top = "-" + dropH + "px";
         d.style.height = dropH + "px";
         d.style.animationDuration = dur + "s";
-        d.style.animationDelay = delay + "s";
+        d.style.animationDelay = -(Math.random() * dur) + "s";
         d.style.setProperty("--travel", (h + dropH + 10) + "px");
         card.appendChild(d);
         drops.push(d);
@@ -54,9 +61,47 @@ function RainCard({ children, style, onClick }) {
       if (card._rainDrops) card._rainDrops.forEach(d => d.remove());
     };
   }, []);
-
   return (
     <div ref={cardRef} onClick={onClick} style={{ position: "relative", overflow: "hidden", ...style }}>
+      {children}
+    </div>
+  );
+}
+
+// For modal — drops are fixed on body so they cover full modal height
+function RainModal({ children, style, onClick }) {
+  const modalRef = useRef(null);
+  useEffect(() => {
+    const drops = [];
+    const create = () => {
+      drops.forEach(d => d.remove());
+      drops.length = 0;
+      const el = modalRef.current;
+      if (!el) return;
+      const rect = el.getBoundingClientRect();
+      for (let i = 0; i < 45; i++) {
+        const d = document.createElement("div");
+        d.className = "rain-drop-fixed";
+        const dropH = 14 + Math.random() * 12;
+        const dur = 1.0 + Math.random() * 1.2;
+        d.style.left = (rect.left + Math.random() * rect.width) + "px";
+        d.style.top = rect.top + "px";
+        d.style.height = dropH + "px";
+        d.style.animationDuration = dur + "s";
+        d.style.animationDelay = -(Math.random() * dur) + "s";
+        d.style.setProperty("--travel", (rect.height + dropH + 10) + "px");
+        document.body.appendChild(d);
+        drops.push(d);
+      }
+    };
+    const frame = requestAnimationFrame(create);
+    return () => {
+      cancelAnimationFrame(frame);
+      drops.forEach(d => d.remove());
+    };
+  }, []);
+  return (
+    <div ref={modalRef} onClick={onClick} style={{ position: "relative", ...style }}>
       {children}
     </div>
   );
@@ -79,7 +124,6 @@ const txt = {
     balHint: (t,a,r,b) => `${t} - ${a} - ${r} = ${b}`,
     currency: "Rs", unit: "kg", per: "/kg",
     saveBtn: "✅ Save", saving: "⏳ Saving...", locale: "en-IN",
-    waterBadge: "💧 Water",
   },
   hi: {
     loading: "कृपया प्रतीक्षा करें...", monthLabel: "📅 महिना:", clearBtn: "हटाएं",
@@ -97,7 +141,6 @@ const txt = {
     balHint: (t,a,r,b) => `${t} - ${a} - ${r} = ${b}`,
     currency: "Rs", unit: "कि.ग्रा.", per: "/कि.ग्रा.",
     saveBtn: "✅ सेव करें", saving: "⏳ सेव हो रहा है...", locale: "hi-IN",
-    waterBadge: "💧 पानी",
   },
   ne: {
     loading: "कृपया प्रतीक्षा गर्नुस्...", monthLabel: "📅 महिना:", clearBtn: "हटाउनुस्",
@@ -115,7 +158,6 @@ const txt = {
     balHint: (t,a,r,b) => `${t} - ${a} - ${r} = ${b}`,
     currency: "Rs", unit: "कि.ग्रा.", per: "/कि.ग्रा.",
     saveBtn: "✅ सुरक्षित गर्नुस्", saving: "⏳ सुरक्षित हुँदैछ...", locale: "ne-NP",
-    waterBadge: "💧 पानी",
   },
   as: {
     loading: "অনুগ্ৰহ কৰি অপেক্ষা কৰক...", monthLabel: "📅 মাহ:", clearBtn: "বাতিল",
@@ -133,7 +175,6 @@ const txt = {
     balHint: (t,a,r,b) => `${t} - ${a} - ${r} = ${b} টকা`,
     currency: "টকা", unit: "কি:গ্ৰা:", per: "/কি:গ্ৰা:",
     saveBtn: "✅ সংৰক্ষণ কৰক", saving: "⏳ সংৰক্ষণ হৈ আছে...", locale: "as-IN",
-    waterBadge: "💧 পানী",
   },
 };
 
@@ -150,7 +191,6 @@ export default function EntryViewPage({ user }) {
   const [saving, setSaving] = useState(false);
   const [deleteId, setDeleteId] = useState(null);
 
-  // Inject rain CSS once into document head
   useEffect(() => {
     const id = "rain-style";
     if (!document.getElementById(id)) {
@@ -273,17 +313,10 @@ export default function EntryViewPage({ user }) {
         </div>
       ) : filtered.map(entry => {
         const isWater = entry.waterStatus === "yes";
-
         const cardStyle = {
-          background: d.card,
-          borderRadius: "14px",
-          boxShadow: d.shadow,
-          marginBottom: "10px",
-          border: isWater
-            ? `1.5px solid ${dark ? "#38bdf8" : "#7dd3fc"}`
-            : d.cardBorder,
+          background: d.card, borderRadius: "14px", boxShadow: d.shadow, marginBottom: "10px",
+          border: isWater ? `1.5px solid ${dark ? "#38bdf8" : "#7dd3fc"}` : d.cardBorder,
         };
-
         const cardContent = (
           <>
             <div style={{ position: "relative", zIndex: 1, padding: "14px 16px", display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
@@ -307,7 +340,6 @@ export default function EntryViewPage({ user }) {
                 )}
               </div>
             </div>
-
             <div style={{ position: "relative", zIndex: 1, display: "flex", gap: "8px", padding: "0 14px 14px" }}>
               <button onClick={() => openEdit(entry)}
                 style={{ flex: 1, background: d.editBtnBg, color: d.editBtnColor, border: `2px solid ${d.editBtnBorder}`, padding: "10px", borderRadius: "10px", cursor: "pointer", fontSize: "13px", fontWeight: "700", fontFamily: "inherit" }}>
@@ -320,8 +352,6 @@ export default function EntryViewPage({ user }) {
             </div>
           </>
         );
-
-        // Rain card for water entries, plain div for others
         return isWater
           ? <RainCard key={entry.id} style={cardStyle}>{cardContent}</RainCard>
           : <div key={entry.id} style={cardStyle}>{cardContent}</div>;
@@ -353,11 +383,11 @@ export default function EntryViewPage({ user }) {
         };
         const modalContent = (
           <>
-            <div style={{ position: "relative", zIndex: 1, padding: "20px 20px 16px", display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: `2px solid ${dark ? "#334155" : "#f3f4f6"}`, flexShrink: 0 }}>
+            <div style={{ padding: "20px 20px 16px", display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: `2px solid ${dark ? "#334155" : "#f3f4f6"}`, flexShrink: 0, position: "relative", zIndex: 2 }}>
               <h3 style={{ fontSize: "18px", fontWeight: "800", color: d.text, margin: 0 }}>{T.editTitle}</h3>
               <button onClick={() => setEditEntry(null)} style={{ background: dark ? "#334155" : "#f3f4f6", border: "none", width: "32px", height: "32px", borderRadius: "50%", cursor: "pointer", fontSize: "14px", fontWeight: "700", fontFamily: "inherit", color: d.text }}>✕</button>
             </div>
-            <div style={{ position: "relative", zIndex: 1, padding: "16px 20px 30px", overflowY: "auto", display: "flex", flexDirection: "column", gap: "14px" }}>
+            <div style={{ padding: "16px 20px 30px", overflowY: "auto", display: "flex", flexDirection: "column", gap: "14px", position: "relative", zIndex: 2 }}>
               {[
                 { label: T.fDate, name: "date", type: "date" },
                 { label: T.fWeight, name: "weight", type: "number", ph: "150" },
@@ -414,10 +444,11 @@ export default function EntryViewPage({ user }) {
             </div>
           </>
         );
+
         return (
           <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(0,0,0,0.55)", zIndex: 999, display: "flex", alignItems: "flex-end", justifyContent: "center" }} onClick={() => setEditEntry(null)}>
             {isEditWater
-              ? <RainCard style={modalStyle} onClick={e => e.stopPropagation()}>{modalContent}</RainCard>
+              ? <RainModal style={modalStyle} onClick={e => e.stopPropagation()}>{modalContent}</RainModal>
               : <div style={modalStyle} onClick={e => e.stopPropagation()}>{modalContent}</div>
             }
           </div>
