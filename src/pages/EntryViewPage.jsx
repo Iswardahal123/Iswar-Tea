@@ -1,8 +1,54 @@
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState, useCallback, useRef } from "react";
 import { auth, db } from "../firebase/config";
 import { collection, query, where, getDocs, deleteDoc, doc, updateDoc } from "firebase/firestore";
 import { useLang } from "../LanguageContext";
 import { useDark } from "../DarkModeContext";
+
+const RAIN_CSS = `
+@keyframes rainFall {
+  0%   { transform: translateY(-10px); opacity: 0; }
+  10%  { opacity: 1; }
+  90%  { opacity: 0.65; }
+  100% { transform: translateY(110px); opacity: 0; }
+}
+.rain-drop {
+  position: absolute;
+  width: 1.5px;
+  background: linear-gradient(to bottom, transparent, #7dd3fa);
+  border-radius: 2px;
+  animation: rainFall linear infinite;
+  pointer-events: none;
+  z-index: 0;
+}
+`;
+
+function RainCard({ children, style }) {
+  const cardRef = useRef(null);
+
+  useEffect(() => {
+    const card = cardRef.current;
+    if (!card) return;
+    const drops = [];
+    for (let i = 0; i < 28; i++) {
+      const d = document.createElement("div");
+      d.className = "rain-drop";
+      const left = Math.random() * 100;
+      const height = 8 + Math.random() * 10;
+      const dur = 0.55 + Math.random() * 0.6;
+      const delay = Math.random() * 2;
+      d.style.cssText = `left:${left}%;top:-12px;height:${height}px;animation-duration:${dur}s;animation-delay:${delay}s;`;
+      card.appendChild(d);
+      drops.push(d);
+    }
+    return () => drops.forEach(d => d.remove());
+  }, []);
+
+  return (
+    <div ref={cardRef} style={{ position: "relative", overflow: "hidden", ...style }}>
+      {children}
+    </div>
+  );
+}
 
 const txt = {
   en: {
@@ -92,6 +138,17 @@ export default function EntryViewPage({ user }) {
   const [saving, setSaving] = useState(false);
   const [deleteId, setDeleteId] = useState(null);
 
+  // Inject rain CSS once into document head
+  useEffect(() => {
+    const id = "rain-style";
+    if (!document.getElementById(id)) {
+      const style = document.createElement("style");
+      style.id = id;
+      style.textContent = RAIN_CSS;
+      document.head.appendChild(style);
+    }
+  }, []);
+
   const fetchEntries = useCallback(async () => {
     setLoading(true);
     try {
@@ -165,7 +222,6 @@ export default function EntryViewPage({ user }) {
     editBtnColor: dark ? "#86efac" : "#166534",
     editBtnBorder: dark ? "#16a34a" : "#86efac",
     modalBg: dark ? "#1e293b" : "white",
-    modalHeader: dark ? "#0f172a" : "#f3f4f6",
     confirmBg: dark ? "#1e293b" : "white",
     cancelBg: dark ? "#334155" : "white",
     cancelColor: dark ? "#f1f5f9" : "#374151",
@@ -203,57 +259,75 @@ export default function EntryViewPage({ user }) {
           <p>{T.noData}</p>
           <p style={{ fontSize: "13px", marginTop: "6px" }}>{T.noDataSub}</p>
         </div>
-      ) : filtered.map(entry => (
-        <div key={entry.id} style={{ position: "relative", background: d.card, borderRadius: "14px", boxShadow: d.shadow, marginBottom: "10px", overflow: "hidden", border: entry.waterStatus === "yes" ? `1.5px solid ${dark ? "#38bdf8" : "#7dd3fc"}` : d.cardBorder }}>
+      ) : filtered.map(entry => {
+        const isWater = entry.waterStatus === "yes";
 
-          {/* 💧 Water badge — top-right corner */}
-          {entry.waterStatus === "yes" && (
-            <div style={{
-              position: "absolute", top: 0, right: 0,
-              background: dark ? "#0c4a6e" : "#0ea5e9",
-              color: "white",
-              fontSize: "10px", fontWeight: "800",
-              padding: "3px 10px 3px 8px",
-              borderRadius: "0 14px 0 10px",
-              letterSpacing: "0.3px",
-            }}>
-              {T.waterBadge}
-            </div>
-          )}
+        const cardStyle = {
+          background: d.card,
+          borderRadius: "14px",
+          boxShadow: d.shadow,
+          marginBottom: "10px",
+          border: isWater
+            ? `1.5px solid ${dark ? "#38bdf8" : "#7dd3fc"}`
+            : d.cardBorder,
+        };
 
-          <div style={{ padding: "14px 16px", display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-            <div>
-              <div style={{ fontSize: "14px", fontWeight: "800", color: d.text }}>
-                {new Date(entry.date + "T00:00:00").toLocaleDateString(T.locale, { day: "numeric", month: "long", year: "numeric" })}
+        const cardContent = (
+          <>
+            {/* 💧 Water badge — top right corner */}
+            {isWater && (
+              <div style={{
+                position: "absolute", top: 0, right: 0, zIndex: 2,
+                background: dark ? "#0c4a6e" : "#0ea5e9",
+                color: "white", fontSize: "10px", fontWeight: "800",
+                padding: "3px 10px 3px 8px",
+                borderRadius: "0 14px 0 10px",
+                letterSpacing: "0.3px",
+              }}>
+                {T.waterBadge}
               </div>
-              <div style={{ fontSize: "12px", color: d.subtext, marginTop: "3px" }}>
-                {entry.weight} {T.unit}{entry.rate > 0 ? ` @ Rs${entry.rate}${T.per}` : ""}
-              </div>
-            </div>
-            <div style={{ textAlign: "right", marginTop: entry.waterStatus === "yes" ? "14px" : "0" }}>
-              {entry.totalAmount > 0
-                ? <div style={{ fontSize: "20px", fontWeight: "900", color: d.text }}>Rs {entry.totalAmount.toFixed(0)}</div>
-                : <div style={{ fontSize: "12px", color: d.pendingColor, background: d.pendingBg, padding: "3px 8px", borderRadius: "6px", fontWeight: "700" }}>{T.pending}</div>
-              }
-              {entry.balanceAmount !== undefined && entry.balanceAmount !== 0 && (
-                <div style={{ fontSize: "12px", fontWeight: "700", padding: "2px 8px", borderRadius: "6px", display: "inline-block", marginTop: "3px", color: (entry.balanceAmount || 0) >= 0 ? "#16a34a" : "#dc2626", background: (entry.balanceAmount || 0) >= 0 ? (dark ? "#14532d" : "#f0fdf4") : (dark ? "#7f1d1d" : "#fef2f2") }}>
-                  {T.baaki} {(entry.balanceAmount || 0).toFixed(0)}
+            )}
+
+            <div style={{ position: "relative", zIndex: 1, padding: "14px 16px", display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+              <div>
+                <div style={{ fontSize: "14px", fontWeight: "800", color: d.text }}>
+                  {new Date(entry.date + "T00:00:00").toLocaleDateString(T.locale, { day: "numeric", month: "long", year: "numeric" })}
                 </div>
-              )}
+                <div style={{ fontSize: "12px", color: d.subtext, marginTop: "3px" }}>
+                  {entry.weight} {T.unit}{entry.rate > 0 ? ` @ Rs${entry.rate}${T.per}` : ""}
+                </div>
+              </div>
+              <div style={{ textAlign: "right", marginTop: isWater ? "14px" : "0" }}>
+                {entry.totalAmount > 0
+                  ? <div style={{ fontSize: "20px", fontWeight: "900", color: d.text }}>Rs {entry.totalAmount.toFixed(0)}</div>
+                  : <div style={{ fontSize: "12px", color: d.pendingColor, background: d.pendingBg, padding: "3px 8px", borderRadius: "6px", fontWeight: "700" }}>{T.pending}</div>
+                }
+                {entry.balanceAmount !== undefined && entry.balanceAmount !== 0 && (
+                  <div style={{ fontSize: "12px", fontWeight: "700", padding: "2px 8px", borderRadius: "6px", display: "inline-block", marginTop: "3px", color: (entry.balanceAmount || 0) >= 0 ? "#16a34a" : "#dc2626", background: (entry.balanceAmount || 0) >= 0 ? (dark ? "#14532d" : "#f0fdf4") : (dark ? "#7f1d1d" : "#fef2f2") }}>
+                    {T.baaki} {(entry.balanceAmount || 0).toFixed(0)}
+                  </div>
+                )}
+              </div>
             </div>
-          </div>
-          <div style={{ display: "flex", gap: "8px", padding: "0 14px 14px" }}>
-            <button onClick={() => openEdit(entry)}
-              style={{ flex: 1, background: d.editBtnBg, color: d.editBtnColor, border: `2px solid ${d.editBtnBorder}`, padding: "10px", borderRadius: "10px", cursor: "pointer", fontSize: "13px", fontWeight: "700", fontFamily: "inherit" }}>
-              {T.editBtn}
-            </button>
-            <button onClick={() => setDeleteId(entry.id)}
-              style={{ background: dark ? "#7f1d1d" : "#fee2e2", color: "#dc2626", border: `2px solid ${dark ? "#dc2626" : "#fca5a5"}`, padding: "10px 16px", borderRadius: "10px", cursor: "pointer", fontSize: "16px", fontFamily: "inherit" }}>
-              🗑️
-            </button>
-          </div>
-        </div>
-      ))}
+
+            <div style={{ position: "relative", zIndex: 1, display: "flex", gap: "8px", padding: "0 14px 14px" }}>
+              <button onClick={() => openEdit(entry)}
+                style={{ flex: 1, background: d.editBtnBg, color: d.editBtnColor, border: `2px solid ${d.editBtnBorder}`, padding: "10px", borderRadius: "10px", cursor: "pointer", fontSize: "13px", fontWeight: "700", fontFamily: "inherit" }}>
+                {T.editBtn}
+              </button>
+              <button onClick={() => setDeleteId(entry.id)}
+                style={{ background: dark ? "#7f1d1d" : "#fee2e2", color: "#dc2626", border: `2px solid ${dark ? "#dc2626" : "#fca5a5"}`, padding: "10px 16px", borderRadius: "10px", cursor: "pointer", fontSize: "16px", fontFamily: "inherit" }}>
+                🗑️
+              </button>
+            </div>
+          </>
+        );
+
+        // Rain card for water entries, plain div for others
+        return isWater
+          ? <RainCard key={entry.id} style={cardStyle}>{cardContent}</RainCard>
+          : <div key={entry.id} style={cardStyle}>{cardContent}</div>;
+      })}
 
       {/* DELETE CONFIRM */}
       {deleteId && (
