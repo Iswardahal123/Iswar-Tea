@@ -16,6 +16,21 @@ import EntryViewPage from "./pages/EntryViewPage";
 import AIChatPage from "./pages/AIChatPage";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 
+const VALID_PAGES = ["dashboard", "entry", "view", "chat"];
+
+// Page ko localStorage mein save karo
+const savePage = (page) => {
+  try { localStorage.setItem("lastPage", page); } catch (e) {}
+};
+
+// Page restore karo — agar valid nahi toh dashboard
+const restorePage = () => {
+  try {
+    const saved = localStorage.getItem("lastPage");
+    return VALID_PAGES.includes(saved) ? saved : "dashboard";
+  } catch (e) { return "dashboard"; }
+};
+
 const Loader = ({ t }) => (
   <div style={{
     display: "flex", height: "100vh", alignItems: "center", justifyContent: "center",
@@ -29,7 +44,6 @@ const Loader = ({ t }) => (
   </div>
 );
 
-// ── Smart Ticker (Announcement > Welcome) ──
 const welcomeText = {
   en: (name) => `🍃 Welcome back, ${name}! Have a great day ☀️`,
   hi: (name) => `🍃 वापस आए, ${name}! शुभ दिन ☀️`,
@@ -46,7 +60,6 @@ const SmartTicker = ({ lang, userName }) => {
   useEffect(() => {
     const load = async () => {
       try {
-        // 1. Try announcement first
         const snap = await getDoc(doc(db, "config", "announcement"));
         if (snap.exists()) {
           const data = snap.data();
@@ -66,7 +79,6 @@ const SmartTicker = ({ lang, userName }) => {
         }
       } catch (e) { console.error(e); }
 
-      // 2. Fallback: welcome message (once per session)
       if (!sessionStorage.getItem("welcomeTicker")) {
         sessionStorage.setItem("welcomeTicker", "1");
         const name = userName || "Friend";
@@ -114,8 +126,14 @@ export default function App() {
   const [user, setUser] = useState(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [checkingAuth, setCheckingAuth] = useState(true);
-  const [currentPage, setCurrentPage] = useState("dashboard");
 
+  // ✅ localStorage se restore — reload/logout/login ke baad bhi same page
+  const [currentPage, setCurrentPage] = useState(restorePage);
+
+  const handlePageChange = (page) => {
+    setCurrentPage(page);
+    savePage(page);
+  };
 
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, async (u) => {
@@ -132,18 +150,19 @@ export default function App() {
               createdAt: new Date().toISOString(),
             });
             setIsAdmin(false);
-            setCurrentPage("dashboard");
+            handlePageChange("dashboard");
           } else {
             const data = userDoc.data();
             if (data.language) setLang(data.language);
             const admin = data.isAdmin === true;
             setIsAdmin(admin);
-            setCurrentPage(admin ? "admin" : "dashboard");
+            // Admin ke liye admin page, normal user ke liye saved page
+            if (!admin) setCurrentPage(restorePage());
           }
         } catch (err) {
           console.error("Auth error:", err);
           setIsAdmin(false);
-          setCurrentPage("dashboard");
+          setCurrentPage(restorePage());
         }
       } else {
         setUser(null);
@@ -165,10 +184,10 @@ export default function App() {
         if (data.language) setLang(data.language);
         const admin = data.isAdmin === true;
         setIsAdmin(admin);
-        setCurrentPage(admin ? "admin" : "dashboard");
+        if (!admin) setCurrentPage(restorePage());
       } else {
         setIsAdmin(false);
-        setCurrentPage("dashboard");
+        handlePageChange("dashboard");
       }
     } catch (err) { console.error("Login error:", err); }
   };
@@ -201,7 +220,7 @@ export default function App() {
       <TopBar user={user} currentPage={isAdmin ? "admin" : currentPage} isAdmin={isAdmin} onLangChange={handleLangChange} />
       {!isAdmin && <SmartTicker lang={lang} userName={user?.displayName || user?.email?.split("@")[0]} />}
       <main>{renderPage()}</main>
-      {!isAdmin && <BottomNav currentPage={currentPage} setCurrentPage={setCurrentPage} />}
+      {!isAdmin && <BottomNav currentPage={currentPage} setCurrentPage={handlePageChange} />}
     </div>
   );
 }
