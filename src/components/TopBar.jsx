@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from "react";
 import { auth, db } from "../firebase/config";
-import { signOut, updatePassword, reauthenticateWithCredential, EmailAuthProvider } from "firebase/auth";
+import { signOut, updatePassword, reauthenticateWithCredential, EmailAuthProvider, GoogleAuthProvider, reauthenticateWithPopup } from "firebase/auth";
 import { doc, deleteDoc, collection, query, where, getDocs, getDoc, updateDoc } from "firebase/firestore";
 import { useLang } from "../LanguageContext";
 import { useDark } from "../DarkModeContext";
@@ -88,12 +88,20 @@ export default function TopBar({ user, currentPage, isAdmin, onLangChange }) {
     setLoading(false);
   };
 
+  // ✅ FIXED: Google user ke liye popup, email user ke liye password
   const handleClearData = async () => {
-    if (!clearPwd) { setMsg("❌ Enter password!"); setMsgType("error"); return; }
     setLoading(true);
     try {
-      const credential = EmailAuthProvider.credential(user.email, clearPwd);
-      await reauthenticateWithCredential(auth.currentUser, credential);
+      if (isGoogleUser) {
+        // Google user — re-authenticate via popup
+        const provider = new GoogleAuthProvider();
+        await reauthenticateWithPopup(auth.currentUser, provider);
+      } else {
+        // Email user — password se verify
+        if (!clearPwd) { setMsg("❌ Enter password!"); setMsgType("error"); setLoading(false); return; }
+        const credential = EmailAuthProvider.credential(user.email, clearPwd);
+        await reauthenticateWithCredential(auth.currentUser, credential);
+      }
       const snap = await getDocs(query(collection(db, "entries"), where("uid", "==", user.uid)));
       await Promise.all(snap.docs.map(d => deleteDoc(doc(db, "entries", d.id))));
       await updateDoc(doc(db, "users", user.uid), { totalAdvanceTaken: 0 });
@@ -101,14 +109,17 @@ export default function TopBar({ user, currentPage, isAdmin, onLangChange }) {
       setClearPwd("");
       setTimeout(() => { closeModal(); window.location.reload(); }, 2000);
     } catch (err) {
-      setMsg("❌ " + (err.code === "auth/wrong-password" ? "Wrong password!" : err.message));
+      if (err.code === "auth/popup-closed-by-user") {
+        setMsg("❌ Verification cancelled.");
+      } else {
+        setMsg("❌ " + (err.code === "auth/wrong-password" ? "Wrong password!" : err.message));
+      }
       setMsgType("error");
     }
     setLoading(false);
   };
 
-  const isGoogleUser = user.providerData?.[0]?.providerId === "google.com";
-  
+  const isGoogleUser = user.providerData?.some(p => p.providerId === "google.com");
 
   const settingsItems = isAdmin ? [
     { icon: "🚪", label: lang === "en" ? "Logout" : lang === "hi" ? "लॉगआउट" : lang === "ne" ? "लगआउट" : "লগআউট", sub: null, danger: true, action: handleLogout },
@@ -263,7 +274,7 @@ export default function TopBar({ user, currentPage, isAdmin, onLangChange }) {
               </div>
             </>)}
 
-            {/* CLEAR DATA */}
+            {/* CLEAR DATA — ✅ FIXED for Google users */}
             {activeModal === "clear" && (<>
               <div style={styles.modalHeader}>
                 <h3 style={{ ...styles.modalTitle, color: "#dc2626" }}>⚠️ {lang === "en" ? "Clear All Data" : lang === "hi" ? "सारा डेटा हटाएं" : lang === "ne" ? "सबै डेटा मेट्नुस्" : "সকলো তথ্য মচক"}</h3>
@@ -273,10 +284,19 @@ export default function TopBar({ user, currentPage, isAdmin, onLangChange }) {
                 <div style={styles.warningBox}>
                   {lang === "en" ? "⚠️ This will permanently delete all your entries!" : lang === "hi" ? "⚠️ यह सभी प्रविष्टियां हमेशा के लिए हटा देगा!" : lang === "ne" ? "⚠️ यसले सबै प्रविष्टि सधैंका लागि मेट्नेछ!" : "⚠️ এই কামে সকলো তথ্য চিৰতৰে মচি পেলাব!"}
                 </div>
-                <div style={styles.field}>
-                  <label style={styles.fieldLabel}>{lang === "en" ? "Enter password to confirm" : lang === "hi" ? "पुष्टि के लिए पासवर्ड डालें" : lang === "ne" ? "पुष्टि गर्न पासवर्ड दिनुस्" : "নিশ্চিত কৰিবলৈ পাছৱৰ্ড দিয়ক"}</label>
-                  <input type="password" value={clearPwd} onChange={e => setClearPwd(e.target.value)} style={{ ...styles.fieldInput, borderColor: "#fca5a5" }} />
-                </div>
+
+                {/* Google user — no password field, show info instead */}
+                {isGoogleUser ? (
+                  <div style={{ background: "#eff6ff", padding: "12px 14px", borderRadius: "10px", fontSize: "13px", color: "#1d4ed8", fontWeight: "600" }}>
+                    🔐 {lang === "en" ? "You'll be asked to verify with Google." : lang === "hi" ? "Google से verify करना होगा।" : lang === "ne" ? "Google बाट verify गर्नुपर्नेछ।" : "Google-ৰ জৰিয়তে verify কৰিব লাগিব।"}
+                  </div>
+                ) : (
+                  <div style={styles.field}>
+                    <label style={styles.fieldLabel}>{lang === "en" ? "Enter password to confirm" : lang === "hi" ? "पुष्टि के लिए पासवर्ड डालें" : lang === "ne" ? "पुष्टि गर्न पासवर्ड दिनुस्" : "নিশ্চিত কৰিবলৈ পাছৱৰ্ড দিয়ক"}</label>
+                    <input type="password" value={clearPwd} onChange={e => setClearPwd(e.target.value)} style={{ ...styles.fieldInput, borderColor: "#fca5a5" }} />
+                  </div>
+                )}
+
                 {msg && <div style={{ ...styles.msgBox, background: msgType === "success" ? "#f0fdf4" : "#fef2f2", color: msgType === "success" ? "#16a34a" : "#dc2626" }}>{msg}</div>}
                 <button onClick={handleClearData} disabled={loading} style={{ ...styles.saveBtn, background: "linear-gradient(135deg,#7f1d1d,#dc2626)" }}>
                   {loading ? "..." : (lang === "en" ? "Delete All" : lang === "hi" ? "सब हटाएं" : lang === "ne" ? "सबै मेट्नुस्" : "সকলো মচক")}
