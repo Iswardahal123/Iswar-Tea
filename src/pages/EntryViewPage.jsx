@@ -217,7 +217,10 @@ export default function EntryViewPage({ user }) {
   const filtered = (filterMonth ? entries.filter(e => e.date?.startsWith(filterMonth)) : entries)
     .slice()
     .sort((a, b) => {
-      // createdAt timestamp se sort — naya upar, purana niche
+      // Pehle date compare karo
+      const dateDiff = (b.date || "").localeCompare(a.date || "");
+      if (dateDiff !== 0) return dateDiff;
+      // Same date pe createdAt se decide karo — naya upar
       const aTime = a.createdAt?.seconds ?? 0;
       const bTime = b.createdAt?.seconds ?? 0;
       return bTime - aTime;
