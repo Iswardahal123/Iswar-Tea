@@ -9,14 +9,12 @@ import { useDark } from "./DarkModeContext";
 import Login from "./components/Login";
 import TopBar from "./components/TopBar";
 import BottomNav from "./components/BottomNav";
-import WhatsAppFloat from "./components/WhatsAppFloat";
 
 import DashboardPage from "./pages/DashboardPage";
 import EntryFormPage from "./pages/EntryFormPage";
 import EntryViewPage from "./pages/EntryViewPage";
 import AIChatPage from "./pages/AIChatPage";
 import AdminDashboard from "./pages/admin/AdminDashboard";
-import InstallBanner from "./components/InstallBanner";
 
 const Loader = ({ t }) => (
   <div style={{
@@ -201,11 +199,9 @@ export default function App() {
   return (
     <div style={{ fontFamily: "'Segoe UI',sans-serif", background: dark ? "#0f172a" : "#f8faf8", minHeight: "100vh", color: dark ? "#f1f5f9" : "#1a1a1a" }}>
       <TopBar user={user} currentPage={isAdmin ? "admin" : currentPage} isAdmin={isAdmin} onLangChange={handleLangChange} />
-      <InstallBanner />
       {!isAdmin && <SmartTicker lang={lang} userName={user?.displayName || user?.email?.split("@")[0]} />}
       <main>{renderPage()}</main>
       {!isAdmin && <BottomNav currentPage={currentPage} setCurrentPage={setCurrentPage} />}
-      <WhatsAppFloat isAdmin={isAdmin} />
     </div>
   );
 }
