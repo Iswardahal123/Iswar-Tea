@@ -13,10 +13,10 @@ const txt = {
     submitting: "⏳ Saving...", successMsg: "✅ Entry saved successfully!",
     errRequired: "Date and weight are required!", errWeight: "Enter a valid weight!",
     errSave: "Could not save: ",
-    waterLabel: "💧 Was there water in the leaves?",
+    waterLabel: "💧 Is there water in the leaves?",
     waterNone: "— Select —",
-    waterYes: "💧 Yes, water was present",
-    waterNo: "🌿 No, leaves were dry",
+    waterYes: "✅ Yes",
+    waterNo: "❌ No",
   },
   hi: {
     title: "🍃 नई प्रविष्टि जोड़ें 🍃",
