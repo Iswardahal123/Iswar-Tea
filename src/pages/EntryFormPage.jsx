@@ -13,6 +13,10 @@ const txt = {
     submitting: "⏳ Saving...", successMsg: "✅ Entry saved successfully!",
     errRequired: "Date and weight are required!", errWeight: "Enter a valid weight!",
     errSave: "Could not save: ",
+    waterLabel: "💧 Was there water in the leaves?",
+    waterNone: "— Select —",
+    waterYes: "💧 Yes, water was present",
+    waterNo: "🌿 No, leaves were dry",
   },
   hi: {
     title: "🍃 नई प्रविष्टि जोड़ें 🍃",
@@ -22,6 +26,10 @@ const txt = {
     submitting: "⏳ सेव हो रहा है...", successMsg: "✅ प्रविष्टि सफलतापूर्वक सेव हुई!",
     errRequired: "तारीख और वजन जरूरी है!", errWeight: "सही वजन डालें!",
     errSave: "सेव नहीं हो सका: ",
+    waterLabel: "💧 पत्तियों में पानी था?",
+    waterNone: "— चुनें —",
+    waterYes: "💧 हाँ, पानी था",
+    waterNo: "🌿 नहीं, सूखा था",
   },
   ne: {
     title: "🍃 नयाँ प्रविष्टि थप्नुस् 🍃",
@@ -31,6 +39,10 @@ const txt = {
     submitting: "⏳ सुरक्षित हुँदैछ...", successMsg: "✅ प्रविष्टि सफलतापूर्वक सुरक्षित भयो!",
     errRequired: "मिति र तौल आवश्यक छ!", errWeight: "सही तौल लेख्नुस्!",
     errSave: "सुरक्षित गर्न सकिएन: ",
+    waterLabel: "💧 पातमा पानी थियो?",
+    waterNone: "— छान्नुस् —",
+    waterYes: "💧 हो, पानी थियो",
+    waterNo: "🌿 थिएन, सुक्खा थियो",
   },
   as: {
     title: "🍃 নতুন তথ্য অন্তৰ্ভুক্ত কৰক 🍃",
@@ -40,6 +52,10 @@ const txt = {
     submitting: "⏳ তথ্য অন্তৰ্ভুক্ত হৈ আছে...", successMsg: "✅ তথ্য সফলভাৱে অন্তৰ্ভুক্ত কৰা হ'ল!",
     errRequired: "তাৰিখ আৰু ওজন লিখা বাধ্যতামূলক!", errWeight: "সঠিক ওজন লিখক!",
     errSave: "অন্তৰ্ভুক্ত কৰিব পৰা নাই: ",
+    waterLabel: "💧 পাতত পানী আছিল নে?",
+    waterNone: "— বাছক —",
+    waterYes: "💧 হয়, পানী আছিল",
+    waterNo: "🌿 নাই, শুকান আছিল",
   },
 };
 
@@ -48,7 +64,7 @@ export default function EntryFormPage({ user }) {
   const { dark } = useDark();
   const T = txt[lang] || txt.as;
   const today = new Date().toISOString().split("T")[0];
-  const [form, setForm] = useState({ date: today, weight: "" });
+  const [form, setForm] = useState({ date: today, weight: "", waterStatus: "" });
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState("");
@@ -68,10 +84,11 @@ export default function EntryFormPage({ user }) {
         date: form.date, weight: parseFloat(form.weight),
         rate: 0, totalAmount: 0, advanceCut: 0,
         amountReceived: 0, balanceAmount: 0, notes: "",
+        waterStatus: form.waterStatus || "none", // "yes" | "no" | "none"
         createdAt: Timestamp.now(),
       });
       setSuccess(true);
-      setForm({ date: today, weight: "" });
+      setForm({ date: today, weight: "", waterStatus: "" });
       setTimeout(() => setSuccess(false), 3000);
     } catch (err) { setError(T.errSave + err.message); }
     setLoading(false);
@@ -90,6 +107,13 @@ export default function EntryFormPage({ user }) {
     inputText: dark ? "#f1f5f9" : "#1a1a1a",
   };
 
+  // Water select border color changes based on selection
+  const waterBorder = form.waterStatus === "yes"
+    ? "#38bdf8"
+    : form.waterStatus === "no"
+    ? "#86efac"
+    : d.inputBorder;
+
   return (
     <div style={{ minHeight: "calc(100vh - 120px)", background: d.bg, display: "flex", alignItems: "center", justifyContent: "center", padding: "20px", paddingBottom: "90px", fontFamily: "'Segoe UI', sans-serif" }}>
       <div style={{ background: d.card, borderRadius: "20px", padding: "28px 24px", boxShadow: d.cardShadow, width: "100%", maxWidth: "400px", display: "flex", flexDirection: "column", gap: "18px" }}>
@@ -103,12 +127,25 @@ export default function EntryFormPage({ user }) {
         {success && <div style={{ background: dark ? "#14532d" : "#f0fdf4", color: dark ? "#86efac" : "#16a34a", padding: "12px 14px", borderRadius: "10px", fontSize: "14px", fontWeight: "700", borderLeft: "3px solid #16a34a" }}>{T.successMsg}</div>}
         {error && <div style={{ background: dark ? "#7f1d1d" : "#fef2f2", color: dark ? "#fca5a5" : "#dc2626", padding: "12px 14px", borderRadius: "10px", fontSize: "14px", fontWeight: "600", borderLeft: "3px solid #dc2626" }}>⚠️ {error}</div>}
 
+        {/* DATE */}
         <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
           <label style={{ fontSize: "14px", fontWeight: "700", color: d.label }}>{T.dateLabel}</label>
           <input type="date" name="date" value={form.date} max={today} onChange={handleChange}
             style={{ padding: "14px 16px", borderRadius: "12px", border: `2px solid ${d.inputBorder}`, fontSize: "16px", outline: "none", fontFamily: "inherit", width: "100%", boxSizing: "border-box", background: d.input, color: d.inputText }} />
         </div>
 
+        {/* WATER STATUS — date ke niche */}
+        <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+          <label style={{ fontSize: "14px", fontWeight: "700", color: d.label }}>{T.waterLabel}</label>
+          <select name="waterStatus" value={form.waterStatus} onChange={handleChange}
+            style={{ padding: "14px 16px", borderRadius: "12px", border: `2px solid ${waterBorder}`, fontSize: "15px", outline: "none", fontFamily: "inherit", width: "100%", boxSizing: "border-box", background: d.input, color: form.waterStatus ? d.inputText : d.hintText, cursor: "pointer", transition: "border-color 0.2s" }}>
+            <option value="">{T.waterNone}</option>
+            <option value="yes">{T.waterYes}</option>
+            <option value="no">{T.waterNo}</option>
+          </select>
+        </div>
+
+        {/* WEIGHT */}
         <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
           <label style={{ fontSize: "14px", fontWeight: "700", color: d.label }}>{T.weightLabel}</label>
           <input type="number" name="weight" value={form.weight} onChange={handleChange} placeholder={T.weightPh} min="0"
