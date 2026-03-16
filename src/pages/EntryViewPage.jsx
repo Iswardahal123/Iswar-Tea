@@ -101,7 +101,10 @@ export default function EntryViewPage({ user }) {
 
   useEffect(() => { fetchEntries(); }, [fetchEntries]);
 
-  const filtered = filterMonth ? entries.filter(e => e.date?.startsWith(filterMonth)) : entries;
+  // ✅ Newest first — date ke hisaab se descending sort
+  const filtered = (filterMonth ? entries.filter(e => e.date?.startsWith(filterMonth)) : entries)
+    .slice()
+    .sort((a, b) => (b.date || "").localeCompare(a.date || ""));
 
   const handleDelete = async () => {
     await deleteDoc(doc(db, "entries", deleteId));
