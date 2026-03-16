@@ -331,14 +331,21 @@ export default function EntryViewPage({ user }) {
       )}
 
       {/* EDIT MODAL */}
-      {editEntry && (
-        <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(0,0,0,0.55)", zIndex: 999, display: "flex", alignItems: "flex-end", justifyContent: "center" }} onClick={() => setEditEntry(null)}>
-          <div style={{ background: d.modalBg, borderRadius: "24px 24px 0 0", width: "100%", maxWidth: "480px", maxHeight: "90vh", overflow: "hidden", display: "flex", flexDirection: "column", border: dark ? "1px solid #334155" : "none" }} onClick={e => e.stopPropagation()}>
-            <div style={{ padding: "20px 20px 16px", display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: `2px solid ${dark ? "#334155" : "#f3f4f6"}`, flexShrink: 0 }}>
+      {editEntry && (() => {
+        const isEditWater = editEntry.waterStatus === "yes";
+        const modalStyle = {
+          background: d.modalBg, borderRadius: "24px 24px 0 0",
+          width: "100%", maxWidth: "480px", maxHeight: "90vh",
+          overflow: "hidden", display: "flex", flexDirection: "column",
+          border: isEditWater ? `1.5px solid ${dark ? "#38bdf8" : "#7dd3fc"}` : (dark ? "1px solid #334155" : "none"),
+        };
+        const modalContent = (
+          <>
+            <div style={{ position: "relative", zIndex: 1, padding: "20px 20px 16px", display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: `2px solid ${dark ? "#334155" : "#f3f4f6"}`, flexShrink: 0 }}>
               <h3 style={{ fontSize: "18px", fontWeight: "800", color: d.text, margin: 0 }}>{T.editTitle}</h3>
               <button onClick={() => setEditEntry(null)} style={{ background: dark ? "#334155" : "#f3f4f6", border: "none", width: "32px", height: "32px", borderRadius: "50%", cursor: "pointer", fontSize: "14px", fontWeight: "700", fontFamily: "inherit", color: d.text }}>✕</button>
             </div>
-            <div style={{ padding: "16px 20px 30px", overflowY: "auto", display: "flex", flexDirection: "column", gap: "14px" }}>
+            <div style={{ position: "relative", zIndex: 1, padding: "16px 20px 30px", overflowY: "auto", display: "flex", flexDirection: "column", gap: "14px" }}>
               {[
                 { label: T.fDate, name: "date", type: "date" },
                 { label: T.fWeight, name: "weight", type: "number", ph: "150" },
@@ -393,9 +400,17 @@ export default function EntryViewPage({ user }) {
                 {saving ? T.saving : T.saveBtn}
               </button>
             </div>
+          </>
+        );
+        return (
+          <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(0,0,0,0.55)", zIndex: 999, display: "flex", alignItems: "flex-end", justifyContent: "center" }} onClick={() => setEditEntry(null)}>
+            {isEditWater
+              ? <RainCard style={modalStyle} onClick={e => e.stopPropagation()}>{modalContent}</RainCard>
+              : <div style={modalStyle} onClick={e => e.stopPropagation()}>{modalContent}</div>
+            }
           </div>
-        </div>
-      )}
+        );
+      })()}
     </div>
   );
 }
