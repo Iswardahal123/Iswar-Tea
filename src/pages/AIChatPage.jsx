@@ -208,22 +208,21 @@ export default function AIChatPage({ user }) {
       if (!aiConfig.apiKey) throw new Error("NO_KEY");
 
       const systemPrompt = buildSystemPrompt(entries, curBigha, L);
-      const newHist = [...chatHistory, { role: "user", content: msg }];
-
-      // Free models on OpenRouter don't reliably support "system" role
-      // Solution: Inject system context into the very first user message
+      // chatHistory = already saved turns [user, assistant, user, assistant...]
+      // Current msg is NEW, not yet in chatHistory
       let apiMsgs;
-      if (newHist.length === 1) {
-        // First message — prepend system context
+      if (chatHistory.length === 0) {
+        // Very first message — inject system prompt
         apiMsgs = [
-          { role: "user", content: `[INSTRUCTIONS - Always follow these]\n${systemPrompt}\n\n---\nUser: ${msg}` },
+          { role: "user", content: `[INSTRUCTIONS]\n${systemPrompt}\n\n---\n${msg}` },
         ];
       } else {
-        // Multi-turn — inject system context in first message only
-        const [firstMsg, ...rest] = newHist;
+        // Multi-turn: system prompt in first msg, then rest of history, then current msg
+        const [firstMsg, ...rest] = chatHistory;
         apiMsgs = [
-          { role: "user", content: `[INSTRUCTIONS - Always follow these]\n${systemPrompt}\n\n---\nUser: ${firstMsg.content}` },
+          { role: "user", content: `[INSTRUCTIONS]\n${systemPrompt}\n\n---\n${firstMsg.content}` },
           ...rest,
+          { role: "user", content: msg },
         ];
       }
 
@@ -243,12 +242,13 @@ export default function AIChatPage({ user }) {
         }),
       });
 
+      const data = await res.json();
+
       if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error(err?.error?.message || `Error ${res.status}`);
+        const errDetail = JSON.stringify(data?.error || data).slice(0, 300);
+        throw new Error(`HTTP ${res.status}: ${errDetail}`);
       }
 
-      const data = await res.json();
       const reply = data.choices?.[0]?.message?.content || "";
 
       setChatHistory(prev => [...prev, { role: "user", content: msg }, { role: "assistant", content: reply }]);
