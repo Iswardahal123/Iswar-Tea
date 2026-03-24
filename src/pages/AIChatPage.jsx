@@ -106,18 +106,11 @@ const itemLabel = (item, lang, qty) => {
   return name;
 };
 
+// FIX: Removed misplaced JSX from inside buildSystemPrompt — it only returns a string now
 const buildSystemPrompt = (entries, bigha, L) => {
   const now = new Date();
   const month = now.getMonth() + 1;
   const week = Math.min(getWeekOfMonth(), 4);
-  if (loadingChat) return (
-    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", height: "calc(100vh - 120px)", background: dark ? "#0f172a" : "#f0f4f0" }}>
-      <div style={{ fontSize: "36px", marginBottom: "12px" }}>🍃</div>
-      <div style={{ fontSize: "14px", color: dark ? "#94a3b8" : "#6b7280", fontFamily: "'Segoe UI', sans-serif" }}>
-        {lang === "as" ? "চাট লোড হৈ আছে..." : "Chat load हो रहा है..."}
-      </div>
-    </div>
-  );
 
   const currSched = getCurrentWeekSchedule();
   const nextSched = getNextWeekSchedule();
@@ -193,32 +186,64 @@ export default function AIChatPage({ user }) {
     } catch (e) { console.error(e); }
   }, [user]);
 
-  // Load chat history from Firebase
+  // FIX: loadChatHistory — orderBy ke saath try karo, fail hone par manually sort karo
   const loadChatHistory = useCallback(async () => {
     try {
       const cu = user || auth.currentUser;
       if (!cu) { setLoadingChat(false); return; }
-      const snap = await getDocs(
-        query(collection(db, "ai_chats"), where("uid", "==", cu.uid), orderBy("createdAt", "asc"))
-      );
+
+      let snap;
+      try {
+        // Pehle orderBy ke saath try karo (Firestore index chahiye)
+        snap = await getDocs(
+          query(collection(db, "ai_chats"), where("uid", "==", cu.uid), orderBy("createdAt", "asc"))
+        );
+      } catch (indexErr) {
+        console.warn("Firestore index nahi mila, bina orderBy ke load ho raha hai:", indexErr);
+        // Fallback: bina orderBy ke fetch karo, phir manually sort karo
+        snap = await getDocs(
+          query(collection(db, "ai_chats"), where("uid", "==", cu.uid))
+        );
+      }
+
       if (!snap.empty) {
-        const savedMsgs = snap.docs.map(d => d.data());
-        // messages = UI display {role: "user"/"bot", text}
-        const uiMsgs = savedMsgs.map(m => ({ role: m.role === "assistant" ? "bot" : m.role, text: m.text, isError: false }));
-        // chatHistory = API format {role: "user"/"assistant", content}
-        const apiHist = savedMsgs.map(m => ({ role: m.role, content: m.text }));
+        // Manually sort by createdAt (timestamp ya string dono handle karta hai)
+        const savedMsgs = snap.docs
+          .map(d => ({ id: d.id, ...d.data() }))
+          .sort((a, b) => {
+            const aTime = a.createdAt?.toMillis ? a.createdAt.toMillis() : (a.createdAt || 0);
+            const bTime = b.createdAt?.toMillis ? b.createdAt.toMillis() : (b.createdAt || 0);
+            return aTime - bTime;
+          });
+
+        // UI ke liye messages
+        const uiMsgs = savedMsgs.map(m => ({
+          role: m.role === "assistant" ? "bot" : m.role,
+          text: m.text,
+          isError: false,
+        }));
+
+        // API ke liye history
+        const apiHist = savedMsgs.map(m => ({
+          role: m.role, // "user" ya "assistant"
+          content: m.text,
+        }));
+
         setMessages(uiMsgs);
         setChatHistory(apiHist);
         setStarted(true);
-        // restore bigha if saved
+
+        // Bigha restore karo agar save tha
         const bighaMsg = savedMsgs.find(m => m.bigha);
         if (bighaMsg) setBigha(bighaMsg.bigha);
       }
-    } catch (e) { console.error(e); }
+    } catch (e) {
+      console.error("Chat load error:", e);
+    }
     setLoadingChat(false);
   }, [user]);
 
-  // Save single message to Firebase
+  // FIX: Single saveMsgToDb call — ek hi jagah se save hoga
   const saveMsgToDb = useCallback(async (role, text, extraData = {}) => {
     try {
       const cu = user || auth.currentUser;
@@ -276,25 +301,23 @@ export default function AIChatPage({ user }) {
     if (bighaMatch) { curBigha = parseFloat(bighaMatch[1]); setBigha(curBigha); }
 
     setMessages(p => [...p, { role: "user", text: msg }]);
-    saveMsgToDb("user", msg, curBigha ? { bigha: curBigha } : {});
     setTyping(true);
-    // Save user message to Firebase
+
+    // FIX: Sirf ek baar save karo (pehle duplicate call tha)
     saveMsgToDb("user", msg, curBigha ? { bigha: curBigha } : {});
 
     try {
       if (!aiConfig.apiKey) throw new Error("NO_KEY");
 
       const systemPrompt = buildSystemPrompt(entries, curBigha, L);
-      // chatHistory = already saved turns [user, assistant, user, assistant...]
-      // Current msg is NEW, not yet in chatHistory
       let apiMsgs;
       if (chatHistory.length === 0) {
-        // Very first message — inject system prompt
+        // Pehla message — system prompt inject karo
         apiMsgs = [
           { role: "user", content: `[INSTRUCTIONS]\n${systemPrompt}\n\n---\n${msg}` },
         ];
       } else {
-        // Multi-turn: system prompt in first msg, then rest of history, then current msg
+        // Multi-turn: system prompt pehle message mein, phir baki history, phir current msg
         const [firstMsg, ...rest] = chatHistory;
         apiMsgs = [
           { role: "user", content: `[INSTRUCTIONS]\n${systemPrompt}\n\n---\n${firstMsg.content}` },
@@ -329,7 +352,6 @@ export default function AIChatPage({ user }) {
       const reply = data.choices?.[0]?.message?.content || "";
 
       setChatHistory(prev => [...prev, { role: "user", content: msg }, { role: "assistant", content: reply }]);
-      // Save assistant reply to Firebase
       saveMsgToDb("assistant", reply);
       setMessages(p => [...p, { role: "bot", text: reply }]);
     } catch (err) {
