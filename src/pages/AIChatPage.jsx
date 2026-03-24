@@ -424,14 +424,12 @@ export default function AIChatPage({ user }) {
       const replyTs = new Date();
 
       // ── Parse AI update commands ──────────────────────────────────────────
-      let updatedBigha = curBigha;
 
       // ##UPDATE_BIGHA:X##
       const bighaUpdateMatch = reply.match(/##UPDATE_BIGHA:([\d.]+)##/);
       if (bighaUpdateMatch) {
         const newBigha = parseFloat(bighaUpdateMatch[1]);
         if (!isNaN(newBigha) && newBigha > 0) {
-          updatedBigha = newBigha;
           setBigha(newBigha);
           saveMsgToDb("user", msg, { bigha: newBigha });
         }
