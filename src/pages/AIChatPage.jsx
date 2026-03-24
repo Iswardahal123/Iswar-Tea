@@ -209,10 +209,23 @@ export default function AIChatPage({ user }) {
 
       const systemPrompt = buildSystemPrompt(entries, curBigha, L);
       const newHist = [...chatHistory, { role: "user", content: msg }];
-      const apiMsgs = [
-        { role: "system", content: systemPrompt },
-        ...newHist,
-      ];
+
+      // Free models on OpenRouter don't reliably support "system" role
+      // Solution: Inject system context into the very first user message
+      let apiMsgs;
+      if (newHist.length === 1) {
+        // First message — prepend system context
+        apiMsgs = [
+          { role: "user", content: `[INSTRUCTIONS - Always follow these]\n${systemPrompt}\n\n---\nUser: ${msg}` },
+        ];
+      } else {
+        // Multi-turn — inject system context in first message only
+        const [firstMsg, ...rest] = newHist;
+        apiMsgs = [
+          { role: "user", content: `[INSTRUCTIONS - Always follow these]\n${systemPrompt}\n\n---\nUser: ${firstMsg.content}` },
+          ...rest,
+        ];
+      }
 
       const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
         method: "POST",
