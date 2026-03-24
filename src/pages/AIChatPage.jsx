@@ -134,7 +134,9 @@ MONTH: ${month}, WEEK: ${week}
 
 RESPOND IN: ${L === "hi" ? "Hindi" : "Assamese"} (use emojis for readability, keep answers concise)
 
-FARM: ${bigha ? `${bigha} bigha` : "Not set (ask if needed for exact qty)"}
+GREETING RULE: If user says hi/hello/namaste/namaskar/hey or any simple greeting, reply in MAXIMUM 1-2 lines only. Just greet back warmly and ask how you can help. DO NOT give any farm advice or information unless asked.
+
+FARM: ${bigha ? `${bigha} bigha` : "Not set"}
 ${plan ? `FERTILIZER PER APPLICATION: Urea=${plan.urea}kg, DAP=${plan.dap}kg, MOP=${plan.mop}kg, MgSO4=${plan.mgso4}kg, Zinc=${plan.zinc}kg, Neem=${plan.neem}kg, Vermi=${plan.vermi}` : ""}
 
 THIS WEEK: ${currSched ? (L === "hi" ? currSched.note_hi : currSched.note_as) : "N/A"} | Items: ${currSched?.items?.join(", ") || "none"}
@@ -143,6 +145,12 @@ NEXT WEEK: ${nextSched ? (L === "hi" ? nextSched.note_hi : nextSched.note_as) : 
 FINANCIALS: Entries=${entries.length}, Weight=${totalWeight.toFixed(1)}kg, Earned=Rs${totalAmount}, Received=Rs${totalReceived}, Balance=Rs${totalBalance}
 THIS MONTH: ${monthEntries.length} entries, ${monthWeight.toFixed(1)}kg, Rs${monthAmount}
 RECENT: ${recent || "none"}
+
+USER DATA UPDATE RULES (Very Important):
+- If user says "mera bigha X hai" or "mere paas X bigha hai" or "X bigha update karo" → reply with: ##UPDATE_BIGHA:X## and confirm update in 1 line.
+- If user says "aaj X kg kata" or "X kg @ Rs Y" or "aaj X weight tha" → reply with: ##UPDATE_ENTRY:weight=X,rate=Y,date=TODAY## and confirm in 1 line.
+- If user says "mujhe Rs X mile" or "X rupees mila" → reply with: ##UPDATE_RECEIVED:amount=X## and confirm in 1 line.
+- Always use these exact tags so the app can detect and update data automatically.
 
 RULES: Never mix Urea+DAP. Apply evening only. Water after fertilizer. 15-20 days gap between DAP and Urea.`;
 };
@@ -415,12 +423,85 @@ export default function AIChatPage({ user }) {
       const reply = data.choices?.[0]?.message?.content || "";
       const replyTs = new Date();
 
+      // ── Parse AI update commands ──────────────────────────────────────────
+      let updatedBigha = curBigha;
+
+      // ##UPDATE_BIGHA:X##
+      const bighaUpdateMatch = reply.match(/##UPDATE_BIGHA:([\d.]+)##/);
+      if (bighaUpdateMatch) {
+        const newBigha = parseFloat(bighaUpdateMatch[1]);
+        if (!isNaN(newBigha) && newBigha > 0) {
+          updatedBigha = newBigha;
+          setBigha(newBigha);
+          saveMsgToDb("user", msg, { bigha: newBigha });
+        }
+      }
+
+      // ##UPDATE_ENTRY:weight=X,rate=Y,date=TODAY##
+      const entryMatch = reply.match(/##UPDATE_ENTRY:([^#]+)##/);
+      if (entryMatch) {
+        try {
+          const params = Object.fromEntries(entryMatch[1].split(",").map(p => p.split("=")));
+          const weight = parseFloat(params.weight) || 0;
+          const rate = parseFloat(params.rate) || 0;
+          const today = new Date().toISOString().slice(0, 10);
+          const totalAmount = weight * rate;
+          const cu = user || auth.currentUser;
+          if (cu && weight > 0) {
+            await addDoc(collection(db, "entries"), {
+              uid: cu.uid,
+              weight,
+              rate,
+              totalAmount,
+              amountReceived: 0,
+              balanceAmount: totalAmount,
+              date: today,
+              createdAt: serverTimestamp(),
+            });
+            await loadEntries();
+          }
+        } catch (e) { console.error("Entry update error:", e); }
+      }
+
+      // ##UPDATE_RECEIVED:amount=X##
+      const receivedMatch = reply.match(/##UPDATE_RECEIVED:amount=([\d.]+)##/);
+      if (receivedMatch) {
+        const receivedAmt = parseFloat(receivedMatch[1]) || 0;
+        if (receivedAmt > 0) {
+          try {
+            const cu = user || auth.currentUser;
+            if (cu) {
+              // Update the latest unpaid entry
+              const snap2 = await getDocs(query(collection(db, "entries"), where("uid", "==", cu.uid)));
+              const unpaid = snap2.docs
+                .map(d => ({ id: d.id, ...d.data() }))
+                .filter(e => (e.balanceAmount || 0) > 0)
+                .sort((a, b) => (b.date || "").localeCompare(a.date || ""));
+              if (unpaid.length > 0) {
+                const target = unpaid[0];
+                const newReceived = (target.amountReceived || 0) + receivedAmt;
+                const newBalance = Math.max(0, (target.totalAmount || 0) - newReceived);
+                const { updateDoc } = await import("firebase/firestore");
+                await updateDoc(doc(db, "entries", target.id), {
+                  amountReceived: newReceived,
+                  balanceAmount: newBalance,
+                });
+                await loadEntries();
+              }
+            }
+          } catch (e) { console.error("Received update error:", e); }
+        }
+      }
+
+      // Clean reply — remove update tags before showing
+      const cleanReply = reply.replace(/##[A-Z_]+:[^#]*##/g, "").trim();
+
       setChatHistory(prev => [...prev,
         { role: "user", content: msg },
-        { role: "assistant", content: reply }
+        { role: "assistant", content: cleanReply }
       ]);
-      saveMsgToDb("assistant", reply);
-      setMessages(p => [...p, { role: "bot", text: reply, ts: replyTs }]);
+      saveMsgToDb("assistant", cleanReply);
+      setMessages(p => [...p, { role: "bot", text: cleanReply, ts: replyTs }]);
 
     } catch (err) {
       let errMsg = "";
@@ -449,6 +530,9 @@ export default function AIChatPage({ user }) {
     { label: "⚠️ Golden Rules", msg: "चाय बागान के golden rules बताओ" },
     { label: "💰 बाकी balance", msg: "मेरा बाकी balance कितना है?" },
     { label: "📋 पूरा financial report", msg: "पूरा financial report दो" },
+    { label: "🌾 Bigha update करो", msg: "मेरे bigha की जानकारी update करो, मेरे पास कितने bigha हैं?" },
+    { label: "⚖️ आज का वजन डालो", msg: "आज का पत्ता वजन और rate बताओ, entry add करनी है" },
+    { label: "💵 पैसे मिले", msg: "आज कितने पैसे मिले? entry update करनी है" },
   ] : [
     { label: "📅 এই সপ্তাহত কি কৰিব", msg: "এই সপ্তাহত কি কৰিব?" },
     { label: "🛒 পৰৱৰ্তী সপ্তাহ কিনাকাটা", msg: "পৰৱৰ্তী সপ্তাহত কি কিনিব?" },
@@ -458,6 +542,9 @@ export default function AIChatPage({ user }) {
     { label: "⚠️ সোণালী নিয়ম", msg: "চাহ বাগানৰ সোণালী নিয়ম কওক" },
     { label: "💰 বাকী balance", msg: "মোৰ বাকী balance কিমান?" },
     { label: "📋 সম্পূৰ্ণ হিচাব", msg: "সম্পূৰ্ণ financial report দিয়ক" },
+    { label: "🌾 Bigha update কৰক", msg: "মোৰ bigha update কৰক, মোৰ কিমান bigha আছে?" },
+    { label: "⚖️ আজিৰ ওজন দিয়ক", msg: "আজিৰ পাতৰ ওজন আৰু rate কওক, entry যোগ কৰিব" },
+    { label: "💵 টকা পালোঁ", msg: "আজি কিমান টকা পালোঁ? entry update কৰিব" },
   ];
 
   // ── Weekly alert (only if no chat yet) ────────────────────────────────────
@@ -480,7 +567,7 @@ export default function AIChatPage({ user }) {
   });
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", height: "calc(100vh - 56px)", background: c.bg, fontFamily: "'Segoe UI', sans-serif", position: "relative" }}>
+    <div style={{ display: "flex", flexDirection: "column", height: "calc(100dvh - 56px)", maxHeight: "calc(100dvh - 56px)", background: c.bg, fontFamily: "'Segoe UI', sans-serif", position: "relative", overflow: "hidden" }}>
 
       {/* ── WhatsApp Header ── */}
       <div style={{ background: c.header, padding: "10px 16px", display: "flex", alignItems: "center", justifyContent: "space-between", flexShrink: 0, boxShadow: "0 1px 3px rgba(0,0,0,0.3)" }}>
@@ -501,7 +588,7 @@ export default function AIChatPage({ user }) {
       </div>
 
       {/* ── Chat area ── */}
-      <div style={{ flex: 1, overflowY: "auto", padding: "12px 10px", paddingBottom: "8px" }}
+      <div style={{ flex: 1, overflowY: "auto", padding: "12px 10px", paddingBottom: "8px", minHeight: 0 }}
         onClick={() => setShowQuickBtns(false)}>
 
         {/* Weekly alert — only when no messages */}
@@ -618,7 +705,7 @@ export default function AIChatPage({ user }) {
       )}
 
       {/* ── Input bar ── */}
-      <div style={{ background: c.inputBar, padding: "8px 10px", display: "flex", alignItems: "center", gap: "8px", flexShrink: 0 }}>
+      <div style={{ background: c.inputBar, padding: "8px 10px", display: "flex", alignItems: "center", gap: "8px", flexShrink: 0, position: "sticky", bottom: 0, zIndex: 10, minHeight: "60px", borderTop: `1px solid ${c.quickBtnBorder}` }}>
         {/* Quick button toggle */}
         <button
           onClick={(e) => { e.stopPropagation(); setShowQuickBtns(p => !p); }}
