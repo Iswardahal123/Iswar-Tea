@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect, useCallback } from "react";
 import { auth, db } from "../firebase/config";
-import { collection, query, where, getDocs, doc, getDoc } from "firebase/firestore";
+import { collection, query, where, getDocs, doc, getDoc, orderBy, serverTimestamp, addDoc, deleteDoc } from "firebase/firestore";
 import { useLang } from "../LanguageContext";
 import { useDark } from "../DarkModeContext";
 
@@ -110,6 +110,15 @@ const buildSystemPrompt = (entries, bigha, L) => {
   const now = new Date();
   const month = now.getMonth() + 1;
   const week = Math.min(getWeekOfMonth(), 4);
+  if (loadingChat) return (
+    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", height: "calc(100vh - 120px)", background: dark ? "#0f172a" : "#f0f4f0" }}>
+      <div style={{ fontSize: "36px", marginBottom: "12px" }}>🍃</div>
+      <div style={{ fontSize: "14px", color: dark ? "#94a3b8" : "#6b7280", fontFamily: "'Segoe UI', sans-serif" }}>
+        {lang === "as" ? "চাট লোড হৈ আছে..." : "Chat load हो रहा है..."}
+      </div>
+    </div>
+  );
+
   const currSched = getCurrentWeekSchedule();
   const nextSched = getNextWeekSchedule();
   const plan = bigha ? getFertilizerPlan(bigha) : null;
@@ -162,6 +171,7 @@ export default function AIChatPage({ user }) {
   const [bigha, setBigha] = useState(null);
   const [showWeeklyAlert, setShowWeeklyAlert] = useState(true);
   const [aiConfig, setAiConfig] = useState({ apiKey: "", modelId: DEFAULT_MODEL });
+  const [loadingChat, setLoadingChat] = useState(true);
   const bottomRef = useRef(null);
 
   const loadAiConfig = useCallback(async () => {
@@ -183,8 +193,72 @@ export default function AIChatPage({ user }) {
     } catch (e) { console.error(e); }
   }, [user]);
 
-  useEffect(() => { loadEntries(); loadAiConfig(); }, [loadEntries, loadAiConfig]);
+  // Load chat history from Firebase
+  const loadChatHistory = useCallback(async () => {
+    try {
+      const cu = user || auth.currentUser;
+      if (!cu) { setLoadingChat(false); return; }
+      const snap = await getDocs(
+        query(collection(db, "ai_chats"), where("uid", "==", cu.uid), orderBy("createdAt", "asc"))
+      );
+      if (!snap.empty) {
+        const savedMsgs = snap.docs.map(d => d.data());
+        // messages = UI display {role: "user"/"bot", text}
+        const uiMsgs = savedMsgs.map(m => ({ role: m.role === "assistant" ? "bot" : m.role, text: m.text, isError: false }));
+        // chatHistory = API format {role: "user"/"assistant", content}
+        const apiHist = savedMsgs.map(m => ({ role: m.role, content: m.text }));
+        setMessages(uiMsgs);
+        setChatHistory(apiHist);
+        setStarted(true);
+        // restore bigha if saved
+        const bighaMsg = savedMsgs.find(m => m.bigha);
+        if (bighaMsg) setBigha(bighaMsg.bigha);
+      }
+    } catch (e) { console.error(e); }
+    setLoadingChat(false);
+  }, [user]);
+
+  // Save single message to Firebase
+  const saveMsgToDb = useCallback(async (role, text, extraData = {}) => {
+    try {
+      const cu = user || auth.currentUser;
+      if (!cu) return;
+      await addDoc(collection(db, "ai_chats"), {
+        uid: cu.uid,
+        role, // "user" or "assistant"
+        text,
+        createdAt: serverTimestamp(),
+        ...extraData,
+      });
+    } catch (e) { console.error("Chat save error:", e); }
+  }, [user]);
+
+  // Clear chat
+  const clearChat = useCallback(async () => {
+    try {
+      const cu = user || auth.currentUser;
+      if (!cu) return;
+      const snap = await getDocs(query(collection(db, "ai_chats"), where("uid", "==", cu.uid)));
+      const delPromises = snap.docs.map(d => deleteDoc(doc(db, "ai_chats", d.id)));
+      await Promise.all(delPromises);
+    } catch (e) { console.error(e); }
+    setMessages([]);
+    setChatHistory([]);
+    setStarted(false);
+    setBigha(null);
+  }, [user]);
+
+  useEffect(() => { loadEntries(); loadAiConfig(); loadChatHistory(); }, [loadEntries, loadAiConfig, loadChatHistory]);
   useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages, typing]);
+
+  if (loadingChat) return (
+    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", height: "calc(100vh - 120px)", background: dark ? "#0f172a" : "#f0f4f0" }}>
+      <div style={{ fontSize: "36px", marginBottom: "12px" }}>🍃</div>
+      <div style={{ fontSize: "14px", color: dark ? "#94a3b8" : "#6b7280", fontFamily: "'Segoe UI', sans-serif" }}>
+        {lang === "as" ? "চাট লোড হৈ আছে..." : "Chat load हो रहा है..."}
+      </div>
+    </div>
+  );
 
   const currSched = getCurrentWeekSchedule();
   const nextSched = getNextWeekSchedule();
@@ -202,7 +276,10 @@ export default function AIChatPage({ user }) {
     if (bighaMatch) { curBigha = parseFloat(bighaMatch[1]); setBigha(curBigha); }
 
     setMessages(p => [...p, { role: "user", text: msg }]);
+    saveMsgToDb("user", msg, curBigha ? { bigha: curBigha } : {});
     setTyping(true);
+    // Save user message to Firebase
+    saveMsgToDb("user", msg, curBigha ? { bigha: curBigha } : {});
 
     try {
       if (!aiConfig.apiKey) throw new Error("NO_KEY");
@@ -252,6 +329,8 @@ export default function AIChatPage({ user }) {
       const reply = data.choices?.[0]?.message?.content || "";
 
       setChatHistory(prev => [...prev, { role: "user", content: msg }, { role: "assistant", content: reply }]);
+      // Save assistant reply to Firebase
+      saveMsgToDb("assistant", reply);
       setMessages(p => [...p, { role: "bot", text: reply }]);
     } catch (err) {
       let errMsg = "";
@@ -414,9 +493,13 @@ export default function AIChatPage({ user }) {
       {started && (
         <>
           <div style={{ display: "flex", gap: "6px", padding: "8px 10px", overflowX: "auto", background: d.quickBar, borderBottom: `1px solid ${d.quickBarBorder}`, flexShrink: 0 }}>
-            <button onClick={() => { setStarted(false); setMessages([]); setChatHistory([]); }}
+            <button onClick={clearChat}
               style={{ background: d.backBtn, border: "none", color: d.backBtnColor, padding: "6px 11px", borderRadius: "20px", fontSize: "11px", fontWeight: "700", cursor: "pointer", whiteSpace: "nowrap", fontFamily: "inherit" }}>
               ← {L === "hi" ? "वापस" : "ঘূৰিব"}
+            </button>
+            <button onClick={() => { if(window.confirm(L === "hi" ? "Chat delete करें?" : "Chat মচিব?")) clearChat(); }}
+              style={{ background: "#fef2f2", border: "1px solid #fca5a5", color: "#dc2626", padding: "6px 11px", borderRadius: "20px", fontSize: "11px", fontWeight: "700", cursor: "pointer", whiteSpace: "nowrap", fontFamily: "inherit" }}>
+              🗑️ {L === "hi" ? "Clear" : "মচক"}
             </button>
             {quickBtns.map(q => (
               <button key={q.label} onClick={() => sendMessage(q.msg)}
