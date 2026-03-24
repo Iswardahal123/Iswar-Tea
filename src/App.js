@@ -15,6 +15,7 @@ import EntryFormPage from "./pages/EntryFormPage";
 import EntryViewPage from "./pages/EntryViewPage";
 import AIChatPage from "./pages/AIChatPage";
 import AdminDashboard from "./pages/admin/AdminDashboard";
+import AdminAISettings from "./pages/admin/AdminAISettings";
 
 const VALID_PAGES = ["dashboard", "entry", "view", "chat"];
 
@@ -205,7 +206,12 @@ export default function App() {
   if (!user) return <Login onLogin={handleLogin} />;
 
   const renderPage = () => {
-    if (isAdmin) return <AdminDashboard user={user} />;
+    if (isAdmin) {
+      switch (currentPage) {
+        case "admin_ai": return <AdminAISettings user={user} />;
+        default:         return <AdminDashboard user={user} onNavigate={handlePageChange} />;
+      }
+    }
     switch (currentPage) {
       case "dashboard": return <DashboardPage user={user} />;
       case "entry":     return <EntryFormPage user={user} />;
@@ -217,9 +223,23 @@ export default function App() {
 
   return (
     <div style={{ fontFamily: "'Segoe UI',sans-serif", background: dark ? "#0f172a" : "#f8faf8", minHeight: "100vh", color: dark ? "#f1f5f9" : "#1a1a1a" }}>
-      <TopBar user={user} currentPage={isAdmin ? "admin" : currentPage} isAdmin={isAdmin} onLangChange={handleLangChange} />
+      <TopBar user={user} currentPage={isAdmin ? (currentPage === "admin_ai" ? "admin_ai" : "admin") : currentPage} isAdmin={isAdmin} onLangChange={handleLangChange} />
       {!isAdmin && <SmartTicker lang={lang} userName={user?.displayName || user?.email?.split("@")[0]} />}
       <main>{renderPage()}</main>
+      {isAdmin && (
+        <div style={{ position: "fixed", bottom: 0, left: 0, right: 0, background: dark ? "#1e293b" : "white", borderTop: "1px solid " + (dark ? "#334155" : "#e5e7eb"), display: "flex", zIndex: 100 }}>
+          <button onClick={() => handlePageChange("admin")}
+            style={{ flex: 1, padding: "12px 8px", background: "none", border: "none", cursor: "pointer", fontFamily: "inherit", display: "flex", flexDirection: "column", alignItems: "center", gap: "2px", color: currentPage !== "admin_ai" ? "#2d5a27" : (dark ? "#94a3b8" : "#6b7280") }}>
+            <span style={{ fontSize: "20px" }}>👥</span>
+            <span style={{ fontSize: "10px", fontWeight: "800" }}>Users</span>
+          </button>
+          <button onClick={() => handlePageChange("admin_ai")}
+            style={{ flex: 1, padding: "12px 8px", background: "none", border: "none", cursor: "pointer", fontFamily: "inherit", display: "flex", flexDirection: "column", alignItems: "center", gap: "2px", color: currentPage === "admin_ai" ? "#2563eb" : (dark ? "#94a3b8" : "#6b7280") }}>
+            <span style={{ fontSize: "20px" }}>🤖</span>
+            <span style={{ fontSize: "10px", fontWeight: "800" }}>AI Settings</span>
+          </button>
+        </div>
+      )}
       {!isAdmin && <BottomNav currentPage={currentPage} setCurrentPage={handlePageChange} />}
     </div>
   );
