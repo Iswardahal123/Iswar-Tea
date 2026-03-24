@@ -104,14 +104,6 @@ export default function AdminDashboard({ user }) {
   const [annLoading, setAnnLoading] = useState(false);
   const [annResult, setAnnResult] = useState("");
 
-  // AI Settings
-  const [showAiPanel, setShowAiPanel] = useState(false);
-  const [aiApiKey, setAiApiKey] = useState("");
-  const [aiModelId, setAiModelId] = useState("google/gemma-3-27b-it:free");
-  const [aiLoading, setAiLoading] = useState(false);
-  const [aiResult, setAiResult] = useState("");
-  const [aiKeyVisible, setAiKeyVisible] = useState(false);
-  const [aiCurrentModel, setAiCurrentModel] = useState("");
 
   const fetchUsers = async () => {
     setLoading(true);
@@ -122,39 +114,8 @@ export default function AdminDashboard({ user }) {
     setLoading(false);
   };
 
-  useEffect(() => { fetchUsers(); loadAiSettings(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { fetchUsers(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const loadAiSettings = async () => {
-    try {
-      const snap = await getDocs(collection(db, "config"));
-      snap.docs.forEach(d => {
-        if (d.id === "ai_settings") {
-          const data = d.data();
-          setAiApiKey(data.apiKey || "");
-          setAiModelId(data.modelId || "google/gemma-3-27b-it:free");
-          setAiCurrentModel(data.modelId || "");
-        }
-      });
-    } catch (e) { console.error(e); }
-  };
-
-  const handleSaveAiSettings = async () => {
-    if (!aiApiKey.trim()) { setAiResult("❌ API key daalo!"); return; }
-    if (!aiModelId.trim()) { setAiResult("❌ Model ID daalo!"); return; }
-    setAiLoading(true); setAiResult("");
-    try {
-      await setDoc(doc(db, "config", "ai_settings"), {
-        apiKey: aiApiKey.trim(),
-        modelId: aiModelId.trim(),
-        updatedAt: { seconds: Math.floor(Date.now() / 1000) },
-        updatedBy: user?.email || "admin",
-      });
-      setAiCurrentModel(aiModelId.trim());
-      setAiResult("✅ AI settings save ho gayi!");
-      setTimeout(() => setAiResult(""), 3000);
-    } catch (e) { setAiResult("❌ " + e.message); }
-    setAiLoading(false);
-  };
 
   const openUserDetail = async (u) => {
     setSelectedUser(u);
@@ -272,68 +233,7 @@ export default function AdminDashboard({ user }) {
       </div>
 
 
-      {/* AI Settings Panel */}
-      <div
-        style={{ background: "linear-gradient(135deg,#1e3a5f,#1d4ed8)", borderRadius: "16px", padding: "16px 18px", marginBottom: "14px", cursor: "pointer" }}
-        onClick={() => setShowAiPanel(p => !p)}
-      >
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <div>
-            <span style={{ fontSize: "15px", fontWeight: "800", color: "white" }}>🤖 AI Settings (OpenRouter)</span>
-            {aiCurrentModel && <div style={{ fontSize: "10px", color: "rgba(255,255,255,0.7)", marginTop: "2px" }}>Active: {aiCurrentModel.split("/").pop()?.split(":")[0]}</div>}
-          </div>
-          <span style={{ color: "white", fontSize: "18px" }}>{showAiPanel ? "▲" : "▼"}</span>
-        </div>
-        {showAiPanel && (
-          <div style={{ display: "flex", flexDirection: "column", gap: "10px", marginTop: "14px" }} onClick={e => e.stopPropagation()}>
-            <div>
-              <label style={{ fontSize: "11px", fontWeight: "700", color: "rgba(255,255,255,0.8)", display: "block", marginBottom: "6px" }}>OpenRouter API Key</label>
-              <div style={{ display: "flex", gap: "6px" }}>
-                <input
-                  type={aiKeyVisible ? "text" : "password"}
-                  value={aiApiKey}
-                  onChange={e => setAiApiKey(e.target.value)}
-                  placeholder="sk-or-v1-..."
-                  style={{ flex: 1, padding: "10px 13px", borderRadius: "10px", border: "none", background: "#0f172a", color: "white", fontSize: "13px", fontFamily: "inherit", outline: "none" }}
-                />
-                <button onClick={() => setAiKeyVisible(p => !p)}
-                  style={{ padding: "10px 13px", borderRadius: "10px", border: "none", background: "rgba(255,255,255,0.15)", color: "white", cursor: "pointer", fontSize: "14px" }}>
-                  {aiKeyVisible ? "🙈" : "👁️"}
-                </button>
-              </div>
-              <div style={{ fontSize: "10px", color: "rgba(255,255,255,0.55)", marginTop: "4px" }}>openrouter.ai → API Keys → Create Key</div>
-            </div>
-            <div>
-              <label style={{ fontSize: "11px", fontWeight: "700", color: "rgba(255,255,255,0.8)", display: "block", marginBottom: "6px" }}>Model ID</label>
-              <input
-                type="text"
-                value={aiModelId}
-                onChange={e => setAiModelId(e.target.value)}
-                placeholder="google/gemma-3-27b-it:free"
-                style={{ width: "100%", padding: "10px 13px", borderRadius: "10px", border: "none", background: "#0f172a", color: "white", fontSize: "13px", fontFamily: "inherit", outline: "none", boxSizing: "border-box" }}
-              />
-              <div style={{ fontSize: "10px", color: "rgba(255,255,255,0.55)", marginTop: "4px" }}>Free: google/gemma-3-27b-it:free | mistralai/mistral-7b-instruct:free | meta-llama/llama-3.1-8b-instruct:free</div>
-            </div>
-            <div style={{ display: "flex", gap: "6px", flexWrap: "wrap" }}>
-              {["google/gemma-3-27b-it:free","mistralai/mistral-7b-instruct:free","meta-llama/llama-3.1-8b-instruct:free"].map(m => (
-                <button key={m} onClick={() => setAiModelId(m)}
-                  style={{ fontSize: "10px", padding: "4px 10px", borderRadius: "20px", border: "none", background: aiModelId === m ? "white" : "rgba(255,255,255,0.15)", color: aiModelId === m ? "#1d4ed8" : "white", cursor: "pointer", fontFamily: "inherit", fontWeight: "700" }}>
-                  {m.split("/").pop()?.split(":")[0]?.split("-").slice(0,3).join("-")}
-                </button>
-              ))}
-            </div>
-            {aiResult && (
-              <div style={{ background: aiResult.startsWith("❌") ? "#fef2f2" : "#f0fdf4", color: aiResult.startsWith("❌") ? "#dc2626" : "#16a34a", padding: "10px 14px", borderRadius: "10px", fontSize: "13px", fontWeight: "700" }}>
-                {aiResult}
-              </div>
-            )}
-            <button onClick={handleSaveAiSettings} disabled={aiLoading}
-              style={{ padding: "13px", background: "linear-gradient(135deg,#059669,#10b981)", color: "white", border: "none", borderRadius: "12px", fontSize: "14px", fontWeight: "800", cursor: "pointer", fontFamily: "inherit" }}>
-              {aiLoading ? "💾 Saving..." : "💾 Save AI Settings"}
-            </button>
-          </div>
-        )}
-      </div>
+
 
       {/* Stats */}
       <div style={styles.statsRow}>
