@@ -231,6 +231,19 @@ export default function DoctorPage({ user }) {
         </div>
       )}
 
+      {/* TEMP DEBUG — batayega exact kya data aa raha hai */}
+      <div style={{ ...card, border: "2px dashed #f59e0b" }}>
+        <div style={{ fontSize: "12px", fontWeight: "900", color: "#f59e0b", marginBottom: "6px" }}>🔧 DEBUG INFO</div>
+        <div style={{ fontSize: "11px", color: d.text }}>Logged-in UID: {(user || auth.currentUser)?.uid || "NULL"}</div>
+        <div style={{ fontSize: "11px", color: d.text }}>Logged-in Email: {(user || auth.currentUser)?.email || "NULL"}</div>
+        <div style={{ fontSize: "11px", color: d.text }}>Entries fetched: {entries.length}</div>
+        {entries[0] && (
+          <div style={{ fontSize: "11px", color: d.text, marginTop: "4px" }}>
+            Sample entry: date="{String(entries[0].date)}" uid="{String(entries[0].uid)}" weight={String(entries[0].weight)}
+          </div>
+        )}
+      </div>
+
       {/* CURRENT SEASON SUGGESTION */}
       <div style={card}>
         <div style={sectionTitle}>📅 Iss Mahine ka Schedule</div>
