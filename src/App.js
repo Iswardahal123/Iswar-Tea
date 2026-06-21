@@ -14,10 +14,14 @@ import DashboardPage from "./pages/DashboardPage";
 import EntryFormPage from "./pages/EntryFormPage";
 import EntryViewPage from "./pages/EntryViewPage";
 import AIChatPage from "./pages/AIChatPage";
+import DoctorPage from "./pages/DoctorPage";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import AdminAISettings from "./pages/admin/AdminAISettings";
 
-const VALID_PAGES = ["dashboard", "entry", "view", "chat"];
+// Sirf is email ko Bagan Doctor tab dikhega — baaki sab users ke liye kuch nahi badla
+const DOCTOR_EMAIL = "junmain8@gmail.com";
+
+const VALID_PAGES = ["dashboard", "entry", "view", "chat", "doctor"];
 
 // Page ko localStorage mein save karo
 const savePage = (page) => {
@@ -217,6 +221,7 @@ export default function App() {
       case "entry":     return <EntryFormPage user={user} />;
       case "view":      return <EntryViewPage user={user} />;
       case "chat":      return <AIChatPage user={user} />;
+      case "doctor":    return user?.email === DOCTOR_EMAIL ? <DoctorPage user={user} /> : <DashboardPage user={user} />;
       default:          return <DashboardPage user={user} />;
     }
   };
@@ -240,7 +245,7 @@ export default function App() {
           </button>
         </div>
       )}
-      {!isAdmin && <BottomNav currentPage={currentPage} setCurrentPage={handlePageChange} />}
+      {!isAdmin && <BottomNav currentPage={currentPage} setCurrentPage={handlePageChange} showDoctor={user?.email === DOCTOR_EMAIL} />}
     </div>
   );
 }
