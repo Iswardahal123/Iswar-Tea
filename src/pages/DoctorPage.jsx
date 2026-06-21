@@ -1,7 +1,10 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { auth, db } from "../firebase/config";
-import { collection, query, where, getDocs, addDoc, Timestamp } from "firebase/firestore";
+import { collection, query, where, getDocs, addDoc, doc, getDoc, Timestamp } from "firebase/firestore";
 import { useDark } from "../DarkModeContext";
+
+// Free OpenRouter model jo image (vision) samajh sakta hai — admin ka saved text-only model fallback ke taur pe replace hota hai sirf photo-check ke liye
+const VISION_MODEL = "meta-llama/llama-4-maverick:free";
 
 // ── Tea Bagan Guide 2026 data (Joysiddhi/Naduar, 2 Bigha) ──────────────────
 const DISEASES = [
@@ -77,6 +80,12 @@ export default function DoctorPage({ user }) {
   const [pickedDisease, setPickedDisease] = useState(null);
   const [marking, setMarking] = useState(false);
   const [marked, setMarked] = useState(false);
+  const [aiApiKey, setAiApiKey] = useState("");
+  const [photoPreview, setPhotoPreview] = useState(null);
+  const [diagnosing, setDiagnosing] = useState(false);
+  const [diagnosis, setDiagnosis] = useState("");
+  const [diagnosisError, setDiagnosisError] = useState("");
+  const fileInputRef = useRef(null);
 
   const fetchAll = async () => {
     setLoading(true);
@@ -95,6 +104,11 @@ export default function DoctorPage({ user }) {
         console.error("treatments fetch failed:", e.message);
         setTreatments([]);
       }
+
+      try {
+        const aiSnap = await getDoc(doc(db, "config", "ai_settings"));
+        if (aiSnap.exists()) setAiApiKey(aiSnap.data().apiKey || "");
+      } catch (e) { console.error("ai_settings fetch failed:", e.message); }
     } catch (err) { console.error(err); }
     setLoading(false);
   };
@@ -123,6 +137,61 @@ export default function DoctorPage({ user }) {
       setTimeout(() => setMarked(false), 3000);
     } catch (err) { console.error(err); }
     setMarking(false);
+  };
+
+  const handlePhotoSelect = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setDiagnosis("");
+    setDiagnosisError("");
+
+    const reader = new FileReader();
+    reader.onload = async () => {
+      const base64DataUri = reader.result; // already "data:image/...;base64,...."
+      setPhotoPreview(base64DataUri);
+
+      if (!aiApiKey) {
+        setDiagnosisError("⚠️ AI abhi set nahi hai. Admin AI Settings mein API key add karo.");
+        return;
+      }
+
+      setDiagnosing(true);
+      try {
+        const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+          method: "POST",
+          headers: {
+            "Authorization": `Bearer ${aiApiKey}`,
+            "Content-Type": "application/json",
+            "HTTP-Referer": window.location.origin,
+            "X-Title": "Bagan Doctor",
+          },
+          body: JSON.stringify({
+            model: VISION_MODEL,
+            messages: [
+              {
+                role: "user",
+                content: [
+                  {
+                    type: "text",
+                    text: "Yeh tea bagan (tea garden) ke patte/ped ki photo hai. Tum ek tea garden expert ho. Photo dekh ke batao: 1) Kya bimari ya keeda dikh raha hai (ya healthy hai)? 2) Symptoms kya dikhe. 3) Kaunsa dawa/spray use karna chahiye, dose kya ho, aur PHI (todne se pehle kitne din wait) kitna hai. Hindi-English mix (Hinglish) mein simple bhasha mein jawab do, short aur practical rakho.",
+                  },
+                  { type: "image_url", image_url: { url: base64DataUri } },
+                ],
+              },
+            ],
+            max_tokens: 600,
+          }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data?.error?.message || `HTTP ${res.status}`);
+        const reply = data.choices?.[0]?.message?.content || "AI se jawab nahi mila.";
+        setDiagnosis(reply);
+      } catch (err) {
+        setDiagnosisError("❌ AI check fail hua: " + err.message);
+      }
+      setDiagnosing(false);
+    };
+    reader.readAsDataURL(file);
   };
 
   const d = {
@@ -322,6 +391,36 @@ export default function DoctorPage({ user }) {
               </div>
             )}
           </>
+        )}
+      </div>
+
+      {/* PHOTO SE PEHCHAANO — AI vision diagnosis */}
+      <div style={card}>
+        <div style={sectionTitle}>📷 Photo se Pehchaano</div>
+        <div style={{ fontSize: "12px", color: d.sub, marginBottom: "10px" }}>
+          Bimar patte/ped ki photo upload karo, AI bata dega kya hua hai aur kya dawa maaro.
+        </div>
+
+        <input ref={fileInputRef} type="file" accept="image/*" capture="environment" onChange={handlePhotoSelect} style={{ display: "none" }} />
+        <button onClick={() => fileInputRef.current?.click()} disabled={diagnosing}
+          style={{ width: "100%", padding: "14px", borderRadius: "12px", border: "none", background: "linear-gradient(135deg,#0d4d1c,#1a8a3a)", color: "white", fontWeight: "800", fontSize: "14px", cursor: "pointer", fontFamily: "inherit", opacity: diagnosing ? 0.6 : 1 }}>
+          {diagnosing ? "🔄 AI check kar raha hai..." : "📷 Photo Upload Karo"}
+        </button>
+
+        {photoPreview && (
+          <img src={photoPreview} alt="uploaded" style={{ width: "100%", borderRadius: "12px", marginTop: "12px", maxHeight: "240px", objectFit: "cover" }} />
+        )}
+
+        {diagnosisError && (
+          <div style={{ marginTop: "12px", background: dark ? "#7f1d1d" : "#fef2f2", color: dark ? "#fca5a5" : "#b91c1c", padding: "10px 12px", borderRadius: "10px", fontSize: "12px", fontWeight: "700" }}>
+            {diagnosisError}
+          </div>
+        )}
+
+        {diagnosis && (
+          <div style={{ marginTop: "12px", background: dark ? "#0f172a" : "#f9fafb", borderRadius: "12px", padding: "14px", fontSize: "13px", color: d.text, lineHeight: "1.7", whiteSpace: "pre-wrap" }}>
+            {diagnosis}
+          </div>
         )}
       </div>
 
