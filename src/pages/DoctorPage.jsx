@@ -77,18 +77,21 @@ export default function DoctorPage({ user }) {
   const [pickedDisease, setPickedDisease] = useState(null);
   const [marking, setMarking] = useState(false);
   const [marked, setMarked] = useState(false);
+  const [allEntriesDebug, setAllEntriesDebug] = useState([]);
 
   const fetchAll = async () => {
     setLoading(true);
     try {
       const currentUser = user || auth.currentUser;
       if (!currentUser) { setLoading(false); return; }
-      const [entrySnap, treatSnap] = await Promise.all([
+      const [entrySnap, treatSnap, allSnap] = await Promise.all([
         getDocs(query(collection(db, "entries"), where("uid", "==", currentUser.uid))),
         getDocs(query(collection(db, "treatments"), where("uid", "==", currentUser.uid))),
+        getDocs(collection(db, "entries")),
       ]);
       setEntries(entrySnap.docs.map(d => ({ id: d.id, ...d.data() })));
       setTreatments(treatSnap.docs.map(d => ({ id: d.id, ...d.data() })).sort((a, b) => (b.date || "").localeCompare(a.date || "")));
+      setAllEntriesDebug(allSnap.docs.map(d => ({ id: d.id, ...d.data() })));
     } catch (err) { console.error(err); }
     setLoading(false);
   };
@@ -240,6 +243,16 @@ export default function DoctorPage({ user }) {
         {entries[0] && (
           <div style={{ fontSize: "11px", color: d.text, marginTop: "4px" }}>
             Sample entry: date="{String(entries[0].date)}" uid="{String(entries[0].uid)}" weight={String(entries[0].weight)}
+          </div>
+        )}
+        <div style={{ fontSize: "11px", color: d.text, marginTop: "8px", fontWeight: "800" }}>
+          Total docs in "entries" collection: {allEntriesDebug.length}
+        </div>
+        {allEntriesDebug.length > 0 && (
+          <div style={{ fontSize: "10px", color: d.sub, marginTop: "4px", fontFamily: "monospace" }}>
+            Field names in 1st doc: {Object.keys(allEntriesDebug[0]).join(", ")}
+            <br />uid value: "{String(allEntriesDebug[0].uid).slice(0, 8)}..." (matches mine: {String(allEntriesDebug[0].uid) === ((user || auth.currentUser)?.uid) ? "YES" : "NO"})
+            <br />My uid starts with: {((user || auth.currentUser)?.uid || "").slice(0, 8)}...
           </div>
         )}
       </div>
