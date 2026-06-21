@@ -5,18 +5,18 @@ import { useDark } from "../DarkModeContext";
 
 // ── Tea Bagan Guide 2026 data (Joysiddhi/Naduar, 2 Bigha) ──────────────────
 const DISEASES = [
-  { key: "redrust",     icon: "🟠", name: "Lal Syahi (Red Rust)",       symptom: "Patte pe narangi-lal powder jaisa daag",     dawa: "Blitox 50 (Copper Oxychloride)",      dose: "3 gm / litre paani",   phi: 6 },
-  { key: "heliopeltis", icon: "🦟", name: "Heliopeltis (Machhar Poka)", symptom: "Patte pe brown/black daag, tips sukh jaati", dawa: "Confidor (Imidacloprid 17.8%)",       dose: "0.3 ml / litre paani", phi: 8 },
-  { key: "looper",      icon: "🐛", name: "Looper (Caterpillar)",       symptom: "Patta kha jaata hai, sirf nass bacha rehta", dawa: "Coragen (Chlorantraniliprole 18.5%)", dose: "0.3 ml / litre paani", phi: 3 },
-  { key: "thrips",      icon: "🍃", name: "Thrips",                    symptom: "Patte ke kinare mude, silver/white streaks", dawa: "Tracer (Spinosad 45%)",               dose: "0.3 ml / litre paani", phi: 4 },
+  { key: "redrust",     icon: "🟠", name: "Lal Syahi (Red Rust)",       symptom: "Patte pe narangi-lal powder jaisa daag",     dawa: "Blitox 50 (Copper Oxychloride)",      dose: "3 gm / litre paani",   phi: 6, type: "spray" },
+  { key: "heliopeltis", icon: "🦟", name: "Heliopeltis (Machhar Poka)", symptom: "Patte pe brown/black daag, tips sukh jaati", dawa: "Confidor (Imidacloprid 17.8%)",       dose: "0.3 ml / litre paani", phi: 8, type: "spray" },
+  { key: "looper",      icon: "🐛", name: "Looper (Caterpillar)",       symptom: "Patta kha jaata hai, sirf nass bacha rehta", dawa: "Coragen (Chlorantraniliprole 18.5%)", dose: "0.3 ml / litre paani", phi: 3, type: "spray" },
+  { key: "thrips",      icon: "🍃", name: "Thrips",                    symptom: "Patte ke kinare mude, silver/white streaks", dawa: "Tracer (Spinosad 45%)",               dose: "0.3 ml / litre paani", phi: 4, type: "spray" },
 ];
 
 const FERT_PLAN = [
-  { name: "Urea",  months: "March, June, Aug",  qty: "16-20 kg (2 Bigha)" },
-  { name: "MOP (Potash)", months: "April, Sept", qty: "10 kg (2 Bigha)" },
-  { name: "SSP (Phosphate)", months: "Feb (pruning ke baad)", qty: "10 kg (2 Bigha)" },
-  { name: "NPK 19:19:19 (Foliar)", months: "Har 15 din, March-Oct", qty: "5 gm/litre" },
-  { name: "Zinc + Boron", months: "Month mein 1 baar", qty: "2 gm/litre" },
+  { key: "urea",     icon: "🌾", name: "Urea",  months: "March, June, Aug",  qty: "16-20 kg (2 Bigha)", type: "fertilizer" },
+  { key: "mop",      icon: "🌾", name: "MOP (Potash)", months: "April, Sept", qty: "10 kg (2 Bigha)", type: "fertilizer" },
+  { key: "ssp",      icon: "🌾", name: "SSP (Phosphate)", months: "Feb (pruning ke baad)", qty: "10 kg (2 Bigha)", type: "fertilizer" },
+  { key: "npk",      icon: "💧", name: "NPK 19:19:19 (Foliar)", months: "Har 15 din, March-Oct", qty: "5 gm/litre", type: "fertilizer" },
+  { key: "zincboron",icon: "💧", name: "Zinc + Boron", months: "Month mein 1 baar", qty: "2 gm/litre", type: "fertilizer" },
 ];
 
 const SPRAY_SCHEDULE = [
@@ -101,7 +101,7 @@ export default function DoctorPage({ user }) {
 
   useEffect(() => { fetchAll(); }, [user]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const markTreated = async (disease) => {
+  const markTreated = async (item) => {
     setMarking(true);
     try {
       const currentUser = user || auth.currentUser;
@@ -109,11 +109,12 @@ export default function DoctorPage({ user }) {
       await addDoc(collection(db, "treatments"), {
         uid: currentUser.uid,
         date: today,
-        diseaseKey: disease.key,
-        diseaseName: disease.name,
-        dawa: disease.dawa,
-        dose: disease.dose,
-        phi: disease.phi,
+        type: item.type || "spray",
+        diseaseKey: item.key,
+        diseaseName: item.name,
+        dawa: item.dawa || item.name,
+        dose: item.dose || item.qty || "",
+        phi: item.phi || 0,
         createdAt: Timestamp.now(),
       });
       setMarked(true);
@@ -147,9 +148,13 @@ export default function DoctorPage({ user }) {
   const currentSession = sessions[sessions.length - 1];
   const prevSession = sessions[sessions.length - 2];
 
-  const lastTreatment = treatments[0];
-  const daysSinceTreatment = lastTreatment ? daysBetween(lastTreatment.date, today.toISOString().split("T")[0]) : null;
-  const phiClear = lastTreatment ? daysSinceTreatment >= lastTreatment.phi : true;
+  // Saare spray treatments jinka PHI abhi clear nahi hua (multiple ho sakte hain)
+  const todayStr = today.toISOString().split("T")[0];
+  const activeSprayTreatments = treatments
+    .filter(t => (t.type || "spray") === "spray")
+    .map(t => ({ ...t, daysSince: daysBetween(t.date, todayStr) }))
+    .filter(t => t.daysSince < t.phi);
+  const recentFertilizerLogs = treatments.filter(t => t.type === "fertilizer").slice(0, 3);
 
   const card = { background: d.card, borderRadius: "16px", padding: "16px", marginBottom: "16px", boxShadow: d.shadow, border: `1px solid ${d.border}` };
   const sectionTitle = { fontSize: "15px", fontWeight: "900", color: d.text, marginBottom: "10px" };
@@ -165,22 +170,40 @@ export default function DoctorPage({ user }) {
         <div style={{ fontSize: "12px", opacity: 0.85, marginTop: "2px" }}>{MONTH_NAMES[curMonth]} — Tea Bagan Guide 2026 ke hisaab se</div>
       </div>
 
-      {/* PHI STATUS */}
-      {lastTreatment && (
-        <div style={{ ...card, borderLeft: phiClear ? "4px solid #16a34a" : "4px solid #d97706" }}>
-          <div style={sectionTitle}>⏱️ Last Dawa Status</div>
-          <div style={{ fontSize: "13px", color: d.text }}>
-            <b>{lastTreatment.dawa}</b> — {lastTreatment.date} ko maara tha ({lastTreatment.diseaseName})
+      {/* PHI STATUS — multiple sprays ek saath track ho sakte hain */}
+      {activeSprayTreatments.length > 0 && (
+        <div style={{ ...card, borderLeft: "4px solid #d97706" }}>
+          <div style={sectionTitle}>⏱️ Dawa PHI Status</div>
+          {activeSprayTreatments.map(t => (
+            <div key={t.id} style={{ marginBottom: "8px" }}>
+              <div style={{ fontSize: "13px", color: d.text }}>
+                <b>{t.dawa}</b> — {t.date} ko maara ({t.diseaseName})
+              </div>
+              <div style={{ marginTop: "4px", background: dark ? "#78350f" : "#fef3c7", color: dark ? "#fde68a" : "#92400e", padding: "8px 12px", borderRadius: "10px", fontSize: "12px", fontWeight: "700" }}>
+                ⚠️ {t.phi - t.daysSince} din baaki PHI complete hone mein (todne se pehle wait karo)
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {activeSprayTreatments.length === 0 && treatments.some(t => (t.type || "spray") === "spray") && (
+        <div style={{ ...card, borderLeft: "4px solid #16a34a" }}>
+          <div style={{ fontSize: "13px", color: dark ? "#86efac" : "#16a34a", fontWeight: "700" }}>
+            ✅ Saari dawaiyon ka PHI complete — ab patte tod sakte ho.
           </div>
-          {phiClear ? (
-            <div style={{ marginTop: "8px", background: dark ? "#14532d" : "#f0fdf4", color: dark ? "#86efac" : "#16a34a", padding: "10px 12px", borderRadius: "10px", fontSize: "12px", fontWeight: "700" }}>
-              ✅ PHI complete ({daysSinceTreatment} din ho gaye) — ab patte tod sakte ho.
+        </div>
+      )}
+
+      {recentFertilizerLogs.length > 0 && (
+        <div style={card}>
+          <div style={sectionTitle}>💧 Recent Fertilizer/Vitamin Log</div>
+          {recentFertilizerLogs.map(t => (
+            <div key={t.id} style={{ display: "flex", justifyContent: "space-between", fontSize: "12px", padding: "5px 0", borderBottom: `1px solid ${d.border}` }}>
+              <span style={{ color: d.sub }}>{t.diseaseName}</span>
+              <span style={{ color: d.text, fontWeight: "700" }}>{t.date}</span>
             </div>
-          ) : (
-            <div style={{ marginTop: "8px", background: dark ? "#78350f" : "#fef3c7", color: dark ? "#fde68a" : "#92400e", padding: "10px 12px", borderRadius: "10px", fontSize: "12px", fontWeight: "700" }}>
-              ⚠️ Abhi {daysSinceTreatment} din hue, {lastTreatment.phi} din wait karo todne se pehle. {lastTreatment.phi - daysSinceTreatment} din baaki.
-            </div>
-          )}
+          ))}
         </div>
       )}
 
@@ -205,7 +228,7 @@ export default function DoctorPage({ user }) {
         </div>
       </div>
 
-      {/* SUGGESTION POPUP */}
+      {/* SUGGESTION POPUP — disease ya fertilizer, dono ke liye */}
       {pickedDisease && (
         <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(0,0,0,0.55)", zIndex: 999, display: "flex", alignItems: "center", justifyContent: "center", padding: "20px" }}
           onClick={() => setPickedDisease(null)}>
@@ -213,9 +236,13 @@ export default function DoctorPage({ user }) {
             <div style={{ fontSize: "32px", textAlign: "center", marginBottom: "8px" }}>{pickedDisease.icon}</div>
             <div style={{ fontSize: "16px", fontWeight: "900", color: d.text, textAlign: "center", marginBottom: "12px" }}>{pickedDisease.name}</div>
             <div style={{ background: dark ? "#0f172a" : "#f9fafb", borderRadius: "12px", padding: "14px", marginBottom: "16px" }}>
-              <div style={{ fontSize: "13px", color: d.text, marginBottom: "6px" }}>💊 <b>{pickedDisease.dawa}</b></div>
-              <div style={{ fontSize: "13px", color: d.text, marginBottom: "6px" }}>📏 {pickedDisease.dose}</div>
-              <div style={{ fontSize: "13px", color: d.text }}>⏱️ PHI: {pickedDisease.phi} din (todne se pehle wait)</div>
+              {pickedDisease.dawa && <div style={{ fontSize: "13px", color: d.text, marginBottom: "6px" }}>💊 <b>{pickedDisease.dawa}</b></div>}
+              <div style={{ fontSize: "13px", color: d.text, marginBottom: "6px" }}>📏 {pickedDisease.dose || pickedDisease.qty}</div>
+              {pickedDisease.phi > 0 ? (
+                <div style={{ fontSize: "13px", color: d.text }}>⏱️ PHI: {pickedDisease.phi} din (todne se pehle wait)</div>
+              ) : (
+                <div style={{ fontSize: "13px", color: d.text }}>✅ Koi wait nahi — patte tod sakte ho</div>
+              )}
             </div>
             <div style={{ display: "flex", gap: "8px" }}>
               <button onClick={() => setPickedDisease(null)}
@@ -224,7 +251,7 @@ export default function DoctorPage({ user }) {
               </button>
               <button onClick={() => markTreated(pickedDisease)} disabled={marking}
                 style={{ flex: 1, padding: "12px", borderRadius: "10px", border: "none", background: "#16a34a", color: "white", fontWeight: "800", cursor: "pointer", fontFamily: "inherit", opacity: marking ? 0.6 : 1 }}>
-                {marking ? "Saving..." : "✅ Dawa Maar Diya"}
+                {marking ? "Saving..." : pickedDisease.type === "fertilizer" ? "✅ Daal Diya" : "✅ Dawa Maar Diya"}
               </button>
             </div>
           </div>
@@ -233,7 +260,7 @@ export default function DoctorPage({ user }) {
 
       {marked && (
         <div style={{ position: "fixed", bottom: "100px", left: "16px", right: "16px", background: "#16a34a", color: "white", padding: "12px 16px", borderRadius: "12px", fontSize: "13px", fontWeight: "700", textAlign: "center", zIndex: 998 }}>
-          ✅ Mark ho gaya — PHI countdown shuru
+          ✅ Mark ho gaya
         </div>
       )}
 
@@ -298,18 +325,28 @@ export default function DoctorPage({ user }) {
         )}
       </div>
 
-      {/* FERTILIZER PLAN */}
+      {/* FERTILIZER PLAN — tap karke mark karo */}
       <div style={card}>
-        <div style={sectionTitle}>🌿 Fertilizer Plan (2 Bigha)</div>
-        {FERT_PLAN.map((f, i) => (
-          <div key={i} style={{ display: "flex", justifyContent: "space-between", padding: "8px 0", borderBottom: i < FERT_PLAN.length - 1 ? `1px solid ${d.border}` : "none" }}>
-            <div>
-              <div style={{ fontSize: "12px", fontWeight: "800", color: d.text }}>{f.name}</div>
-              <div style={{ fontSize: "11px", color: d.sub }}>{f.months}</div>
-            </div>
-            <div style={{ fontSize: "12px", fontWeight: "700", color: d.text, alignSelf: "center" }}>{f.qty}</div>
-          </div>
-        ))}
+        <div style={sectionTitle}>🌿 Fertilizer / Vitamin Plan (2 Bigha)</div>
+        <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+          {FERT_PLAN.map(f => (
+            <button key={f.key} onClick={() => setPickedDisease(f)}
+              style={{
+                display: "flex", alignItems: "center", justifyContent: "space-between", textAlign: "left",
+                background: dark ? "#0f172a" : "#f9fafb", border: `1px solid ${d.border}`,
+                borderRadius: "12px", padding: "12px", cursor: "pointer", fontFamily: "inherit", width: "100%",
+              }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                <span style={{ fontSize: "20px" }}>{f.icon}</span>
+                <div>
+                  <div style={{ fontSize: "13px", fontWeight: "800", color: d.text }}>{f.name}</div>
+                  <div style={{ fontSize: "11px", color: d.sub }}>{f.months}</div>
+                </div>
+              </div>
+              <div style={{ fontSize: "11px", fontWeight: "700", color: d.text }}>{f.qty}</div>
+            </button>
+          ))}
+        </div>
       </div>
 
       <div style={{ textAlign: "center", fontSize: "11px", color: d.sub, marginTop: "8px" }}>
