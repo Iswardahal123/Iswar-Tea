@@ -1,7 +1,7 @@
 import React from "react";
 import { useLang } from "../LanguageContext";
 
-export default function BottomNav({ currentPage, setCurrentPage }) {
+export default function BottomNav({ currentPage, setCurrentPage, showDoctor }) {
   const { lang } = useLang();
 
   const tabs = {
@@ -10,28 +10,32 @@ export default function BottomNav({ currentPage, setCurrentPage }) {
       { id: "entry",     icon: "➕", label: "Entry" },
       { id: "view",      icon: "📋", label: "Records" },
       { id: "chat",      icon: "🤖", label: "AI Chat" },
+      { id: "doctor",    icon: "🌱", label: "Doctor" },
     ],
     hi: [
       { id: "dashboard", icon: "🏠", label: "डैशबोर्ड" },
       { id: "entry",     icon: "➕", label: "प्रविष्टि" },
       { id: "view",      icon: "📋", label: "रिकॉर्ड" },
       { id: "chat",      icon: "🤖", label: "AI चैट" },
+      { id: "doctor",    icon: "🌱", label: "डॉक्टर" },
     ],
     as: [
       { id: "dashboard", icon: "🏠", label: "ড্যাশব'ৰ্ড" },
       { id: "entry",     icon: "➕", label: "তথ্য" },
       { id: "view",      icon: "📋", label: "ৰেকৰ্ড" },
       { id: "chat",      icon: "🤖", label: "AI চেট" },
+      { id: "doctor",    icon: "🌱", label: "ডক্টর" },
     ],
     ne: [
       { id: "dashboard", icon: "🏠", label: "ड्यासबोर्ड" },
       { id: "entry",     icon: "➕", label: "प्रविष्टि" },
       { id: "view",      icon: "📋", label: "रेकर्ड" },
       { id: "chat",      icon: "🤖", label: "AI च्याट" },
+      { id: "doctor",    icon: "🌱", label: "डाक्टर" },
     ],
   };
 
-  const currentTabs = tabs[lang] || tabs.as;
+  const currentTabs = (tabs[lang] || tabs.as).filter(t => t.id !== "doctor" || showDoctor);
 
   return (
     <div style={styles.nav}>
