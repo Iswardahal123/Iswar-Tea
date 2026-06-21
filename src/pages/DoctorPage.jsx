@@ -78,21 +78,31 @@ export default function DoctorPage({ user }) {
   const [marking, setMarking] = useState(false);
   const [marked, setMarked] = useState(false);
   const [allEntriesDebug, setAllEntriesDebug] = useState([]);
+  const [debugError, setDebugError] = useState("");
 
   const fetchAll = async () => {
     setLoading(true);
+    setDebugError("");
     try {
       const currentUser = user || auth.currentUser;
-      if (!currentUser) { setLoading(false); return; }
-      const [entrySnap, treatSnap, allSnap] = await Promise.all([
-        getDocs(query(collection(db, "entries"), where("uid", "==", currentUser.uid))),
-        getDocs(query(collection(db, "treatments"), where("uid", "==", currentUser.uid))),
-        getDocs(collection(db, "entries")),
-      ]);
-      setEntries(entrySnap.docs.map(d => ({ id: d.id, ...d.data() })));
-      setTreatments(treatSnap.docs.map(d => ({ id: d.id, ...d.data() })).sort((a, b) => (b.date || "").localeCompare(a.date || "")));
-      setAllEntriesDebug(allSnap.docs.map(d => ({ id: d.id, ...d.data() })));
-    } catch (err) { console.error(err); }
+      if (!currentUser) { setLoading(false); setDebugError("currentUser is null"); return; }
+
+      try {
+        const entrySnap = await getDocs(query(collection(db, "entries"), where("uid", "==", currentUser.uid)));
+        setEntries(entrySnap.docs.map(d => ({ id: d.id, ...d.data() })));
+      } catch (e1) { setDebugError(prev => prev + "FILTERED QUERY ERROR: " + e1.message + " | "); }
+
+      try {
+        const treatSnap = await getDocs(query(collection(db, "treatments"), where("uid", "==", currentUser.uid)));
+        setTreatments(treatSnap.docs.map(d => ({ id: d.id, ...d.data() })).sort((a, b) => (b.date || "").localeCompare(a.date || "")));
+      } catch (e2) { setDebugError(prev => prev + "TREATMENTS ERROR: " + e2.message + " | "); }
+
+      try {
+        const allSnap = await getDocs(collection(db, "entries"));
+        setAllEntriesDebug(allSnap.docs.map(d => ({ id: d.id, ...d.data() })));
+      } catch (e3) { setDebugError(prev => prev + "UNFILTERED QUERY ERROR: " + e3.message + " | "); }
+
+    } catch (err) { setDebugError("OUTER ERROR: " + err.message); }
     setLoading(false);
   };
 
@@ -237,6 +247,11 @@ export default function DoctorPage({ user }) {
       {/* TEMP DEBUG — batayega exact kya data aa raha hai */}
       <div style={{ ...card, border: "2px dashed #f59e0b" }}>
         <div style={{ fontSize: "12px", fontWeight: "900", color: "#f59e0b", marginBottom: "6px" }}>🔧 DEBUG INFO</div>
+        {debugError && (
+          <div style={{ fontSize: "11px", color: "#dc2626", fontWeight: "800", marginBottom: "6px", wordBreak: "break-word" }}>
+            ❌ {debugError}
+          </div>
+        )}
         <div style={{ fontSize: "11px", color: d.text }}>Logged-in UID: {(user || auth.currentUser)?.uid || "NULL"}</div>
         <div style={{ fontSize: "11px", color: d.text }}>Logged-in Email: {(user || auth.currentUser)?.email || "NULL"}</div>
         <div style={{ fontSize: "11px", color: d.text }}>Entries fetched: {entries.length}</div>
