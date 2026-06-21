@@ -69,7 +69,7 @@ function getSeasonForMonth(m) {
   return SPRAY_SCHEDULE.find(s => s.months.includes(m)) || SPRAY_SCHEDULE[0];
 }
 
-export default function DoctorPage() {
+export default function DoctorPage({ user }) {
   const { dark } = useDark();
   const [entries, setEntries] = useState([]);
   const [treatments, setTreatments] = useState([]);
@@ -81,7 +81,7 @@ export default function DoctorPage() {
   const fetchAll = async () => {
     setLoading(true);
     try {
-      const currentUser = auth.currentUser;
+      const currentUser = user || auth.currentUser;
       if (!currentUser) { setLoading(false); return; }
       const [entrySnap, treatSnap] = await Promise.all([
         getDocs(query(collection(db, "entries"), where("uid", "==", currentUser.uid))),
@@ -93,12 +93,12 @@ export default function DoctorPage() {
     setLoading(false);
   };
 
-  useEffect(() => { fetchAll(); }, []);
+  useEffect(() => { fetchAll(); }, [user]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const markTreated = async (disease) => {
     setMarking(true);
     try {
-      const currentUser = auth.currentUser;
+      const currentUser = user || auth.currentUser;
       const today = new Date().toISOString().split("T")[0];
       await addDoc(collection(db, "treatments"), {
         uid: currentUser.uid,
