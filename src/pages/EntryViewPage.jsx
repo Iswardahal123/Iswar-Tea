@@ -124,6 +124,7 @@ const txt = {
     balHint: (t,a,r,b) => `${t} - ${a} - ${r} = ${b}`,
     currency: "Rs", unit: "kg", per: "/kg",
     saveBtn: "✅ Save", saving: "⏳ Saving...", locale: "en-IN",
+    viewList: "📋 List", viewSession: "🗂️ Sessions", sessionLabel: "Session", totalKg: "Total",
   },
   hi: {
     loading: "कृपया प्रतीक्षा करें...", monthLabel: "📅 महिना:", clearBtn: "हटाएं",
@@ -141,6 +142,7 @@ const txt = {
     balHint: (t,a,r,b) => `${t} - ${a} - ${r} = ${b}`,
     currency: "Rs", unit: "कि.ग्रा.", per: "/कि.ग्रा.",
     saveBtn: "✅ सेव करें", saving: "⏳ सेव हो रहा है...", locale: "hi-IN",
+    viewList: "📋 लिस्ट", viewSession: "🗂️ सेशन", sessionLabel: "सेशन", totalKg: "कुल",
   },
   ne: {
     loading: "कृपया प्रतीक्षा गर्नुस्...", monthLabel: "📅 महिना:", clearBtn: "हटाउनुस्",
@@ -158,6 +160,7 @@ const txt = {
     balHint: (t,a,r,b) => `${t} - ${a} - ${r} = ${b}`,
     currency: "Rs", unit: "कि.ग्रा.", per: "/कि.ग्रा.",
     saveBtn: "✅ सुरक्षित गर्नुस्", saving: "⏳ सुरक्षित हुँदैछ...", locale: "ne-NP",
+    viewList: "📋 सूची", viewSession: "🗂️ सेसन", sessionLabel: "सेसन", totalKg: "जम्मा",
   },
   as: {
     loading: "অনুগ্ৰহ কৰি অপেক্ষা কৰক...", monthLabel: "📅 মাহ:", clearBtn: "বাতিল",
@@ -175,6 +178,7 @@ const txt = {
     balHint: (t,a,r,b) => `${t} - ${a} - ${r} = ${b} টকা`,
     currency: "টকা", unit: "কি:গ্ৰা:", per: "/কি:গ্ৰা:",
     saveBtn: "✅ সংৰক্ষণ কৰক", saving: "⏳ সংৰক্ষণ হৈ আছে...", locale: "as-IN",
+    viewList: "📋 লিষ্ট", viewSession: "🗂️ ছেছন", sessionLabel: "ছেছন", totalKg: "মুঠ",
   },
 };
 
@@ -190,6 +194,8 @@ export default function EntryViewPage({ user }) {
   const [editForm, setEditForm] = useState({});
   const [saving, setSaving] = useState(false);
   const [deleteId, setDeleteId] = useState(null);
+  const [viewMode, setViewMode] = useState("list"); // "list" | "session"
+  const [expandedSession, setExpandedSession] = useState(null);
 
   useEffect(() => {
     const id = "rain-style";
@@ -225,6 +231,34 @@ export default function EntryViewPage({ user }) {
       const bTime = b.createdAt?.seconds ?? 0;
       return bTime - aTime;
     });
+
+  // Session-wise grouping — Doctor page jaisa hi automatic gap-detection (8 din gap = naya session)
+  const SESSION_GAP_DAYS = 8;
+  const sessionGroups = (() => {
+    const sorted = [...entries].filter(e => e.date).sort((a, b) => a.date.localeCompare(b.date));
+    if (sorted.length === 0) return [];
+    const groups = [];
+    let cur = { startDate: sorted[0].date, endDate: sorted[0].date, entries: [sorted[0]] };
+    for (let i = 1; i < sorted.length; i++) {
+      const days = Math.round((new Date(sorted[i].date) - new Date(cur.endDate)) / 86400000);
+      if (days <= SESSION_GAP_DAYS) {
+        cur.endDate = sorted[i].date;
+        cur.entries.push(sorted[i]);
+      } else {
+        groups.push(cur);
+        cur = { startDate: sorted[i].date, endDate: sorted[i].date, entries: [sorted[i]] };
+      }
+    }
+    groups.push(cur);
+    return groups.map((g, i) => ({
+      sessionNumber: i + 1,
+      startDate: g.startDate,
+      endDate: g.endDate,
+      totalKg: g.entries.reduce((s, e) => s + (e.weight || 0), 0),
+      totalAmount: g.entries.reduce((s, e) => s + (e.totalAmount || 0), 0),
+      entries: g.entries.slice().sort((a, b) => (b.date || "").localeCompare(a.date || "")),
+    })).reverse(); // naya session sabse upar
+  })();
 
   const handleDelete = async () => {
     await deleteDoc(doc(db, "entries", deleteId));
@@ -295,6 +329,52 @@ export default function EntryViewPage({ user }) {
     </div>
   );
 
+  const renderEntryCard = (entry) => {
+    const isWater = entry.waterStatus === "yes";
+    const cardStyle = {
+      background: d.card, borderRadius: "14px", boxShadow: d.shadow, marginBottom: "10px",
+      border: isWater ? `1.5px solid ${dark ? "#38bdf8" : "#7dd3fc"}` : d.cardBorder,
+    };
+    const cardContent = (
+      <>
+        <div style={{ position: "relative", zIndex: 1, padding: "14px 16px", display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+          <div>
+            <div style={{ fontSize: "14px", fontWeight: "800", color: d.text }}>
+              {new Date(entry.date + "T00:00:00").toLocaleDateString(T.locale, { day: "numeric", month: "long", year: "numeric" })}
+            </div>
+            <div style={{ fontSize: "12px", color: d.subtext, marginTop: "3px" }}>
+              {entry.weight} {T.unit}{entry.rate > 0 ? ` @ Rs${entry.rate}${T.per}` : ""}
+            </div>
+          </div>
+          <div style={{ textAlign: "right" }}>
+            {entry.totalAmount > 0
+              ? <div style={{ fontSize: "20px", fontWeight: "900", color: d.text }}>Rs {entry.totalAmount.toFixed(0)}</div>
+              : <div style={{ fontSize: "12px", color: d.pendingColor, background: d.pendingBg, padding: "3px 8px", borderRadius: "6px", fontWeight: "700" }}>{T.pending}</div>
+            }
+            {entry.balanceAmount !== undefined && entry.balanceAmount !== 0 && (
+              <div style={{ fontSize: "12px", fontWeight: "700", padding: "2px 8px", borderRadius: "6px", display: "inline-block", marginTop: "3px", color: (entry.balanceAmount || 0) >= 0 ? "#16a34a" : "#dc2626", background: (entry.balanceAmount || 0) >= 0 ? (dark ? "#14532d" : "#f0fdf4") : (dark ? "#7f1d1d" : "#fef2f2") }}>
+                {T.baaki} {(entry.balanceAmount || 0).toFixed(0)}
+              </div>
+            )}
+          </div>
+        </div>
+        <div style={{ position: "relative", zIndex: 1, display: "flex", gap: "8px", padding: "0 14px 14px" }}>
+          <button onClick={() => openEdit(entry)}
+            style={{ flex: 1, background: d.editBtnBg, color: d.editBtnColor, border: `2px solid ${d.editBtnBorder}`, padding: "10px", borderRadius: "10px", cursor: "pointer", fontSize: "13px", fontWeight: "700", fontFamily: "inherit" }}>
+            {T.editBtn}
+          </button>
+          <button onClick={() => setDeleteId(entry.id)}
+            style={{ background: dark ? "#7f1d1d" : "#fee2e2", color: "#dc2626", border: `2px solid ${dark ? "#dc2626" : "#fca5a5"}`, padding: "10px 16px", borderRadius: "10px", cursor: "pointer", fontSize: "16px", fontFamily: "inherit" }}>
+            🗑️
+          </button>
+        </div>
+      </>
+    );
+    return isWater
+      ? <RainCard key={entry.id} style={cardStyle}>{cardContent}</RainCard>
+      : <div key={entry.id} style={cardStyle}>{cardContent}</div>;
+  };
+
   return (
     <div style={{ minHeight: "calc(100vh - 120px)", background: d.bg, padding: "16px", paddingBottom: "90px", fontFamily: "'Segoe UI', sans-serif" }}>
 
@@ -307,63 +387,73 @@ export default function EntryViewPage({ user }) {
           style={{ background: "#fee2e2", color: "#dc2626", border: "none", padding: "6px 12px", borderRadius: "8px", cursor: "pointer", fontWeight: "700", fontFamily: "inherit" }}>{T.clearBtn}</button>}
       </div>
 
+      {/* View toggle */}
+      <div style={{ display: "flex", gap: "8px", marginBottom: "10px" }}>
+        <button onClick={() => setViewMode("list")}
+          style={{ flex: 1, padding: "10px", borderRadius: "10px", border: viewMode === "list" ? "2px solid #16a34a" : `2px solid ${d.filterBorder}`, background: viewMode === "list" ? (dark ? "#14532d" : "#f0fdf4") : d.filterBg, color: d.text, fontWeight: "800", fontSize: "13px", cursor: "pointer", fontFamily: "inherit" }}>
+          {T.viewList}
+        </button>
+        <button onClick={() => setViewMode("session")}
+          style={{ flex: 1, padding: "10px", borderRadius: "10px", border: viewMode === "session" ? "2px solid #16a34a" : `2px solid ${d.filterBorder}`, background: viewMode === "session" ? (dark ? "#14532d" : "#f0fdf4") : d.filterBg, color: d.text, fontWeight: "800", fontSize: "13px", cursor: "pointer", fontFamily: "inherit" }}>
+          {T.viewSession}
+        </button>
+      </div>
+
       {/* Count */}
       <div style={{ fontSize: "12px", color: d.subtext, fontWeight: "600", marginBottom: "12px", paddingLeft: "4px" }}>
         {filterMonth ? T.countMonth(filtered.length) : T.countTotal(filtered.length)}
       </div>
 
-      {/* Entries */}
-      {filtered.length === 0 ? (
-        <div style={{ textAlign: "center", padding: "50px 20px", color: d.subtext, fontSize: "15px" }}>
-          <div style={{ fontSize: "40px" }}>🍃</div>
-          <p>{T.noData}</p>
-          <p style={{ fontSize: "13px", marginTop: "6px" }}>{T.noDataSub}</p>
-        </div>
-      ) : filtered.map(entry => {
-        const isWater = entry.waterStatus === "yes";
-        const cardStyle = {
-          background: d.card, borderRadius: "14px", boxShadow: d.shadow, marginBottom: "10px",
-          border: isWater ? `1.5px solid ${dark ? "#38bdf8" : "#7dd3fc"}` : d.cardBorder,
-        };
-        const cardContent = (
-          <>
-            <div style={{ position: "relative", zIndex: 1, padding: "14px 16px", display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-              <div>
-                <div style={{ fontSize: "14px", fontWeight: "800", color: d.text }}>
-                  {new Date(entry.date + "T00:00:00").toLocaleDateString(T.locale, { day: "numeric", month: "long", year: "numeric" })}
+      {/* LIST VIEW */}
+      {viewMode === "list" && (
+        filtered.length === 0 ? (
+          <div style={{ textAlign: "center", padding: "50px 20px", color: d.subtext, fontSize: "15px" }}>
+            <div style={{ fontSize: "40px" }}>🍃</div>
+            <p>{T.noData}</p>
+            <p style={{ fontSize: "13px", marginTop: "6px" }}>{T.noDataSub}</p>
+          </div>
+        ) : filtered.map(entry => renderEntryCard(entry))
+      )}
+
+      {/* SESSION VIEW — tap karke andar entries expand hoti hain, same page mein */}
+      {viewMode === "session" && (
+        sessionGroups.length === 0 ? (
+          <div style={{ textAlign: "center", padding: "50px 20px", color: d.subtext, fontSize: "15px" }}>
+            <div style={{ fontSize: "40px" }}>🍃</div>
+            <p>{T.noData}</p>
+            <p style={{ fontSize: "13px", marginTop: "6px" }}>{T.noDataSub}</p>
+          </div>
+        ) : sessionGroups.map(s => {
+          const isOpen = expandedSession === s.sessionNumber;
+          return (
+            <div key={s.sessionNumber} style={{ marginBottom: "10px" }}>
+              <div onClick={() => setExpandedSession(isOpen ? null : s.sessionNumber)}
+                style={{
+                  background: isOpen ? (dark ? "#0c4a6e" : "#e0f2fe") : d.card,
+                  borderRadius: "14px", boxShadow: d.shadow, border: d.cardBorder,
+                  padding: "14px 16px", display: "flex", justifyContent: "space-between", alignItems: "center",
+                  cursor: "pointer",
+                }}>
+                <div>
+                  <div style={{ fontSize: "14px", fontWeight: "800", color: d.text }}>{T.sessionLabel} #{s.sessionNumber}</div>
+                  <div style={{ fontSize: "12px", color: d.subtext, marginTop: "2px" }}>{s.startDate} → {s.endDate} • {s.entries.length} {T.unit === "kg" ? "entries" : T.unit}</div>
                 </div>
-                <div style={{ fontSize: "12px", color: d.subtext, marginTop: "3px" }}>
-                  {entry.weight} {T.unit}{entry.rate > 0 ? ` @ Rs${entry.rate}${T.per}` : ""}
+                <div style={{ textAlign: "right" }}>
+                  <div style={{ fontSize: "18px", fontWeight: "900", color: d.text }}>{s.totalKg.toFixed(1)} {T.unit}</div>
+                  {s.totalAmount > 0 && <div style={{ fontSize: "12px", color: d.subtext }}>Rs {s.totalAmount.toFixed(0)}</div>}
                 </div>
+                <div style={{ fontSize: "14px", color: d.subtext, marginLeft: "8px" }}>{isOpen ? "▲" : "▼"}</div>
               </div>
-              <div style={{ textAlign: "right" }}>
-                {entry.totalAmount > 0
-                  ? <div style={{ fontSize: "20px", fontWeight: "900", color: d.text }}>Rs {entry.totalAmount.toFixed(0)}</div>
-                  : <div style={{ fontSize: "12px", color: d.pendingColor, background: d.pendingBg, padding: "3px 8px", borderRadius: "6px", fontWeight: "700" }}>{T.pending}</div>
-                }
-                {entry.balanceAmount !== undefined && entry.balanceAmount !== 0 && (
-                  <div style={{ fontSize: "12px", fontWeight: "700", padding: "2px 8px", borderRadius: "6px", display: "inline-block", marginTop: "3px", color: (entry.balanceAmount || 0) >= 0 ? "#16a34a" : "#dc2626", background: (entry.balanceAmount || 0) >= 0 ? (dark ? "#14532d" : "#f0fdf4") : (dark ? "#7f1d1d" : "#fef2f2") }}>
-                    {T.baaki} {(entry.balanceAmount || 0).toFixed(0)}
-                  </div>
-                )}
-              </div>
+
+              {isOpen && (
+                <div style={{ marginTop: "8px", paddingLeft: "8px" }}>
+                  {s.entries.map(entry => renderEntryCard(entry))}
+                </div>
+              )}
             </div>
-            <div style={{ position: "relative", zIndex: 1, display: "flex", gap: "8px", padding: "0 14px 14px" }}>
-              <button onClick={() => openEdit(entry)}
-                style={{ flex: 1, background: d.editBtnBg, color: d.editBtnColor, border: `2px solid ${d.editBtnBorder}`, padding: "10px", borderRadius: "10px", cursor: "pointer", fontSize: "13px", fontWeight: "700", fontFamily: "inherit" }}>
-                {T.editBtn}
-              </button>
-              <button onClick={() => setDeleteId(entry.id)}
-                style={{ background: dark ? "#7f1d1d" : "#fee2e2", color: "#dc2626", border: `2px solid ${dark ? "#dc2626" : "#fca5a5"}`, padding: "10px 16px", borderRadius: "10px", cursor: "pointer", fontSize: "16px", fontFamily: "inherit" }}>
-                🗑️
-              </button>
-            </div>
-          </>
-        );
-        return isWater
-          ? <RainCard key={entry.id} style={cardStyle}>{cardContent}</RainCard>
-          : <div key={entry.id} style={cardStyle}>{cardContent}</div>;
-      })}
+          );
+        })
+      )}
 
       {/* DELETE CONFIRM */}
       {deleteId && (
