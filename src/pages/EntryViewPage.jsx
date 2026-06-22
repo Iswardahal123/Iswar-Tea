@@ -386,7 +386,7 @@ export default function EntryViewPage({ user }) {
         <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "14px" }}>
           <button onClick={() => setSelectedSession(null)}
             style={{ background: d.filterBg, border: `2px solid ${d.filterBorder}`, borderRadius: "10px", width: "40px", height: "40px", fontSize: "16px", cursor: "pointer", fontFamily: "inherit", color: d.text, flexShrink: 0 }}>
-            ←
+            ← back
           </button>
           <div>
             <div style={{ fontSize: "16px", fontWeight: "900", color: d.text }}>{T.sessionLabel} #{liveSelectedSession.sessionNumber}</div>
