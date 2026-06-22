@@ -195,7 +195,7 @@ export default function EntryViewPage({ user }) {
   const [saving, setSaving] = useState(false);
   const [deleteId, setDeleteId] = useState(null);
   const [viewMode, setViewMode] = useState("list"); // "list" | "session"
-  const [expandedSession, setExpandedSession] = useState(null);
+  const [selectedSession, setSelectedSession] = useState(null); // session subpage
 
   useEffect(() => {
     const id = "rain-style";
@@ -375,6 +375,142 @@ export default function EntryViewPage({ user }) {
       : <div key={entry.id} style={cardStyle}>{cardContent}</div>;
   };
 
+  // selectedSession ko hamesha latest sessionGroups se sync rakho (edit/delete ke baad bhi sahi data dikhe)
+  const liveSelectedSession = selectedSession
+    ? sessionGroups.find(s => s.sessionNumber === selectedSession.sessionNumber) || null
+    : null;
+
+  // ── SESSION SUBPAGE — alag screen, back button se list pe wapas ──
+  if (liveSelectedSession) {
+    return (
+      <div style={{ minHeight: "calc(100vh - 120px)", background: d.bg, padding: "16px", paddingBottom: "90px", fontFamily: "'Segoe UI', sans-serif" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "14px" }}>
+          <button onClick={() => setSelectedSession(null)}
+            style={{ background: d.filterBg, border: `2px solid ${d.filterBorder}`, borderRadius: "10px", width: "40px", height: "40px", fontSize: "16px", cursor: "pointer", fontFamily: "inherit", color: d.text, flexShrink: 0 }}>
+            ←
+          </button>
+          <div>
+            <div style={{ fontSize: "16px", fontWeight: "900", color: d.text }}>{T.sessionLabel} #{liveSelectedSession.sessionNumber}</div>
+            <div style={{ fontSize: "12px", color: d.subtext }}>{liveSelectedSession.startDate} → {liveSelectedSession.endDate}</div>
+          </div>
+        </div>
+
+        <div style={{ display: "flex", gap: "10px", marginBottom: "16px" }}>
+          <div style={{ flex: 1, background: d.card, borderRadius: "12px", padding: "12px", boxShadow: d.shadow, border: d.cardBorder }}>
+            <div style={{ fontSize: "11px", color: d.subtext, fontWeight: "700" }}>{T.totalKg}</div>
+            <div style={{ fontSize: "18px", fontWeight: "900", color: d.text }}>{liveSelectedSession.totalKg.toFixed(1)} {T.unit}</div>
+          </div>
+          {liveSelectedSession.totalAmount > 0 && (
+            <div style={{ flex: 1, background: d.card, borderRadius: "12px", padding: "12px", boxShadow: d.shadow, border: d.cardBorder }}>
+              <div style={{ fontSize: "11px", color: d.subtext, fontWeight: "700" }}>{T.currency}</div>
+              <div style={{ fontSize: "18px", fontWeight: "900", color: d.text }}>Rs {liveSelectedSession.totalAmount.toFixed(0)}</div>
+            </div>
+          )}
+        </div>
+
+        {liveSelectedSession.entries.map(entry => renderEntryCard(entry))}
+
+        {/* DELETE CONFIRM — subpage ke andar bhi kaam kare */}
+        {deleteId && (
+          <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(0,0,0,0.55)", zIndex: 999, display: "flex", alignItems: "center", justifyContent: "center", padding: "24px" }} onClick={() => setDeleteId(null)}>
+            <div style={{ background: d.confirmBg, borderRadius: "20px", padding: "28px 24px", width: "100%", maxWidth: "320px", textAlign: "center", boxShadow: "0 20px 60px rgba(0,0,0,0.35)", border: d.cardBorder }} onClick={e => e.stopPropagation()}>
+              <div style={{ fontSize: "44px", marginBottom: "12px" }}>🗑️</div>
+              <div style={{ fontSize: "18px", fontWeight: "900", color: d.text, marginBottom: "8px" }}>{T.deleteTitle}</div>
+              <div style={{ fontSize: "13px", color: d.subtext, marginBottom: "24px", lineHeight: "1.5" }}>{T.deleteMsg}</div>
+              <div style={{ display: "flex", gap: "10px" }}>
+                <button onClick={() => setDeleteId(null)} style={{ flex: 1, padding: "13px", borderRadius: "12px", border: `2px solid ${d.cancelBorder}`, background: d.cancelBg, color: d.cancelColor, fontSize: "14px", fontWeight: "700", cursor: "pointer", fontFamily: "inherit" }}>{T.cancelBtn}</button>
+                <button onClick={handleDelete} style={{ flex: 1, padding: "13px", borderRadius: "12px", border: "none", background: "linear-gradient(135deg,#7f1d1d,#dc2626)", color: "white", fontSize: "14px", fontWeight: "700", cursor: "pointer", fontFamily: "inherit" }}>{T.deleteBtn}</button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* EDIT MODAL — subpage ke andar bhi kaam kare */}
+        {editEntry && (() => {
+          const isEditWater = editEntry.waterStatus === "yes";
+          const modalStyle = {
+            background: d.modalBg, borderRadius: "24px 24px 0 0",
+            width: "100%", maxWidth: "480px", maxHeight: "90vh",
+            overflow: "hidden", display: "flex", flexDirection: "column",
+            border: isEditWater ? `1.5px solid ${dark ? "#38bdf8" : "#7dd3fc"}` : (dark ? "1px solid #334155" : "none"),
+          };
+          const modalContent = (
+            <>
+              <div style={{ padding: "20px 20px 16px", display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: `2px solid ${dark ? "#334155" : "#f3f4f6"}`, flexShrink: 0, position: "relative", zIndex: 2 }}>
+                <h3 style={{ fontSize: "18px", fontWeight: "800", color: d.text, margin: 0 }}>{T.editTitle}</h3>
+                <button onClick={() => setEditEntry(null)} style={{ background: dark ? "#334155" : "#f3f4f6", border: "none", width: "32px", height: "32px", borderRadius: "50%", cursor: "pointer", fontSize: "14px", fontWeight: "700", fontFamily: "inherit", color: d.text }}>✕</button>
+              </div>
+              <div style={{ padding: "16px 20px 30px", overflowY: "auto", display: "flex", flexDirection: "column", gap: "14px", position: "relative", zIndex: 2 }}>
+                {[
+                  { label: T.fDate, name: "date", type: "date" },
+                  { label: T.fWeight, name: "weight", type: "number", ph: "150" },
+                  { label: T.fRate, name: "rate", type: "number", ph: "18" },
+                ].map(f => (
+                  <div key={f.name} style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+                    <label style={{ fontSize: "13px", fontWeight: "700", color: d.label }}>{f.label}</label>
+                    <input type={f.type} name={f.name} value={editForm[f.name]} onChange={handleEditChange} placeholder={f.ph}
+                      style={{ padding: "12px 14px", borderRadius: "10px", border: `2px solid ${d.inputBorder}`, fontSize: "15px", outline: "none", fontFamily: "inherit", width: "100%", boxSizing: "border-box", background: d.input, color: d.inputText }} />
+                  </div>
+                ))}
+
+                {eTotalAmount > 0 && (
+                  <div style={{ background: dark ? "#14532d" : "#f0fdf4", border: `2px solid ${dark ? "#16a34a" : "#86efac"}`, borderRadius: "12px", padding: "12px 14px" }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                      <span style={{ color: d.label }}>{T.fTotal}</span>
+                      <span style={{ fontSize: "20px", fontWeight: "800", color: dark ? "#86efac" : "#16a34a" }}>{eTotalAmount.toFixed(2)} {T.currency}</span>
+                    </div>
+                    <div style={{ fontSize: "11px", color: d.subtext, marginTop: "3px" }}>{T.calcHint(eWeight, eRate, eTotalAmount.toFixed(2))}</div>
+                  </div>
+                )}
+
+                {[
+                  { label: T.fAdvCut, name: "advanceCut", ph: "0" },
+                  { label: T.fReceived, name: "amountReceived", ph: "0" },
+                ].map(f => (
+                  <div key={f.name} style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+                    <label style={{ fontSize: "13px", fontWeight: "700", color: d.label }}>{f.label}</label>
+                    <input type="number" name={f.name} value={editForm[f.name]} onChange={handleEditChange} placeholder={f.ph}
+                      style={{ padding: "12px 14px", borderRadius: "10px", border: `2px solid ${d.inputBorder}`, fontSize: "15px", outline: "none", fontFamily: "inherit", width: "100%", boxSizing: "border-box", background: d.input, color: d.inputText }} />
+                  </div>
+                ))}
+
+                {eTotalAmount > 0 && (
+                  <div style={{ background: eBalance >= 0 ? (dark ? "#14532d" : "#f0fdf4") : (dark ? "#7f1d1d" : "#fef2f2"), border: `2px solid ${eBalance >= 0 ? (dark ? "#16a34a" : "#86efac") : "#fca5a5"}`, borderRadius: "12px", padding: "12px 14px" }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                      <span style={{ fontWeight: "800", color: d.text }}>{T.fBalance}</span>
+                      <span style={{ fontSize: "22px", fontWeight: "900", color: eBalance >= 0 ? "#16a34a" : "#dc2626" }}>{eBalance.toFixed(2)} {T.currency}</span>
+                    </div>
+                    <div style={{ fontSize: "11px", color: d.subtext, marginTop: "3px" }}>{T.balHint(eTotalAmount.toFixed(0), eAdvance, eReceived, eBalance.toFixed(2))}</div>
+                  </div>
+                )}
+
+                <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+                  <label style={{ fontSize: "13px", fontWeight: "700", color: d.label }}>{T.fNotes}</label>
+                  <textarea name="notes" value={editForm.notes} onChange={handleEditChange} placeholder={T.fNotesPh} rows={2}
+                    style={{ padding: "12px 14px", borderRadius: "10px", border: `2px solid ${d.inputBorder}`, fontSize: "15px", outline: "none", fontFamily: "inherit", width: "100%", boxSizing: "border-box", resize: "none", background: d.input, color: d.inputText }} />
+                </div>
+
+                <button onClick={handleSave} disabled={saving}
+                  style={{ background: "linear-gradient(135deg,#1a3a1a,#2d5a27)", color: "white", border: "none", padding: "15px", borderRadius: "12px", fontSize: "16px", fontWeight: "700", cursor: "pointer", fontFamily: "inherit", marginTop: "4px" }}>
+                  {saving ? T.saving : T.saveBtn}
+                </button>
+              </div>
+            </>
+          );
+
+          return (
+            <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(0,0,0,0.55)", zIndex: 999, display: "flex", alignItems: "flex-end", justifyContent: "center" }} onClick={() => setEditEntry(null)}>
+              {isEditWater
+                ? <RainModal style={modalStyle} onClick={e => e.stopPropagation()}>{modalContent}</RainModal>
+                : <div style={modalStyle} onClick={e => e.stopPropagation()}>{modalContent}</div>
+              }
+            </div>
+          );
+        })()}
+      </div>
+    );
+  }
+
   return (
     <div style={{ minHeight: "calc(100vh - 120px)", background: d.bg, padding: "16px", paddingBottom: "90px", fontFamily: "'Segoe UI', sans-serif" }}>
 
@@ -415,7 +551,7 @@ export default function EntryViewPage({ user }) {
         ) : filtered.map(entry => renderEntryCard(entry))
       )}
 
-      {/* SESSION VIEW — tap karke andar entries expand hoti hain, same page mein */}
+      {/* SESSION VIEW — tap karke alag subpage mein khulta hai */}
       {viewMode === "session" && (
         sessionGroups.length === 0 ? (
           <div style={{ textAlign: "center", padding: "50px 20px", color: d.subtext, fontSize: "15px" }}>
@@ -423,36 +559,24 @@ export default function EntryViewPage({ user }) {
             <p>{T.noData}</p>
             <p style={{ fontSize: "13px", marginTop: "6px" }}>{T.noDataSub}</p>
           </div>
-        ) : sessionGroups.map(s => {
-          const isOpen = expandedSession === s.sessionNumber;
-          return (
-            <div key={s.sessionNumber} style={{ marginBottom: "10px" }}>
-              <div onClick={() => setExpandedSession(isOpen ? null : s.sessionNumber)}
-                style={{
-                  background: isOpen ? (dark ? "#0c4a6e" : "#e0f2fe") : d.card,
-                  borderRadius: "14px", boxShadow: d.shadow, border: d.cardBorder,
-                  padding: "14px 16px", display: "flex", justifyContent: "space-between", alignItems: "center",
-                  cursor: "pointer",
-                }}>
-                <div>
-                  <div style={{ fontSize: "14px", fontWeight: "800", color: d.text }}>{T.sessionLabel} #{s.sessionNumber}</div>
-                  <div style={{ fontSize: "12px", color: d.subtext, marginTop: "2px" }}>{s.startDate} → {s.endDate} • {s.entries.length} {T.unit === "kg" ? "entries" : T.unit}</div>
-                </div>
-                <div style={{ textAlign: "right" }}>
-                  <div style={{ fontSize: "18px", fontWeight: "900", color: d.text }}>{s.totalKg.toFixed(1)} {T.unit}</div>
-                  {s.totalAmount > 0 && <div style={{ fontSize: "12px", color: d.subtext }}>Rs {s.totalAmount.toFixed(0)}</div>}
-                </div>
-                <div style={{ fontSize: "14px", color: d.subtext, marginLeft: "8px" }}>{isOpen ? "▲" : "▼"}</div>
-              </div>
-
-              {isOpen && (
-                <div style={{ marginTop: "8px", paddingLeft: "8px" }}>
-                  {s.entries.map(entry => renderEntryCard(entry))}
-                </div>
-              )}
+        ) : sessionGroups.map(s => (
+          <div key={s.sessionNumber} onClick={() => setSelectedSession(s)}
+            style={{
+              background: d.card, borderRadius: "14px", boxShadow: d.shadow, border: d.cardBorder,
+              padding: "14px 16px", display: "flex", justifyContent: "space-between", alignItems: "center",
+              cursor: "pointer", marginBottom: "10px",
+            }}>
+            <div>
+              <div style={{ fontSize: "14px", fontWeight: "800", color: d.text }}>{T.sessionLabel} #{s.sessionNumber}</div>
+              <div style={{ fontSize: "12px", color: d.subtext, marginTop: "2px" }}>{s.startDate} → {s.endDate} • {s.entries.length} {T.unit === "kg" ? "entries" : T.unit}</div>
             </div>
-          );
-        })
+            <div style={{ textAlign: "right" }}>
+              <div style={{ fontSize: "18px", fontWeight: "900", color: d.text }}>{s.totalKg.toFixed(1)} {T.unit}</div>
+              {s.totalAmount > 0 && <div style={{ fontSize: "12px", color: d.subtext }}>Rs {s.totalAmount.toFixed(0)}</div>}
+            </div>
+            <div style={{ fontSize: "16px", color: d.subtext, marginLeft: "8px" }}>›</div>
+          </div>
+        ))
       )}
 
       {/* DELETE CONFIRM */}
