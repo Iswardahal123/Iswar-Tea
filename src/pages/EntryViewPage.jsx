@@ -385,8 +385,8 @@ export default function EntryViewPage({ user }) {
       <div style={{ minHeight: "calc(100vh - 120px)", background: d.bg, padding: "16px", paddingBottom: "90px", fontFamily: "'Segoe UI', sans-serif" }}>
         <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "14px" }}>
           <button onClick={() => setSelectedSession(null)}
-            style={{ background: d.filterBg, border: `2px solid ${d.filterBorder}`, borderRadius: "10px", width: "40px", height: "40px", fontSize: "16px", cursor: "pointer", fontFamily: "inherit", color: d.text, flexShrink: 0 }}>
-            ← back
+            style={{ background: d.filterBg, border: `2px solid ${d.filterBorder}`, borderRadius: "10px", padding: "10px 16px", fontSize: "14px", fontWeight: "700", cursor: "pointer", fontFamily: "inherit", color: d.text, flexShrink: 0, display: "flex", alignItems: "center", gap: "6px" }}>
+            ← Back
           </button>
           <div>
             <div style={{ fontSize: "16px", fontWeight: "900", color: d.text }}>{T.sessionLabel} #{liveSelectedSession.sessionNumber}</div>
