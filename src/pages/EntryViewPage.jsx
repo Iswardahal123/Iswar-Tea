@@ -189,7 +189,6 @@ export default function EntryViewPage({ user }) {
 
   const [entries, setEntries] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [filterMonth, setFilterMonth] = useState("");
   const [editEntry, setEditEntry] = useState(null);
   const [editForm, setEditForm] = useState({});
   const [saving, setSaving] = useState(false);
@@ -220,7 +219,7 @@ export default function EntryViewPage({ user }) {
 
   useEffect(() => { fetchEntries(); }, [fetchEntries]);
 
-  const filtered = (filterMonth ? entries.filter(e => e.date?.startsWith(filterMonth)) : entries)
+  const filtered = entries
     .slice()
     .sort((a, b) => {
       // Pehle date compare karo
@@ -514,15 +513,6 @@ export default function EntryViewPage({ user }) {
   return (
     <div style={{ minHeight: "calc(100vh - 120px)", background: d.bg, padding: "16px", paddingBottom: "90px", fontFamily: "'Segoe UI', sans-serif" }}>
 
-      {/* Filter */}
-      <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "10px", background: d.filterBg, padding: "12px 16px", borderRadius: "12px", boxShadow: d.shadow, border: d.cardBorder }}>
-        <label style={{ fontSize: "13px", fontWeight: "700", whiteSpace: "nowrap", color: d.text }}>{T.monthLabel}</label>
-        <input type="month" value={filterMonth} onChange={e => setFilterMonth(e.target.value)}
-          style={{ border: `2px solid ${d.filterBorder}`, borderRadius: "8px", padding: "6px 10px", fontSize: "14px", flex: 1, outline: "none", fontFamily: "inherit", background: d.input, color: d.inputText }} />
-        {filterMonth && <button onClick={() => setFilterMonth("")}
-          style={{ background: "#fee2e2", color: "#dc2626", border: "none", padding: "6px 12px", borderRadius: "8px", cursor: "pointer", fontWeight: "700", fontFamily: "inherit" }}>{T.clearBtn}</button>}
-      </div>
-
       {/* View toggle */}
       <div style={{ display: "flex", gap: "8px", marginBottom: "10px" }}>
         <button onClick={() => setViewMode("list")}
@@ -537,7 +527,7 @@ export default function EntryViewPage({ user }) {
 
       {/* Count */}
       <div style={{ fontSize: "12px", color: d.subtext, fontWeight: "600", marginBottom: "12px", paddingLeft: "4px" }}>
-        {filterMonth ? T.countMonth(filtered.length) : T.countTotal(filtered.length)}
+        {T.countTotal(filtered.length)}
       </div>
 
       {/* LIST VIEW */}
