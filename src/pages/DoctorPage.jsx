@@ -3,8 +3,8 @@ import { auth, db } from "../firebase/config";
 import { collection, query, where, getDocs, addDoc, doc, getDoc, Timestamp } from "firebase/firestore";
 import { useDark } from "../DarkModeContext";
 
-// Free OpenRouter model jo image (vision) samajh sakta hai — admin ka saved text-only model fallback ke taur pe replace hota hai sirf photo-check ke liye
-const VISION_MODEL = "meta-llama/llama-4-maverick:free";
+// Free OpenRouter vision models — pehla try karo, fail ho to fallback pe jao
+const VISION_MODELS = ["meta-llama/llama-4-maverick:free", "meta-llama/llama-4-scout:free"];
 
 // ── Tea Bagan Guide 2026 data (Joysiddhi/Naduar, 2 Bigha) ──────────────────
 const DISEASES = [
@@ -139,59 +139,93 @@ export default function DoctorPage({ user }) {
     setMarking(false);
   };
 
+  // Photo ko resize karta hai taaki upload chhota/fast ho — badi photo "fetch failed" ka common reason hai
+  const resizeImage = (file, maxSize = 1024) => new Promise((resolve, reject) => {
+    const img = new Image();
+    const reader = new FileReader();
+    reader.onload = () => {
+      img.onload = () => {
+        let { width, height } = img;
+        if (width > height && width > maxSize) { height = (height * maxSize) / width; width = maxSize; }
+        else if (height > maxSize) { width = (width * maxSize) / height; height = maxSize; }
+        const canvas = document.createElement("canvas");
+        canvas.width = width; canvas.height = height;
+        canvas.getContext("2d").drawImage(img, 0, 0, width, height);
+        resolve(canvas.toDataURL("image/jpeg", 0.75));
+      };
+      img.onerror = reject;
+      img.src = reader.result;
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+
+  const callVisionModel = async (model, base64DataUri) => {
+    const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${aiApiKey}`,
+        "Content-Type": "application/json",
+        "HTTP-Referer": window.location.origin,
+        "X-Title": "Bagan Doctor",
+      },
+      body: JSON.stringify({
+        model,
+        messages: [
+          {
+            role: "user",
+            content: [
+              {
+                type: "text",
+                text: "Yeh tea bagan (tea garden) ke patte/ped ki photo hai. Tum ek tea garden expert ho. Photo dekh ke batao: 1) Kya bimari ya keeda dikh raha hai (ya healthy hai)? 2) Symptoms kya dikhe. 3) Kaunsa dawa/spray use karna chahiye, dose kya ho, aur PHI (todne se pehle kitne din wait) kitna hai. Hindi-English mix (Hinglish) mein simple bhasha mein jawab do, short aur practical rakho.",
+              },
+              { type: "image_url", image_url: { url: base64DataUri } },
+            ],
+          },
+        ],
+        max_tokens: 600,
+      }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data?.error?.message || `HTTP ${res.status}`);
+    return data.choices?.[0]?.message?.content || "AI se jawab nahi mila.";
+  };
+
   const handlePhotoSelect = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
     setDiagnosis("");
     setDiagnosisError("");
 
-    const reader = new FileReader();
-    reader.onload = async () => {
-      const base64DataUri = reader.result; // already "data:image/...;base64,...."
-      setPhotoPreview(base64DataUri);
+    if (!aiApiKey) {
+      setDiagnosisError("⚠️ AI abhi set nahi hai. Admin AI Settings mein API key add karo.");
+      return;
+    }
 
-      if (!aiApiKey) {
-        setDiagnosisError("⚠️ AI abhi set nahi hai. Admin AI Settings mein API key add karo.");
-        return;
-      }
+    setDiagnosing(true);
+    try {
+      const resizedDataUri = await resizeImage(file);
+      setPhotoPreview(resizedDataUri);
 
-      setDiagnosing(true);
-      try {
-        const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-          method: "POST",
-          headers: {
-            "Authorization": `Bearer ${aiApiKey}`,
-            "Content-Type": "application/json",
-            "HTTP-Referer": window.location.origin,
-            "X-Title": "Bagan Doctor",
-          },
-          body: JSON.stringify({
-            model: VISION_MODEL,
-            messages: [
-              {
-                role: "user",
-                content: [
-                  {
-                    type: "text",
-                    text: "Yeh tea bagan (tea garden) ke patte/ped ki photo hai. Tum ek tea garden expert ho. Photo dekh ke batao: 1) Kya bimari ya keeda dikh raha hai (ya healthy hai)? 2) Symptoms kya dikhe. 3) Kaunsa dawa/spray use karna chahiye, dose kya ho, aur PHI (todne se pehle kitne din wait) kitna hai. Hindi-English mix (Hinglish) mein simple bhasha mein jawab do, short aur practical rakho.",
-                  },
-                  { type: "image_url", image_url: { url: base64DataUri } },
-                ],
-              },
-            ],
-            max_tokens: 600,
-          }),
-        });
-        const data = await res.json();
-        if (!res.ok) throw new Error(data?.error?.message || `HTTP ${res.status}`);
-        const reply = data.choices?.[0]?.message?.content || "AI se jawab nahi mila.";
-        setDiagnosis(reply);
-      } catch (err) {
-        setDiagnosisError("❌ AI check fail hua: " + err.message);
+      let lastErr = null;
+      for (const model of VISION_MODELS) {
+        try {
+          const reply = await callVisionModel(model, resizedDataUri);
+          setDiagnosis(reply);
+          lastErr = null;
+          break;
+        } catch (err) {
+          lastErr = err;
+          console.error(`Model ${model} fail:`, err.message);
+        }
       }
-      setDiagnosing(false);
-    };
-    reader.readAsDataURL(file);
+      if (lastErr) {
+        setDiagnosisError("❌ AI check fail hua: " + lastErr.message + " — thodi der baad try karo, ya alag photo use karo (chhoti size).");
+      }
+    } catch (err) {
+      setDiagnosisError("❌ Photo process karne mein error: " + err.message);
+    }
+    setDiagnosing(false);
   };
 
   const d = {
@@ -401,7 +435,7 @@ export default function DoctorPage({ user }) {
           Bimar patte/ped ki photo upload karo, AI bata dega kya hua hai aur kya dawa maaro.
         </div>
 
-        <input ref={fileInputRef} type="file" accept="image/*" capture="environment" onChange={handlePhotoSelect} style={{ display: "none" }} />
+        <input ref={fileInputRef} type="file" accept="image/*" onChange={handlePhotoSelect} style={{ display: "none" }} />
         <button onClick={() => fileInputRef.current?.click()} disabled={diagnosing}
           style={{ width: "100%", padding: "14px", borderRadius: "12px", border: "none", background: "linear-gradient(135deg,#0d4d1c,#1a8a3a)", color: "white", fontWeight: "800", fontSize: "14px", cursor: "pointer", fontFamily: "inherit", opacity: diagnosing ? 0.6 : 1 }}>
           {diagnosing ? "🔄 AI check kar raha hai..." : "📷 Photo Upload Karo"}
