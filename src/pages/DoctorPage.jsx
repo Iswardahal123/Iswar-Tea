@@ -3,8 +3,13 @@ import { auth, db } from "../firebase/config";
 import { collection, query, where, getDocs, addDoc, doc, getDoc, Timestamp } from "firebase/firestore";
 import { useDark } from "../DarkModeContext";
 
-// Free OpenRouter vision models — pehla try karo, fail ho to fallback pe jao
-const VISION_MODELS = ["meta-llama/llama-4-maverick:free", "meta-llama/llama-4-scout:free"];
+// Free OpenRouter vision models — pehla try karo, fail ho to fallback chain follow karo
+const VISION_MODELS = [
+  "google/gemma-3-27b-it:free",
+  "qwen/qwen2.5-vl-32b-instruct:free",
+  "meta-llama/llama-3.2-11b-vision-instruct:free",
+  "openrouter/free", // auto-router — khud available free model dhoondh leta hai
+];
 
 // ── Tea Bagan Guide 2026 data (Joysiddhi/Naduar, 2 Bigha) ──────────────────
 const DISEASES = [
