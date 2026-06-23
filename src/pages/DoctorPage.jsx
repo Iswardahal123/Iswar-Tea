@@ -8,7 +8,7 @@ const VISION_MODELS = [
   "google/gemma-3-27b-it:free",
   "qwen/qwen2.5-vl-32b-instruct:free",
   "meta-llama/llama-3.2-11b-vision-instruct:free",
-  "openrouter/free", // auto-router — khud available free model dhoondh leta hai
+  "mistralai/mistral-small-3.1-24b-instruct:free",
 ];
 
 // ── Tea Bagan Guide 2026 data (Joysiddhi/Naduar, 2 Bigha) ──────────────────
@@ -193,7 +193,23 @@ export default function DoctorPage({ user }) {
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data?.error?.message || `HTTP ${res.status}`);
-    return data.choices?.[0]?.message?.content || "AI se jawab nahi mila.";
+    console.log(`Model ${model} raw response:`, JSON.stringify(data).slice(0, 800));
+
+    const msg = data.choices?.[0]?.message;
+    let reply = msg?.content;
+
+    // Kuch models content ko array format mein dete hain (text blocks)
+    if (Array.isArray(reply)) {
+      reply = reply.map(part => (typeof part === "string" ? part : part?.text || "")).join("\n").trim();
+    }
+    // Kuch reasoning models 'reasoning' field mein dalte hain, content khaali rehta hai
+    if (!reply || !reply.trim()) {
+      reply = msg?.reasoning || "";
+    }
+    if (!reply || !reply.trim()) {
+      throw new Error("Model ne khaali jawab diya (sirf safety-check hua, content nahi mila)");
+    }
+    return reply;
   };
 
   const handlePhotoSelect = async (e) => {
